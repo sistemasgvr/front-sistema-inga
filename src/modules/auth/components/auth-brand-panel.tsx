@@ -152,7 +152,9 @@ export function AuthBrandPanel() {
             height={112}
             src="/images/logo/logo-brand.png"
             alt="Ingá — Gastronomía Lambayecana"
-            className="h-28 w-auto object-contain brightness-0 invert drop-shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-[filter] duration-300 hover:drop-shadow-[0_0_28px_rgba(255,255,255,0.55)]"
+            // Anula Tailwind preflight (height:auto / max-width:100%) que dispara el warning
+            style={{ width: 220, height: 112, maxWidth: "none" }}
+            className="object-contain brightness-0 invert drop-shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-[filter] duration-300 hover:drop-shadow-[0_0_28px_rgba(255,255,255,0.55)]"
             priority
           />
         </Link>

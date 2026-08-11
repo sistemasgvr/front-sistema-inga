@@ -27,7 +27,7 @@ export function LoginForm() {
     <div className="flex w-full flex-1 flex-col lg:w-1/2">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-2 sm:px-0">
         <div className="mb-8 lg:hidden">
-          <BrandLogo className="h-14" priority />
+          <BrandLogo size="lg" priority />
         </div>
 
         <div className="mb-6 sm:mb-8">
