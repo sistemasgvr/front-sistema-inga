@@ -9,18 +9,48 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.21",
+    "@fullcalendar/daygrid": "^6.1.21",
+    "@fullcalendar/interaction": "^6.1.21",
+    "@fullcalendar/list": "^6.1.21",
+    "@fullcalendar/react": "^6.1.21",
+    "@fullcalendar/timegrid": "^6.1.21",
+    "@react-jvectormap/core": "^1.0.4",
+    "@react-jvectormap/world": "^1.1.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "apexcharts": "^6.8.0",
+    "autoprefixer": "^10.5.4",
+    "flatpickr": "^4.6.13",
     "next": "16.3.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-apexcharts": "^2.1.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "19.2.8",
+    "react-dropzone": "^20.1.0",
+    "swiper": "^14.1.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "postcss": "^8.5.26",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@react-jvectormap/core": {
+      "react": "^16.8.0 || ^17 || ^18 || ^19",
+      "react-dom": "^16.8.0 || ^17 || ^18 || ^19"
+    },
+    "@react-jvectormap/world": {
+      "react": "^16.8.0 || ^17 || ^18 || ^19",
+      "react-dom": "^16.8.0 || ^17 || ^18 || ^19"
+    }
   }
 }
