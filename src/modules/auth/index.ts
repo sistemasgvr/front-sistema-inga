@@ -1,3 +1,4 @@
+export { AuthBrandPanel } from "./components/auth-brand-panel";
 export { LoginForm } from "./components/login-form";
 export { RequireAuth } from "./components/require-auth";
 export { useLogin } from "./hooks/use-login";

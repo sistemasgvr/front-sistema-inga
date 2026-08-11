@@ -16,7 +16,7 @@ export default function LineChartOne() {
       position: "top",
       horizontalAlign: "left",
     },
-    colors: ["#465FFF", "#9CB9FF"], // Define line colors
+    colors: ["#E51B23", "#F86B6B"], // Ingá brand reds
     chart: {
       fontFamily: "Outfit, sans-serif",
       height: 310,

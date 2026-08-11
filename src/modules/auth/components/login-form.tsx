@@ -1,5 +1,6 @@
 "use client";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
@@ -24,8 +25,15 @@ export function LoginForm() {
 
   return (
     <div className="flex w-full flex-1 flex-col lg:w-1/2">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
-        <div className="mb-5 sm:mb-8">
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-2 sm:px-0">
+        <div className="mb-8 lg:hidden">
+          <BrandLogo className="h-14" priority />
+        </div>
+
+        <div className="mb-6 sm:mb-8">
+          <p className="text-theme-sm text-brand-600 mb-2 font-medium dark:text-brand-400">
+            Bienvenido
+          </p>
           <h1 className="text-title-sm sm:text-title-md mb-2 font-semibold text-gray-800 dark:text-white/90">
             Iniciar sesión
           </h1>

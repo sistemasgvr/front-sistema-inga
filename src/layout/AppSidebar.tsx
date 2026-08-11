@@ -1,5 +1,6 @@
 "use client";
 
+import BrandLogo from "@/components/common/BrandLogo";
 import { useSidebar } from "@/context/SidebarContext";
 import {
   CalenderIcon,
@@ -8,7 +9,6 @@ import {
   HorizontaLDots,
   ListIcon,
 } from "@/icons/index";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -220,29 +220,9 @@ const AppSidebar: React.FC = () => {
       >
         <Link href="/dashboard">
           {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <Image
-                className="dark:hidden"
-                src="/images/logo/logo.svg"
-                alt="Sistema Inga"
-                width={150}
-                height={40}
-              />
-              <Image
-                className="hidden dark:block"
-                src="/images/logo/logo-dark.svg"
-                alt="Sistema Inga"
-                width={150}
-                height={40}
-              />
-            </>
+            <BrandLogo priority />
           ) : (
-            <Image
-              src="/images/logo/logo-icon.svg"
-              alt="Sistema Inga"
-              width={32}
-              height={32}
-            />
+            <BrandLogo compact priority />
           )}
         </Link>
       </div>
