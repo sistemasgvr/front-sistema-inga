@@ -5,7 +5,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import { EyeCloseIcon, EyeIcon } from "@/icons";
+import { Icon } from "@/components/ui/icon";
 import { useLogin } from "../hooks/use-login";
 
 export function LoginForm() {
@@ -54,17 +54,23 @@ export function LoginForm() {
               <Label htmlFor="email">
                 Correo <span className="text-error-500">*</span>
               </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@inga.com"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                error={Boolean(errors.email)}
-                hint={errors.email}
-                disabled={isSubmitting}
-              />
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3.5 z-10 -translate-y-1/2 text-gray-400">
+                  <Icon name="mdi:email-outline" size={20} />
+                </span>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="admin@inga.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  error={Boolean(errors.email)}
+                  hint={errors.email}
+                  disabled={isSubmitting}
+                  className="pl-11"
+                />
+              </div>
             </div>
 
             <div>
@@ -72,6 +78,9 @@ export function LoginForm() {
                 Contraseña <span className="text-error-500">*</span>
               </Label>
               <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-3.5 z-10 -translate-y-1/2 text-gray-400">
+                  <Icon name="mdi:lock-outline" size={20} />
+                </span>
                 <Input
                   id="password"
                   name="password"
@@ -82,20 +91,20 @@ export function LoginForm() {
                   error={Boolean(errors.password)}
                   hint={errors.password}
                   disabled={isSubmitting}
+                  className="pr-11 pl-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-4 z-30 -translate-y-1/2 cursor-pointer"
+                  className="absolute top-1/2 right-3.5 z-30 -translate-y-1/2 cursor-pointer text-gray-500 dark:text-gray-400"
                   aria-label={
                     showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                   }
                 >
-                  {showPassword ? (
-                    <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
-                  ) : (
-                    <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
-                  )}
+                  <Icon
+                    name={showPassword ? "mdi:eye-outline" : "mdi:eye-off-outline"}
+                    size={20}
+                  />
                 </button>
               </div>
             </div>
@@ -123,6 +132,13 @@ export function LoginForm() {
                 className="w-full"
                 size="sm"
                 disabled={isSubmitting}
+                startIcon={
+                  isSubmitting ? (
+                    <Icon name="mdi:loading" size={18} className="animate-spin" />
+                  ) : (
+                    <Icon name="mdi:login" size={18} />
+                  )
+                }
               >
                 {isSubmitting ? "Ingresando..." : "Ingresar"}
               </Button>

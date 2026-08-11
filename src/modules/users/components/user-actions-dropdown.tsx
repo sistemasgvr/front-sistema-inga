@@ -2,7 +2,7 @@
 
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
-import { HorizontaLDots } from "@/icons";
+import { Icon } from "@/components/ui/icon";
 import { useState } from "react";
 import type { User } from "../types/user.types";
 
@@ -31,7 +31,7 @@ export function UserActionsDropdown({
         className="dropdown-toggle hover:text-gray-700 dark:hover:text-gray-300"
         aria-label={`Acciones de ${user.nombre_usuario}`}
       >
-        <HorizontaLDots />
+        <Icon name="mdi:dots-horizontal" size={20} />
       </button>
 
       <Dropdown
