@@ -3,7 +3,7 @@
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
 import {
-  getStoredSession,
+  getStoredUser,
   logout,
   type AuthUser,
 } from "@/modules/auth";
@@ -17,8 +17,8 @@ export default function UserDropdown() {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const session = getStoredSession();
-    setUser(session?.user ?? null);
+    const storedUser = getStoredUser();
+    setUser(storedUser);
   }, []);
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
@@ -30,13 +30,17 @@ export default function UserDropdown() {
     setIsOpen(false);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
     closeDropdown();
-    logout();
+    await logout();
     router.replace("/login");
   }
 
-  const displayName = user?.name ?? "Usuario";
+  const displayName = user
+    ? user.nombres
+      ? `${user.nombres} ${user.apellidos}`.trim()
+      : user.username
+    : "Usuario";
   const displayEmail = user?.email ?? "";
 
   return (

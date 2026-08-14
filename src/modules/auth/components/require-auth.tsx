@@ -1,8 +1,8 @@
 "use client";
 
-import { getStoredSession } from "../services/auth.service";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { getStoredToken } from "../services/auth.service";
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -13,8 +13,8 @@ export function RequireAuth({ children }: RequireAuthProps) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (!session) {
+    const token = getStoredToken();
+    if (!token) {
       router.replace("/login");
       return;
     }

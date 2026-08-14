@@ -1,11 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
 import { login } from "../services/auth.service";
 import type { LoginFormErrors } from "../types/auth.types";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function useLogin() {
   const router = useRouter();
@@ -16,60 +14,44 @@ export function useLogin() {
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function validate(): LoginFormErrors {
-    const next: LoginFormErrors = {};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
 
+    const newErrors: LoginFormErrors = {};
     if (!email.trim()) {
-      next.email = "El correo es obligatorio.";
-    } else if (!EMAIL_REGEX.test(email.trim())) {
-      next.email = "Ingresa un correo válido.";
+      newErrors.email = "Ingresa tu correo electrónico.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = "Ingresa un correo electrónico válido.";
     }
 
     if (!password) {
-      next.password = "La contraseña es obligatoria.";
+      newErrors.password = "Ingresa tu contraseña.";
     } else if (password.length < 6) {
-      next.password = "Mínimo 6 caracteres.";
+      newErrors.password = "La contraseña debe tener al menos 6 caracteres.";
     }
 
-    return next;
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const validationErrors = validate();
-    setErrors(validationErrors);
-
-    if (Object.keys(validationErrors).length > 0) {
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
     setIsSubmitting(true);
-    setErrors({});
 
-    try {
-      const result = await login({
-        email,
-        password,
-        rememberMe,
-      });
+    const result = await login({
+      email,
+      password,
+      rememberMe,
+    });
 
-      if (!result.ok) {
-        setErrors({ form: result.message });
-        return;
-      }
-
-      // Temporary destination until admin shell (Fase 2)
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      setErrors({
-        form: "No se pudo iniciar sesión. Intenta de nuevo.",
-      });
-    } finally {
+    if (!result.ok) {
+      setErrors({ form: result.message });
       setIsSubmitting(false);
+      return;
     }
-  }
+
+    router.push("/dashboard");
+  };
 
   return {
     email,

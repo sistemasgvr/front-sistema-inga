@@ -19,8 +19,14 @@ export function UserActionsDropdown({
 }: UserActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  function close() {
+  function handleEdit() {
     setIsOpen(false);
+    onEdit(user);
+  }
+
+  function handleToggle() {
+    setIsOpen(false);
+    onToggleStatus(user);
   }
 
   return (
@@ -28,30 +34,28 @@ export function UserActionsDropdown({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="dropdown-toggle hover:text-gray-700 dark:hover:text-gray-300"
-        aria-label={`Acciones de ${user.nombre_usuario}`}
+        className="dropdown-toggle hover:text-gray-700 dark:hover:text-gray-300 p-1"
+        aria-label={`Acciones de ${user.username}`}
       >
         <HorizontaLDots />
       </button>
 
       <Dropdown
         isOpen={isOpen}
-        onClose={close}
+        onClose={() => setIsOpen(false)}
         className="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-40 w-44 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-800"
       >
         <DropdownItem
-          onItemClick={close}
-          onClick={() => onEdit(user)}
-          className="text-theme-sm flex w-full rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+          onItemClick={handleEdit}
+          className="text-theme-sm flex w-full cursor-pointer rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
         >
           Editar
         </DropdownItem>
         <DropdownItem
-          onItemClick={close}
-          onClick={() => onToggleStatus(user)}
-          className="text-theme-sm flex w-full rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+          onItemClick={handleToggle}
+          className="text-theme-sm flex w-full cursor-pointer rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
         >
-          {user.estado === "activo" ? "Desactivar" : "Activar"}
+          {user.estado === 1 ? "Desactivar" : "Activar"}
         </DropdownItem>
       </Dropdown>
     </div>

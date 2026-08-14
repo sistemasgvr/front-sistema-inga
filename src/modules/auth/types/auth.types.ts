@@ -1,21 +1,24 @@
 export type LoginCredentials = {
   email: string;
   password: string;
-  rememberMe: boolean;
+  rememberMe?: boolean;
 };
 
 export type AuthUser = {
-  id: string;
-  name: string;
+  id: number;
+  username: string;
   email: string;
-  role: string;
+  nombres: string;
+  apellidos: string;
+  telefono?: string | null;
+  id_sucursal_default?: number | null;
+  permisos: string[];
 };
 
 export type LoginSuccess = {
   ok: true;
   user: AuthUser;
-  /** Placeholder until real API tokens arrive */
-  accessToken: string;
+  token: string;
 };
 
 export type LoginFailure = {

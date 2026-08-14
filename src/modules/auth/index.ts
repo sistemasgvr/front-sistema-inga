@@ -5,8 +5,11 @@ export { useLogin } from "./hooks/use-login";
 export {
   login,
   logout,
-  getStoredSession,
-  AUTH_SESSION_KEY,
+  getStoredToken,
+  getStoredUser,
+  getMe,
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
 } from "./services/auth.service";
 export type {
   AuthUser,
@@ -14,4 +17,3 @@ export type {
   LoginFormErrors,
   LoginResult,
 } from "./types/auth.types";
-export type { StoredSession } from "./services/auth.service";

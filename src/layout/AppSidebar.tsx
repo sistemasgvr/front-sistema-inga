@@ -6,6 +6,7 @@ import {
   CalenderIcon,
   GridIcon,
   GroupIcon,
+  ShieldCheckIcon,
   HorizontaLDots,
   ListIcon,
 } from "@/icons/index";
@@ -30,6 +31,11 @@ const navItems: NavItem[] = [
     icon: <GroupIcon />,
     name: "Usuarios",
     path: "/users",
+  },
+  {
+    icon: <ShieldCheckIcon />,
+    name: "Roles y Permisos",
+    path: "/roles",
   },
   {
     icon: <CalenderIcon />,

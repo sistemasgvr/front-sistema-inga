@@ -4,16 +4,20 @@ import BarChartOne from "@/components/charts/bar/BarChartOne";
 import LineChartOne from "@/components/charts/line/LineChartOne";
 import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import { getStoredSession } from "@/modules/auth";
+import { getStoredUser } from "@/modules/auth";
 import { useEffect, useState } from "react";
 
 export function DashboardView() {
   const [name, setName] = useState("Usuario");
 
   useEffect(() => {
-    const session = getStoredSession();
-    if (session?.user.name) {
-      setName(session.user.name);
+    const user = getStoredUser();
+    if (user) {
+      const displayName = user.nombres
+        ? `${user.nombres} ${user.apellidos}`.trim()
+        : user.username;
+
+      setName(displayName);
     }
   }, []);
 
@@ -26,8 +30,8 @@ export function DashboardView() {
           Bienvenido, {name}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Resumen visual con charts del design system (datos demo). Luego se
-          conectarán a métricas reales del API.
+          Resumen visual con charts del design system. Pronto se conectarán a las
+          métricas y KPIs de la base de datos de Ingá.
         </p>
       </div>
 

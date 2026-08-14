@@ -6,16 +6,18 @@ import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
 import Pagination from "@/components/tables/Pagination";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
-import { useUsers } from "../hooks/use-users";
-import { UserFormModal } from "./user-form-modal";
-import { UsersTable } from "./users-table";
+import { useRoles } from "../hooks/use-roles";
+import { RoleFormModal } from "./role-form-modal";
+import { RolePermissionsModal } from "./role-permissions-modal";
+import { RolesTable } from "./roles-table";
 
-export function UsersView() {
+export function RolesView() {
   const {
     registros,
     total,
     pagina,
     setPagina,
+    pageSize,
     totalPages,
     searchInput,
     setSearchInput,
@@ -27,26 +29,39 @@ export function UsersView() {
     isSaving,
     feedback,
     clearFeedback,
-    editingUser,
+
+    // Modal Form
+    editingRole,
     isFormOpen,
     openCreateModal,
     openEditModal,
     closeFormModal,
-    saveUser,
-    confirmUser,
+    saveRole,
+
+    // Modal Permisos
+    permissionsRole,
+    isPermissionsOpen,
+    catalogPermissions,
+    selectedPermissionIds,
+    isLoadingPermissions,
+    openPermissionsModal,
+    closePermissionsModal,
+    savePermissions,
+
+    // Modal Confirm
+    confirmRole,
     isConfirmOpen,
     isToggling,
     openConfirmModal,
     closeConfirmModal,
     confirmToggleStatus,
-    pageSize,
-  } = useUsers();
+  } = useRoles();
 
-  const isDesactivar = confirmUser?.estado === 1;
+  const isDesactivar = confirmRole?.estado === 1;
 
   return (
     <div>
-      <PageBreadcrumb pageTitle="Usuarios" />
+      <PageBreadcrumb pageTitle="Roles y Permisos" />
 
       {feedback ? (
         <div className="mb-5">
@@ -65,23 +80,8 @@ export function UsersView() {
         </div>
       ) : null}
 
-      {/* CHIPS INTERACTIVOS CON LAS CADENAS QUE ESPERA NESTJS */}
+      {/* CHIPS INTERACTIVOS DE RESUMEN */}
       <div className="mb-5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => handleFilterStatus("todos")}
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-            estadoFiltro === "todos"
-              ? "bg-brand-500 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
-          }`}
-        >
-          <span>Total usuarios:</span>
-          <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px]">
-            {resumen.total}
-          </span>
-        </button>
-
         <button
           type="button"
           onClick={() => handleFilterStatus("activos")}
@@ -111,13 +111,28 @@ export function UsersView() {
             {resumen.inactivos}
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => handleFilterStatus("todos")}
+          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+            estadoFiltro === "todos"
+              ? "bg-brand-500 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+          }`}
+        >
+          <span>Total roles:</span>
+          <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px]">
+            {resumen.total}
+          </span>
+        </button>
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex w-full max-w-md items-center gap-2">
           <Input
             type="search"
-            placeholder="Buscar por nombre, correo o username..."
+            placeholder="Buscar por código o nombre..."
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             onKeyDown={(event) => {
@@ -132,14 +147,15 @@ export function UsersView() {
         </div>
 
         <Button size="sm" type="button" onClick={openCreateModal}>
-          Nuevo usuario
+          Nuevo Rol
         </Button>
       </div>
 
-      <UsersTable
-        users={registros}
+      <RolesTable
+        roles={registros}
         isLoading={isLoading}
         onEdit={openEditModal}
+        onPermissions={openPermissionsModal}
         onToggleStatus={openConfirmModal}
       />
 
@@ -153,25 +169,39 @@ export function UsersView() {
         />
       </div>
 
-      <UserFormModal
+      {/* Modal Formulario Rol */}
+      <RoleFormModal
         isOpen={isFormOpen}
         onClose={closeFormModal}
-        onSubmit={saveUser}
-        user={editingUser}
+        onSubmit={saveRole}
+        role={editingRole}
         isSaving={isSaving}
       />
 
+      {/* Modal Matriz de Permisos */}
+      <RolePermissionsModal
+        isOpen={isPermissionsOpen}
+        onClose={closePermissionsModal}
+        onSubmit={savePermissions}
+        role={permissionsRole}
+        catalog={catalogPermissions}
+        initialSelectedIds={selectedPermissionIds}
+        isLoading={isLoadingPermissions}
+        isSaving={isSaving}
+      />
+
+      {/* Modal Confirmación Activar / Desactivar */}
       <ConfirmDialog
         isOpen={isConfirmOpen}
         onClose={closeConfirmModal}
         onConfirm={confirmToggleStatus}
         isLoading={isToggling}
         variant={isDesactivar ? "danger" : "warning"}
-        title={isDesactivar ? "¿Desactivar usuario?" : "¿Activar usuario?"}
+        title={isDesactivar ? "¿Desactivar rol?" : "¿Activar rol?"}
         description={
           isDesactivar
-            ? `¿Estás seguro de desactivar a @${confirmUser?.username}? Perderá el acceso al sistema.`
-            : `¿Deseas activar nuevamente a @${confirmUser?.username}? Recuperará el acceso.`
+            ? `¿Estás seguro de desactivar el rol '${confirmRole?.nombre}'? Los usuarios con este rol perdonarán los accesos vinculados.`
+            : `¿Deseas activar el rol '${confirmRole?.nombre}'?`
         }
         confirmText={isDesactivar ? "Sí, desactivar" : "Sí, activar"}
         cancelText="Cancelar"

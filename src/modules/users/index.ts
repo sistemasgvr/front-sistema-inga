@@ -7,13 +7,10 @@ export {
   createUser,
   updateUser,
   toggleUserStatus,
-  USER_ROLE_OPTIONS,
-  USER_STATUS_OPTIONS,
 } from "./services/users.service";
 export type {
   User,
   UserFormValues,
-  UserRole,
   UserStatus,
   ListUsersParams,
   ListUsersResult,

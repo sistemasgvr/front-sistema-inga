@@ -1,89 +1,86 @@
+import { apiGet, apiPost } from "@/shared/api/api-client";
 import type {
   AuthUser,
   LoginCredentials,
   LoginResult,
 } from "../types/auth.types";
 
-/**
- * Mock auth — Fase 1.
- * Replace this implementation with real API calls in Fase 6.
- */
-const DEMO_USER = {
-  id: "1",
-  name: "Administrador Inga",
-  email: "admin@inga.com",
-  password: "admin123",
-  role: "admin",
-};
-
-export const AUTH_SESSION_KEY = "inga.auth.session";
-
-export type StoredSession = {
-  user: AuthUser;
-  accessToken: string;
-};
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+export const AUTH_TOKEN_KEY = "token";
+export const AUTH_USER_KEY = "user";
 
 export async function login(
   credentials: LoginCredentials,
 ): Promise<LoginResult> {
-  await delay(600);
+  try {
+    const data = await apiPost<{
+      token: string;
+      usuario: AuthUser;
+    }>("/auth/login", {
+      email: credentials.email.trim(),
+      password: credentials.password,
+    });
 
-  const email = credentials.email.trim().toLowerCase();
-  const password = credentials.password;
+    if (typeof window !== "undefined" && data?.token) {
+      const storage = credentials.rememberMe ? localStorage : sessionStorage;
+      storage.setItem(AUTH_TOKEN_KEY, data.token);
+      storage.setItem(AUTH_USER_KEY, JSON.stringify(data.usuario));
+    }
 
-  if (!email || !password) {
-    return { ok: false, message: "Completa el correo y la contraseña." };
-  }
-
-  if (email !== DEMO_USER.email || password !== DEMO_USER.password) {
-    return { ok: false, message: "Credenciales incorrectas." };
-  }
-
-  const result: LoginResult = {
-    ok: true,
-    user: {
-      id: DEMO_USER.id,
-      name: DEMO_USER.name,
-      email: DEMO_USER.email,
-      role: DEMO_USER.role,
-    },
-    accessToken: "mock-access-token",
-  };
-
-  if (typeof window !== "undefined" && result.ok) {
-    const storage = credentials.rememberMe ? localStorage : sessionStorage;
-    const session: StoredSession = {
-      user: result.user,
-      accessToken: result.accessToken,
+    return {
+      ok: true,
+      user: data.usuario,
+      token: data.token,
     };
-    storage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Credenciales incorrectas o error de servidor.";
+    return { ok: false, message };
   }
-
-  return result;
 }
 
-export function getStoredSession(): StoredSession | null {
+export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
+  return (
+    localStorage.getItem(AUTH_TOKEN_KEY) ??
+    sessionStorage.getItem(AUTH_TOKEN_KEY)
+  );
+}
 
+export function getStoredUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
   const raw =
-    localStorage.getItem(AUTH_SESSION_KEY) ??
-    sessionStorage.getItem(AUTH_SESSION_KEY);
-
+    localStorage.getItem(AUTH_USER_KEY) ??
+    sessionStorage.getItem(AUTH_USER_KEY);
   if (!raw) return null;
-
   try {
-    return JSON.parse(raw) as StoredSession;
+    return JSON.parse(raw) as AuthUser;
   } catch {
     return null;
   }
 }
 
-export function logout(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(AUTH_SESSION_KEY);
-  sessionStorage.removeItem(AUTH_SESSION_KEY);
+export async function getMe(): Promise<AuthUser | null> {
+  try {
+    return await apiGet<AuthUser>("/auth/me");
+  } catch {
+    return null;
+  }
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await apiPost("/auth/logout");
+  } catch {
+    // Ignorar error si la sesión ya expiró
+  } finally {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_USER_KEY);
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      sessionStorage.removeItem(AUTH_USER_KEY);
+      window.location.href = "/login";
+    }
+  }
 }

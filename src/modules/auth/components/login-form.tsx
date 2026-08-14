@@ -38,7 +38,7 @@ export function LoginForm() {
             Iniciar sesión
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Ingresa tu correo y contraseña para continuar.
+            Ingresa tu correo electrónico y contraseña para continuar.
           </p>
         </div>
 
@@ -52,13 +52,13 @@ export function LoginForm() {
 
             <div>
               <Label htmlFor="email">
-                Correo <span className="text-error-500">*</span>
+                Correo electrónico <span className="text-error-500">*</span>
               </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@inga.com"
+                placeholder="admin@inga.pe"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 error={Boolean(errors.email)}
@@ -127,10 +127,6 @@ export function LoginForm() {
                 {isSubmitting ? "Ingresando..." : "Ingresar"}
               </Button>
             </div>
-
-            <p className="text-theme-xs text-center text-gray-400 dark:text-gray-500">
-              Demo: admin@inga.com / admin123
-            </p>
           </div>
         </form>
       </div>

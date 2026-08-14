@@ -1,195 +1,103 @@
+import {
+  apiGetPaginated,
+  apiPost,
+  apiPatch,
+  apiDelete,
+} from "@/shared/api/api-client";
 import type {
   ListUsersParams,
   ListUsersResult,
   User,
   UserFormValues,
+  UsersResumen,
 } from "../types/user.types";
-
-/**
- * Mock users service — Fase 3.
- * Replace with real API calls when backend /users is ready.
- */
-
-const ROLE_PERMISSIONS: Record<User["rol"], string[]> = {
-  admin: ["usuarios.leer", "usuarios.crear", "usuarios.editar", "usuarios.activar"],
-  operador: ["usuarios.leer", "usuarios.editar"],
-  consulta: ["usuarios.leer"],
-};
-
-let users: User[] = [
-  {
-    id: 1,
-    nombre_usuario: "Administrador Inga",
-    correo: "admin@inga.com",
-    rol: "admin",
-    permisos: ROLE_PERMISSIONS.admin,
-    estado: "activo",
-  },
-  {
-    id: 2,
-    nombre_usuario: "María López",
-    correo: "maria.lopez@inga.com",
-    rol: "operador",
-    permisos: ROLE_PERMISSIONS.operador,
-    estado: "activo",
-  },
-  {
-    id: 3,
-    nombre_usuario: "Carlos Ruiz",
-    correo: "carlos.ruiz@inga.com",
-    rol: "consulta",
-    permisos: ROLE_PERMISSIONS.consulta,
-    estado: "activo",
-  },
-  {
-    id: 4,
-    nombre_usuario: "Ana Torres",
-    correo: "ana.torres@inga.com",
-    rol: "operador",
-    permisos: ROLE_PERMISSIONS.operador,
-    estado: "inactivo",
-  },
-  {
-    id: 5,
-    nombre_usuario: "Luis Gómez",
-    correo: "luis.gomez@inga.com",
-    rol: "consulta",
-    permisos: ROLE_PERMISSIONS.consulta,
-    estado: "activo",
-  },
-  {
-    id: 6,
-    nombre_usuario: "Elena Vargas",
-    correo: "elena.vargas@inga.com",
-    rol: "operador",
-    permisos: ROLE_PERMISSIONS.operador,
-    estado: "activo",
-  },
-  {
-    id: 7,
-    nombre_usuario: "Pedro Salas",
-    correo: "pedro.salas@inga.com",
-    rol: "consulta",
-    permisos: ROLE_PERMISSIONS.consulta,
-    estado: "inactivo",
-  },
-  {
-    id: 8,
-    nombre_usuario: "Diana Méndez",
-    correo: "diana.mendez@inga.com",
-    rol: "admin",
-    permisos: ROLE_PERMISSIONS.admin,
-    estado: "activo",
-  },
-];
-
-let nextId = users.length + 1;
-
-function delay(ms = 350) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export async function listUsers(
   params: ListUsersParams,
 ): Promise<ListUsersResult> {
-  await delay();
-
-  const query = params.buscar?.trim().toLowerCase() ?? "";
-  const filtered = users.filter((user) => {
-    if (!query) return true;
-    return (
-      user.nombre_usuario.toLowerCase().includes(query) ||
-      user.correo.toLowerCase().includes(query) ||
-      user.rol.toLowerCase().includes(query)
-    );
+  const response = await apiGetPaginated<User>("/auth/usuarios", {
+    params: {
+      pagina: params.pagina,
+      limite: params.limite,
+      buscar: params.buscar || undefined,
+      estado: params.estado || "todos",
+    },
   });
 
-  const start = (params.pagina - 1) * params.limite;
-  const registros = filtered.slice(start, start + params.limite);
+  const rawResponse = response as unknown as {
+    data?: User[] | { data?: User[]; meta?: any };
+    meta?: {
+      total: number;
+      resumen?: UsersResumen;
+    };
+    resumen?: UsersResumen;
+  };
 
-  return { registros, total: filtered.length };
+  let registros: User[] = [];
+  if (Array.isArray(rawResponse.data)) {
+    registros = rawResponse.data;
+  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).data)) {
+    registros = (rawResponse.data as any).data;
+  }
+
+  const total = rawResponse.meta?.total ?? (rawResponse.data as any)?.meta?.total ?? 0;
+  const resumen = rawResponse.meta?.resumen ?? rawResponse.resumen ?? (rawResponse.data as any)?.meta?.resumen;
+
+  return {
+    registros,
+    total,
+    resumen,
+  };
 }
 
 export async function createUser(values: UserFormValues): Promise<User> {
-  await delay();
-
-  const exists = users.some(
-    (user) => user.correo.toLowerCase() === values.correo.trim().toLowerCase(),
-  );
-  if (exists) {
-    throw new Error("Ya existe un usuario con ese correo.");
-  }
-
-  const user: User = {
-    id: nextId++,
-    nombre_usuario: values.nombre_usuario.trim(),
-    correo: values.correo.trim().toLowerCase(),
-    rol: values.rol,
-    permisos: ROLE_PERMISSIONS[values.rol],
-    estado: values.estado,
-  };
-
-  users = [user, ...users];
-  return user;
+  return apiPost<User>("/auth/usuarios", {
+    username: values.username.trim().toLowerCase(),
+    email: values.email.trim().toLowerCase(),
+    password: values.password,
+    pin: values.pin?.trim() || undefined,
+    nombres: values.nombres.trim(),
+    apellidos: values.apellidos.trim(),
+    telefono: values.telefono?.trim() || null,
+    idSucursalDefault: values.idSucursalDefault
+      ? Number(values.idSucursalDefault)
+      : null,
+  });
 }
 
 export async function updateUser(
   id: number,
   values: UserFormValues,
 ): Promise<User> {
-  await delay();
-
-  const index = users.findIndex((user) => user.id === id);
-  if (index === -1) {
-    throw new Error("Usuario no encontrado.");
-  }
-
-  const correoTaken = users.some(
-    (user) =>
-      user.id !== id &&
-      user.correo.toLowerCase() === values.correo.trim().toLowerCase(),
-  );
-  if (correoTaken) {
-    throw new Error("Ya existe un usuario con ese correo.");
-  }
-
-  const updated: User = {
-    ...users[index],
-    nombre_usuario: values.nombre_usuario.trim(),
-    correo: values.correo.trim().toLowerCase(),
-    rol: values.rol,
-    permisos: ROLE_PERMISSIONS[values.rol],
-    estado: values.estado,
+  const payload: Record<string, unknown> = {
+    username: values.username.trim().toLowerCase(),
+    email: values.email.trim().toLowerCase(),
+    nombres: values.nombres.trim(),
+    apellidos: values.apellidos.trim(),
+    telefono: values.telefono?.trim() || null,
+    idSucursalDefault: values.idSucursalDefault
+      ? Number(values.idSucursalDefault)
+      : null,
   };
 
-  users = users.map((user) => (user.id === id ? updated : user));
-  return updated;
-}
-
-export async function toggleUserStatus(id: number): Promise<User> {
-  await delay();
-
-  const user = users.find((item) => item.id === id);
-  if (!user) {
-    throw new Error("Usuario no encontrado.");
+  if (values.password && values.password.trim() !== "") {
+    payload.password = values.password.trim();
   }
 
-  const updated: User = {
-    ...user,
-    estado: user.estado === "activo" ? "inactivo" : "activo",
-  };
+  if (values.pin && values.pin.trim() !== "") {
+    payload.pin = values.pin.trim();
+  }
 
-  users = users.map((item) => (item.id === id ? updated : item));
-  return updated;
+  return apiPatch<User>(`/auth/usuarios/${Number(id)}`, payload);
 }
 
-export const USER_ROLE_OPTIONS = [
-  { value: "admin", label: "Administrador" },
-  { value: "operador", label: "Operador" },
-  { value: "consulta", label: "Consulta" },
-] as const;
+export async function toggleUserStatus(user: User): Promise<User> {
+  const userId = Number(user.id);
 
-export const USER_STATUS_OPTIONS = [
-  { value: "activo", label: "Activo" },
-  { value: "inactivo", label: "Inactivo" },
-] as const;
+  if (user.estado === 1) {
+    return apiDelete<User>(`/auth/usuarios/${userId}`);
+  } else {
+    return apiPatch<User>(`/auth/usuarios/${userId}/activar`);
+  }
+}
+
