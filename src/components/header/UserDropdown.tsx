@@ -2,6 +2,7 @@
 
 import { Dropdown } from "@/components/ui/dropdown/Dropdown";
 import { DropdownItem } from "@/components/ui/dropdown/DropdownItem";
+import { Icon } from "@/components/ui/icon";
 import {
   getStoredUser,
   logout,
@@ -62,24 +63,13 @@ export default function UserDropdown() {
           {displayName}
         </span>
 
-        <svg
-          className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
+        <Icon
+          name="mdi:chevron-down"
+          size={18}
+          className={`text-gray-500 transition-transform duration-200 dark:text-gray-400 ${
             isOpen ? "rotate-180" : ""
           }`}
-          width="18"
-          height="20"
-          viewBox="0 0 18 20"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M4.3125 8.65625L9 13.3437L13.6875 8.65625"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        />
       </button>
 
       <Dropdown
@@ -106,6 +96,7 @@ export default function UserDropdown() {
               href="/dashboard"
               className="text-theme-sm group flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
             >
+              <Icon name="mdi:view-dashboard-outline" size={18} />
               Ir al dashboard
             </DropdownItem>
           </li>
@@ -116,6 +107,7 @@ export default function UserDropdown() {
           onClick={handleLogout}
           className="text-theme-sm group mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
+          <Icon name="mdi:logout" size={18} />
           Cerrar sesión
         </button>
       </Dropdown>

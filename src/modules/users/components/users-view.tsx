@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
+import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
 import { useUsers } from "../hooks/use-users";
@@ -126,12 +127,23 @@ export function UsersView() {
               }
             }}
           />
-          <Button size="sm" variant="outline" type="button" onClick={applySearch}>
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            onClick={applySearch}
+            startIcon={<Icon name="mdi:magnify" size={18} />}
+          >
             Buscar
           </Button>
         </div>
 
-        <Button size="sm" type="button" onClick={openCreateModal}>
+        <Button
+          size="sm"
+          type="button"
+          onClick={openCreateModal}
+          startIcon={<Icon name="mdi:account-plus-outline" size={18} />}
+        >
           Nuevo usuario
         </Button>
       </div>

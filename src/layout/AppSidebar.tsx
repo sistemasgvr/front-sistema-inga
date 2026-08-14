@@ -1,49 +1,37 @@
 "use client";
 
 import BrandLogo from "@/components/common/BrandLogo";
+import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
-import {
-  CalenderIcon,
-  GridIcon,
-  GroupIcon,
-  ShieldCheckIcon,
-  HorizontaLDots,
-  ListIcon,
-} from "@/icons/index";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type NavItem = {
   name: string;
-  icon: React.ReactNode;
+  icon: string;
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
+    icon: "mdi:view-dashboard-outline",
     name: "Dashboard",
     path: "/dashboard",
   },
   {
-    icon: <GroupIcon />,
+    icon: "mdi:account-group-outline",
     name: "Usuarios",
     path: "/users",
   },
   {
-    icon: <ShieldCheckIcon />,
-    name: "Roles y Permisos",
-    path: "/roles",
-  },
-  {
-    icon: <CalenderIcon />,
+    icon: "mdi:calendar-month-outline",
     name: "Calendario",
     path: "/calendar",
   },
   {
-    icon: <ListIcon />,
+    icon: "mdi:form-select",
     name: "Formularios",
     path: "/form-elements",
   },
@@ -106,6 +94,7 @@ const AppSidebar: React.FC = () => {
         <li key={nav.name}>
           {nav.subItems ? (
             <button
+              type="button"
               onClick={() => handleSubmenuToggle(index)}
               className={`menu-item group ${
                 openSubmenu?.type === "main" && openSubmenu?.index === index
@@ -124,27 +113,21 @@ const AppSidebar: React.FC = () => {
                     : "menu-item-icon-inactive"
                 }`}
               >
-                {nav.icon}
+                <Icon name={nav.icon} size={22} />
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
                 <span className="menu-item-text">{nav.name}</span>
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <svg
-                  className={`ml-auto h-5 w-5 transition-transform duration-200 ${
+                <Icon
+                  name="mdi:chevron-down"
+                  size={20}
+                  className={`ml-auto transition-transform duration-200 ${
                     openSubmenu?.type === "main" && openSubmenu?.index === index
                       ? "text-brand-500 rotate-180"
                       : ""
                   }`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                />
               )}
             </button>
           ) : (
@@ -162,7 +145,7 @@ const AppSidebar: React.FC = () => {
                       : "menu-item-icon-inactive"
                   }`}
                 >
-                  {nav.icon}
+                  <Icon name={nav.icon} size={22} />
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <span className="menu-item-text">{nav.name}</span>
@@ -247,7 +230,7 @@ const AppSidebar: React.FC = () => {
                 {isExpanded || isHovered || isMobileOpen ? (
                   "Menú"
                 ) : (
-                  <HorizontaLDots />
+                  <Icon name="mdi:dots-horizontal" size={20} />
                 )}
               </h2>
               {renderMenuItems(navItems)}
