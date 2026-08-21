@@ -20,7 +20,7 @@ export async function listUsers(
       pagina: params.pagina,
       limite: params.limite,
       buscar: params.buscar || undefined,
-      estado: params.estado || "todos",
+      estado: params.estado || "activos",
     },
   });
 
@@ -40,8 +40,19 @@ export async function listUsers(
     registros = (rawResponse.data as any).data;
   }
 
-  const total = rawResponse.meta?.total ?? (rawResponse.data as any)?.meta?.total ?? 0;
-  const resumen = rawResponse.meta?.resumen ?? rawResponse.resumen ?? (rawResponse.data as any)?.meta?.resumen;
+  const total =
+    rawResponse.meta?.total ??
+    (rawResponse.data && !Array.isArray(rawResponse.data)
+      ? (rawResponse.data as any).meta?.total
+      : 0) ??
+    registros.length;
+
+  const resumen =
+    rawResponse.meta?.resumen ??
+    rawResponse.resumen ??
+    (rawResponse.data && !Array.isArray(rawResponse.data)
+      ? (rawResponse.data as any).meta?.resumen
+      : undefined);
 
   return {
     registros,
@@ -59,9 +70,8 @@ export async function createUser(values: UserFormValues): Promise<User> {
     nombres: values.nombres.trim(),
     apellidos: values.apellidos.trim(),
     telefono: values.telefono?.trim() || null,
-    idSucursalDefault: values.idSucursalDefault
-      ? Number(values.idSucursalDefault)
-      : null,
+    idSucursalDefault: values.idSucursalDefault ?? 1,
+    rolesIds: values.rolesIds ?? [],
   });
 }
 
@@ -75,9 +85,8 @@ export async function updateUser(
     nombres: values.nombres.trim(),
     apellidos: values.apellidos.trim(),
     telefono: values.telefono?.trim() || null,
-    idSucursalDefault: values.idSucursalDefault
-      ? Number(values.idSucursalDefault)
-      : null,
+    idSucursalDefault: values.idSucursalDefault ?? 1,
+    rolesIds: values.rolesIds ?? [],
   };
 
   if (values.password && values.password.trim() !== "") {
@@ -88,16 +97,12 @@ export async function updateUser(
     payload.pin = values.pin.trim();
   }
 
-  return apiPatch<User>(`/auth/usuarios/${Number(id)}`, payload);
+  return apiPatch<User>(`/auth/usuarios/${id}`, payload);
 }
 
 export async function toggleUserStatus(user: User): Promise<User> {
-  const userId = Number(user.id);
-
   if (user.estado === 1) {
-    return apiDelete<User>(`/auth/usuarios/${userId}`);
-  } else {
-    return apiPatch<User>(`/auth/usuarios/${userId}/activar`);
+    return apiDelete<User>(`/auth/usuarios/${user.id}`);
   }
+  return apiPatch<User>(`/auth/usuarios/${user.id}/activar`);
 }
-

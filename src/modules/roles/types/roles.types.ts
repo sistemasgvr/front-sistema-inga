@@ -32,6 +32,7 @@ export type RolesResumen = {
   total: number;
   activos: number;
   inactivos: number;
+  total_permisos_sistema?: number;
 };
 
 export type ListRolesParams = {

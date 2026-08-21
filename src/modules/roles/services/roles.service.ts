@@ -14,7 +14,6 @@ import type {
   RolesResumen,
 } from "../types/roles.types";
 
-// 1. Listar roles paginados con filtro por estado
 export async function listRoles(
   params: ListRolesParams,
 ): Promise<ListRolesResult> {
@@ -57,7 +56,6 @@ export async function listRoles(
   };
 }
 
-// 2. Crear rol
 export async function createRole(values: RoleFormValues): Promise<RoleItem> {
   return apiPost<RoleItem>("/auth/roles", {
     codigo: values.codigo.trim().toUpperCase(),
@@ -66,7 +64,6 @@ export async function createRole(values: RoleFormValues): Promise<RoleItem> {
   });
 }
 
-// 3. Editar rol
 export async function updateRole(
   id: number,
   values: RoleFormValues,
@@ -78,7 +75,6 @@ export async function updateRole(
   });
 }
 
-// 4. Activar / Desactivar rol
 export async function toggleRoleStatus(role: RoleItem): Promise<RoleItem> {
   const roleId = Number(role.id);
   if (role.estado === 1) {
@@ -88,7 +84,6 @@ export async function toggleRoleStatus(role: RoleItem): Promise<RoleItem> {
   }
 }
 
-// 5. Obtener catálogo completo de permisos
 export async function getPermissionsCatalog(): Promise<PermisoItem[]> {
   const response = await apiGet<{ data?: PermisoItem[] } | PermisoItem[]>(
     "/auth/permisos",
@@ -100,23 +95,25 @@ export async function getPermissionsCatalog(): Promise<PermisoItem[]> {
   return [];
 }
 
-// 6. Obtener IDs de permisos de un rol específico
 export async function getRolePermissions(idRol: number): Promise<number[]> {
-  const response = await apiGet<{ idsPermisos?: number[] } | number[]>(
-    `/auth/roles/${idRol}/permisos`,
-  );
+  const response = await apiGet<any>(`/auth/roles/${idRol}`);
 
-  if (Array.isArray(response)) return response;
-  if (response && Array.isArray(response.idsPermisos)) return response.idsPermisos;
+  const rawData = response?.data || response;
+
+  if (Array.isArray(rawData?.permisos)) {
+    return rawData.permisos.map((p: any) => (typeof p === "object" ? p.id : p));
+  }
+  if (Array.isArray(rawData?.idsPermisos)) {
+    return rawData.idsPermisos;
+  }
   return [];
 }
 
-// 7. Guardar/Asignar matriz de permisos a un rol
 export async function syncRolePermissions(
   idRol: number,
   idsPermisos: number[],
 ): Promise<void> {
-  await apiPost(`/auth/roles/${idRol}/permisos`, {
+  await apiPatch(`/auth/roles/${idRol}/permisos`, {
     idsPermisos,
   });
 }

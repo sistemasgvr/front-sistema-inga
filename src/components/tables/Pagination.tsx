@@ -12,6 +12,7 @@ type PaginationProps = {
   totalItems?: number;
   pageSize?: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 };
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -20,6 +21,7 @@ const Pagination: React.FC<PaginationProps> = ({
   totalItems = 0,
   pageSize = 10,
   onPageChange,
+  onPageSizeChange,
 }) => {
   const summary = getPaginationSummary(currentPage, pageSize, totalItems);
   const pages = createPaginationRange(currentPage, totalPages);
@@ -27,13 +29,45 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalItems <= 0) return null;
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-theme-sm text-gray-500 dark:text-gray-400">
-        Mostrando <span className="font-medium text-gray-800 dark:text-white">{summary.from}</span> a{" "}
-        <span className="font-medium text-gray-800 dark:text-white">{summary.to}</span> de{" "}
-        <span className="font-medium text-gray-800 dark:text-white">{summary.total}</span> registros
-      </p>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* LADO IZQUIERDO: RESUMEN Y SELECTOR DE TAMAÑO DE PÁGINA */}
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-theme-sm text-gray-500 dark:text-gray-400">
+          Mostrando{" "}
+          <span className="font-medium text-gray-800 dark:text-white">
+            {summary.from}
+          </span>{" "}
+          a{" "}
+          <span className="font-medium text-gray-800 dark:text-white">
+            {summary.to}
+          </span>{" "}
+          de{" "}
+          <span className="font-medium text-gray-800 dark:text-white">
+            {summary.total}
+          </span>{" "}
+          registros
+        </p>
 
+        {onPageSizeChange ? (
+          <div className="flex items-center gap-2 border-l border-gray-200 pl-3 dark:border-gray-800">
+            <span className="text-theme-sm text-gray-500 dark:text-gray-400">
+              Por página
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        ) : null}
+      </div>
+
+      {/* LADO DERECHO: NAVEGACIÓN Y RANGOS */}
       <div className="flex items-center">
         <button
           type="button"

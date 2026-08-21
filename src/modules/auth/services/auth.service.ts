@@ -5,8 +5,7 @@ import type {
   LoginResult,
 } from "../types/auth.types";
 
-export const AUTH_TOKEN_KEY = "token";
-export const AUTH_USER_KEY = "user";
+export const AUTH_STORAGE_KEY = "auth";
 
 export async function login(
   credentials: LoginCredentials,
@@ -22,8 +21,13 @@ export async function login(
 
     if (typeof window !== "undefined" && data?.token) {
       const storage = credentials.rememberMe ? localStorage : sessionStorage;
-      storage.setItem(AUTH_TOKEN_KEY, data.token);
-      storage.setItem(AUTH_USER_KEY, JSON.stringify(data.usuario));
+      storage.setItem(
+        AUTH_STORAGE_KEY,
+        JSON.stringify({
+          token: data.token,
+          user: data.usuario,
+        }),
+      );
     }
 
     return {
@@ -42,20 +46,27 @@ export async function login(
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
-  return (
-    localStorage.getItem(AUTH_TOKEN_KEY) ??
-    sessionStorage.getItem(AUTH_TOKEN_KEY)
-  );
+  const raw =
+    localStorage.getItem(AUTH_STORAGE_KEY) ??
+    sessionStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
   const raw =
-    localStorage.getItem(AUTH_USER_KEY) ??
-    sessionStorage.getItem(AUTH_USER_KEY);
+    localStorage.getItem(AUTH_STORAGE_KEY) ??
+    sessionStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthUser;
+    const parsed = JSON.parse(raw);
+    return parsed?.user ?? null;
   } catch {
     return null;
   }
@@ -73,14 +84,32 @@ export async function logout(): Promise<void> {
   try {
     await apiPost("/auth/logout");
   } catch {
-    // Ignorar error si la sesión ya expiró
   } finally {
     if (typeof window !== "undefined") {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      sessionStorage.removeItem(AUTH_TOKEN_KEY);
-      sessionStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
       window.location.href = "/login";
     }
+  }
+}
+
+export async function verifyAccess(requiredPermission?: string): Promise<boolean> {
+  try {
+    const freshUser = await getMe();
+
+    if (!freshUser) {
+      await logout();
+      return false;
+    }
+
+    if (requiredPermission && freshUser.permisos && !freshUser.permisos.includes(requiredPermission)) {
+      await logout();
+      return false;
+    }
+
+    return true;
+  } catch {
+    await logout();
+    return false;
   }
 }

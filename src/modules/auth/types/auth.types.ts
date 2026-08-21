@@ -12,7 +12,19 @@ export type AuthUser = {
   apellidos: string;
   telefono?: string | null;
   id_sucursal_default?: number | null;
+  es_super_admin?: boolean;
   permisos: string[];
+  sesion?: {
+    id: number;
+    id_usuario: number;
+    nombre_usuario: string;
+    correo: string;
+    nombres?: string;
+    apellidos?: string;
+    es_super_admin?: boolean;
+    estado?: number;
+    fecha_inicio: string;
+  };
 };
 
 export type LoginSuccess = {

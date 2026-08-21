@@ -1,8 +1,9 @@
+import type { RoleItem } from "@/modules/roles/types/roles.types";
+
 export type UserStatus = 1 | 0;
 
-export type RoleItem = {
+export type SucursalOption = {
   id: number;
-  codigo: string;
   nombre: string;
 };
 
@@ -14,6 +15,8 @@ export type User = {
   apellidos: string;
   telefono: string | null;
   id_sucursal_default: number | null;
+  es_super_admin?: boolean;
+  permisos?: string[];
   estado: UserStatus;
   roles?: RoleItem[];
 };
@@ -27,6 +30,7 @@ export type UserFormValues = {
   apellidos: string;
   telefono?: string;
   idSucursalDefault?: number | null;
+  rolesIds: number[];
   estado?: UserStatus;
 };
 

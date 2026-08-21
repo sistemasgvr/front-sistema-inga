@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import { AUTH_STORAGE_KEY } from '../../modules/auth/services/auth.service';
 
 export class ApiError extends Error {
   constructor(
@@ -44,14 +45,24 @@ export const apiClient: AxiosInstance = axios.create({
 
 let getAccessToken: () => string | null = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+    const raw =
+      localStorage.getItem(AUTH_STORAGE_KEY) ??
+      sessionStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.token ?? null;
+    } catch {
+      return null;
+    }
   }
   return null;
 };
 
 let handleUnauthorized: (options: { sessionExpired: boolean }) => void = () => {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('token');
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
     if (!window.location.pathname.startsWith('/login')) {
       window.location.href = '/login';
     }
@@ -100,7 +111,7 @@ apiClient.interceptors.response.use(
       const statusCode = error.response?.status ?? 500;
       const payload = error.response?.data;
 
-      if (statusCode === 401) {
+      if (statusCode === 401 || statusCode === 403) {
         const isLoginRequest = error.config?.url?.includes('/auth/login');
         const hadToken = Boolean(getAccessToken());
 

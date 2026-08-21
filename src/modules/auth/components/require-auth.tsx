@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import { getStoredToken } from "../services/auth.service";
+import { useRouter, usePathname } from "next/navigation";
+import { getStoredToken, getMe, AUTH_STORAGE_KEY } from "../services/auth.service";
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -10,25 +10,39 @@ type RequireAuthProps = {
 
 export function RequireAuth({ children }: RequireAuthProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const token = getStoredToken();
-    if (!token) {
-      router.replace("/login");
-      return;
+    async function verifySession() {
+      const token = getStoredToken();
+      
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      try {
+        const user = await getMe();
+
+        if (user) {
+          setReady(true);
+        } else {
+          throw new Error("Sesión inválida");
+        }
+      } catch (error) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        router.replace("/login");
+      }
     }
-    setReady(true);
-  }, [router]);
+
+    setReady(false); 
+    verifySession();
+  }, [pathname, router]);
 
   if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Validando sesión...
-        </p>
-      </div>
-    );
+    return null;
   }
 
   return <>{children}</>;

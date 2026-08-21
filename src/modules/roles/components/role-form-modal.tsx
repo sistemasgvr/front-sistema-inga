@@ -92,7 +92,7 @@ export function RoleFormModal({
               placeholder="Ej. CAJERO, OPERARIO"
               error={Boolean(errors.codigo)}
               hint={errors.codigo}
-              disabled={isSaving || Boolean(role)} // El código no se edita si ya existe
+              disabled={isSaving || Boolean(role)}
             />
           </div>
 

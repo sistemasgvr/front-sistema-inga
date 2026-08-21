@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
+import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
 import { useRoles } from "../hooks/use-roles";
@@ -15,13 +16,14 @@ export function RolesView() {
   const {
     registros,
     total,
+    totalPermisosSistema, 
     pagina,
     setPagina,
     pageSize,
+    setPageSize,
     totalPages,
     searchInput,
     setSearchInput,
-    applySearch,
     estadoFiltro,
     handleFilterStatus,
     resumen,
@@ -29,8 +31,8 @@ export function RolesView() {
     isSaving,
     feedback,
     clearFeedback,
+    currentUser,
 
-    // Modal Form
     editingRole,
     isFormOpen,
     openCreateModal,
@@ -38,7 +40,6 @@ export function RolesView() {
     closeFormModal,
     saveRole,
 
-    // Modal Permisos
     permissionsRole,
     isPermissionsOpen,
     catalogPermissions,
@@ -48,7 +49,6 @@ export function RolesView() {
     closePermissionsModal,
     savePermissions,
 
-    // Modal Confirm
     confirmRole,
     isConfirmOpen,
     isToggling,
@@ -58,6 +58,28 @@ export function RolesView() {
   } = useRoles();
 
   const isDesactivar = confirmRole?.estado === 1;
+
+  const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+  const hasListPermission = currentUser?.permisos?.includes("roles.listar");
+
+  if (currentUser && !isSuper && !hasListPermission) {
+    return (
+      <div>
+        <PageBreadcrumb pageTitle="Roles y Permisos" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.05]">
+          <div className="rounded-2xl bg-error-50 p-4 text-error-600 dark:bg-error-500/10 dark:text-error-400 mb-4">
+            <Icon name="mdi:shield-lock-outline" size={48} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+            Acceso Restringido
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+            No cuentas con el permiso requerido (<code className="font-semibold text-gray-700 dark:text-gray-300">roles.listar</code>) para visualizar este módulo.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -80,19 +102,19 @@ export function RolesView() {
         </div>
       ) : null}
 
-      {/* CHIPS INTERACTIVOS DE RESUMEN */}
-      <div className="mb-5 flex items-center gap-2">
+      <div className="mb-5 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => handleFilterStatus("activos")}
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
             estadoFiltro === "activos"
-              ? "bg-success-500 text-white"
+              ? "bg-emerald-600 text-white shadow-xs"
               : "bg-success-50 text-success-600 hover:bg-success-100 dark:bg-success-500/10 dark:text-success-400"
           }`}
         >
+          <Icon name="mdi:check-circle-outline" size={16} />
           <span>Activos:</span>
-          <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[11px]">
+          <span className="rounded-full bg-black/15 px-1.5 py-0.5 text-[11px] font-bold">
             {resumen.activos}
           </span>
         </button>
@@ -100,14 +122,15 @@ export function RolesView() {
         <button
           type="button"
           onClick={() => handleFilterStatus("inactivos")}
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
             estadoFiltro === "inactivos"
-              ? "bg-error-500 text-white"
+              ? "bg-rose-600 text-white shadow-xs"
               : "bg-error-50 text-error-600 hover:bg-error-100 dark:bg-error-500/10 dark:text-error-400"
           }`}
         >
+          <Icon name="mdi:close-circle-outline" size={16} />
           <span>Inactivos:</span>
-          <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[11px]">
+          <span className="rounded-full bg-black/15 px-1.5 py-0.5 text-[11px] font-bold">
             {resumen.inactivos}
           </span>
         </button>
@@ -115,44 +138,44 @@ export function RolesView() {
         <button
           type="button"
           onClick={() => handleFilterStatus("todos")}
-          className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
             estadoFiltro === "todos"
-              ? "bg-brand-500 text-white"
+              ? "bg-slate-700 text-white shadow-xs dark:bg-slate-600"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
           }`}
         >
+          <Icon name="mdi:shield-account-outline" size={16} />
           <span>Total roles:</span>
-          <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[11px]">
+          <span className="rounded-full bg-black/15 px-1.5 py-0.5 text-[11px] font-bold">
             {resumen.total}
           </span>
         </button>
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full max-w-md items-center gap-2">
+        <div className="w-full max-w-md">
           <Input
             type="search"
             placeholder="Buscar por código o nombre..."
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                applySearch();
-              }
-            }}
           />
-          <Button size="sm" variant="outline" type="button" onClick={applySearch}>
-            Buscar
-          </Button>
         </div>
 
-        <Button size="sm" type="button" onClick={openCreateModal}>
+        <Button
+          size="sm"
+          type="button"
+          onClick={openCreateModal}
+          startIcon={<Icon name="mdi:plus" size={18} />}
+        >
           Nuevo Rol
         </Button>
       </div>
 
       <RolesTable
         roles={registros}
+        currentUser={currentUser}
+        totalPermisosSistema={totalPermisosSistema} 
         isLoading={isLoading}
         onEdit={openEditModal}
         onPermissions={openPermissionsModal}
@@ -166,10 +189,10 @@ export function RolesView() {
           totalItems={total}
           pageSize={pageSize}
           onPageChange={setPagina}
+          onPageSizeChange={setPageSize}
         />
       </div>
 
-      {/* Modal Formulario Rol */}
       <RoleFormModal
         isOpen={isFormOpen}
         onClose={closeFormModal}
@@ -178,7 +201,6 @@ export function RolesView() {
         isSaving={isSaving}
       />
 
-      {/* Modal Matriz de Permisos */}
       <RolePermissionsModal
         isOpen={isPermissionsOpen}
         onClose={closePermissionsModal}
@@ -190,7 +212,6 @@ export function RolesView() {
         isSaving={isSaving}
       />
 
-      {/* Modal Confirmación Activar / Desactivar */}
       <ConfirmDialog
         isOpen={isConfirmOpen}
         onClose={closeConfirmModal}
@@ -200,8 +221,8 @@ export function RolesView() {
         title={isDesactivar ? "¿Desactivar rol?" : "¿Activar rol?"}
         description={
           isDesactivar
-            ? `¿Estás seguro de desactivar el rol '${confirmRole?.nombre}'? Los usuarios con este rol perdonarán los accesos vinculados.`
-            : `¿Deseas activar el rol '${confirmRole?.nombre}'?`
+            ? `¿Estás seguro de desactivar el rol '${confirmRole?.nombre}'? Los usuarios que tengan este rol perderán temporalmente sus accesos.`
+            : `¿Deseas activar nuevamente el rol '${confirmRole?.nombre}'?`
         }
         confirmText={isDesactivar ? "Sí, desactivar" : "Sí, activar"}
         cancelText="Cancelar"

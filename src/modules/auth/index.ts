@@ -8,8 +8,6 @@ export {
   getStoredToken,
   getStoredUser,
   getMe,
-  AUTH_TOKEN_KEY,
-  AUTH_USER_KEY,
 } from "./services/auth.service";
 export type {
   AuthUser,

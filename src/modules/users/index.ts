@@ -15,4 +15,5 @@ export type {
   ListUsersParams,
   ListUsersResult,
   UsersFeedback,
+  SucursalOption,
 } from "./types/user.types";

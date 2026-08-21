@@ -3,6 +3,7 @@
 import BrandLogo from "@/components/common/BrandLogo";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
+import { getStoredUser } from "@/modules/auth/services/auth.service"; 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -11,6 +12,7 @@ type NavItem = {
   name: string;
   icon: string;
   path?: string;
+  permission?: string; 
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -24,23 +26,31 @@ const navItems: NavItem[] = [
     icon: "mdi:account-group-outline",
     name: "Usuarios",
     path: "/users",
+    permission: "usuarios.listar", 
   },
   {
-    icon: "mdi:calendar-month-outline",
-    name: "Calendario",
-    path: "/calendar",
+    icon: "mdi:shield-key-outline",
+    name: "Roles y Permisos",
+    path: "/roles",
+    permission: "roles.listar", 
   },
-  {
-    icon: "mdi:form-select",
-    name: "Formularios",
-    path: "/form-elements",
-  },
+  // {
+  //   icon: "mdi:calendar-month-outline",
+  //   name: "Calendario",
+  //   path: "/calendar",
+  // },
+  // {
+  //   icon: "mdi:form-select",
+  //   name: "Formularios",
+  //   path: "/form-elements",
+  // },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main";
     index: number;
@@ -49,6 +59,11 @@ const AppSidebar: React.FC = () => {
     {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    const authUser = getStoredUser();
+    setCurrentUser(authUser);
+  }, []);
 
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
@@ -61,9 +76,15 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const filteredNavItems = navItems.filter((item) => {
+    if (!item.permission) return true; 
+    if (currentUser?.es_super_admin) return true;
+    return currentUser?.permisos?.includes(item.permission);
+  });
+
   useEffect(() => {
     let submenuMatched = false;
-    navItems.forEach((nav, index) => {
+    filteredNavItems.forEach((nav, index) => {
       nav.subItems?.forEach((subItem) => {
         if (isActive(subItem.path)) {
           setOpenSubmenu({ type: "main", index });
@@ -74,7 +95,7 @@ const AppSidebar: React.FC = () => {
     if (!submenuMatched) {
       setOpenSubmenu(null);
     }
-  }, [pathname, isActive]);
+  }, [pathname, isActive, filteredNavItems]);
 
   useEffect(() => {
     if (openSubmenu !== null) {
@@ -233,7 +254,7 @@ const AppSidebar: React.FC = () => {
                   <Icon name="mdi:dots-horizontal" size={20} />
                 )}
               </h2>
-              {renderMenuItems(navItems)}
+              {renderMenuItems(filteredNavItems)}
             </div>
           </div>
         </nav>

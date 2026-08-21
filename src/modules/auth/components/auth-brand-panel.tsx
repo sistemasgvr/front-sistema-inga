@@ -108,7 +108,6 @@ export function AuthBrandPanel() {
       ref={panelRef}
       className="bg-brand-950 relative hidden h-full w-full overflow-hidden lg:flex lg:w-1/2 lg:items-center lg:justify-center"
     >
-      {/* Esquina superior derecha — el wrapper anima; el flip va en el hijo */}
       <div
         ref={gridTopRef}
         className="pointer-events-none absolute top-0 right-0 w-[280px] opacity-0 xl:w-[420px]"
@@ -124,7 +123,6 @@ export function AuthBrandPanel() {
         />
       </div>
 
-      {/* Esquina inferior izquierda — rotate en el hijo para que anime.js no lo pise */}
       <div
         ref={gridBottomRef}
         className="pointer-events-none absolute bottom-0 left-0 w-[280px] opacity-0 xl:w-[420px]"
@@ -152,7 +150,6 @@ export function AuthBrandPanel() {
             height={112}
             src="/images/logo/logo-brand.png"
             alt="Ingá — Gastronomía Lambayecana"
-            // Anula Tailwind preflight (height:auto / max-width:100%) que dispara el warning
             style={{ width: 220, height: 112, maxWidth: "none" }}
             className="object-contain brightness-0 invert drop-shadow-[0_0_18px_rgba(255,255,255,0.35)] transition-[filter] duration-300 hover:drop-shadow-[0_0_28px_rgba(255,255,255,0.55)]"
             priority

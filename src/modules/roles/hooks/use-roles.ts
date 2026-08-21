@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   createRole,
   getPermissionsCatalog,
@@ -26,46 +28,110 @@ export function useRoles() {
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const [buscar, setBuscar] = useState("");
+  
   const [searchInput, setSearchInput] = useState("");
-  
-  // Filtro inicial por defecto en "activos"
+  const debouncedSearch = useDebounce(searchInput, 400);
+
   const [estadoFiltro, setEstadoFiltro] = useState<RoleStatusFilter>("activos");
-  
+
   const [resumen, setResumen] = useState<RolesResumen>({
     total: 0,
     activos: 0,
     inactivos: 0,
+    total_permisos_sistema: 0,
   });
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<RolesFeedback>(null);
 
-  // Modal Crear / Editar Rol
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [hasLoadedSession, setHasLoadedSession] = useState(false);
+
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Modal Matriz de Permisos
   const [permissionsRole, setPermissionsRole] = useState<RoleItem | null>(null);
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [catalogPermissions, setCatalogPermissions] = useState<PermisoItem[]>([]);
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(false);
 
-  // Modal Confirmación Activar / Desactivar
   const [confirmRole, setConfirmRole] = useState<RoleItem | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  useEffect(() => {
+    async function syncSessionUser() {
+      const stored = getStoredUser();
+      if (stored) {
+        const storedAny = stored as any;
+        const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
 
-  // Cargar tabla de roles
+        setCurrentUser({
+          id: stored.id,
+          username: stored.username,
+          email: stored.email,
+          es_super_admin: isSuperStored,
+          permisos: stored.permisos ?? [],
+          estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+        });
+      }
+
+      try {
+        const fresh = await getMe();
+        if (fresh) {
+          const freshData = fresh as any;
+          const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
+
+          if (userEstado === 0) {
+            await logout();
+            return;
+          }
+
+          const isSuper = Boolean(
+            freshData.es_super_admin || 
+            freshData.esSuperAdmin || 
+            freshData.sesion?.es_super_admin
+          );
+
+          const permisosBackend: string[] = freshData.permisos ?? [];
+
+          setCurrentUser({
+            id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
+            username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
+            email: freshData.email ?? freshData.sesion?.correo ?? "",
+            es_super_admin: isSuper,
+            permisos: permisosBackend,
+            estado: userEstado,
+          });
+        } else {
+          await logout();
+        }
+      } catch {
+      } finally {
+        setHasLoadedSession(true);
+      }
+    }
+
+    void syncSessionUser();
+  }, []);
+
   const loadRoles = useCallback(async () => {
+    if (!hasLoadedSession) return;
+
+    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+    const hasListPermission = currentUser?.permisos?.includes("roles.listar");
+
+    if (currentUser && !isSuper && !hasListPermission) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await listRoles({
-        buscar,
+        buscar: debouncedSearch.trim(),
         pagina,
         limite: pageSize,
         estado: estadoFiltro,
@@ -86,11 +152,15 @@ export function useRoles() {
     } finally {
       setIsLoading(false);
     }
-  }, [buscar, pagina, pageSize, estadoFiltro]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser]);
 
   useEffect(() => {
     void loadRoles();
   }, [loadRoles]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [debouncedSearch]);
 
   function handleFilterStatus(status: RoleStatusFilter) {
     setEstadoFiltro(status);
@@ -102,18 +172,63 @@ export function useRoles() {
     setPagina(1);
   }
 
-  function applySearch() {
-    setPagina(1);
-    setBuscar(searchInput.trim());
+  async function verifyActionAccess(requiredPermission?: string): Promise<boolean> {
+    try {
+      const fresh = await getMe();
+      const freshData = fresh as any;
+      const userEstado = freshData?.estado ?? freshData?.sesion?.estado ?? 1;
+
+      if (!fresh || userEstado === 0) {
+        setFeedback({
+          variant: "error",
+          title: "Acceso denegado",
+          message: "Tu usuario ha sido inactivado o tu sesión ya no es válida.",
+        });
+        await logout();
+        return false;
+      }
+
+      const isSuper = Boolean(
+        freshData.es_super_admin || 
+        freshData.esSuperAdmin || 
+        freshData.sesion?.es_super_admin
+      );
+
+      if (isSuper) {
+        return true;
+      }
+
+      if (requiredPermission) {
+        const permisosBackend: string[] = freshData.permisos ?? [];
+        if (!permisosBackend.includes(requiredPermission)) {
+          setFeedback({
+            variant: "error",
+            title: "Permiso denegado",
+            message: "Ya no cuentas con los permisos necesarios para realizar esta acción.",
+          });
+          return false;
+        }
+      }
+
+      return true;
+    } catch {
+      await logout();
+      return false;
+    }
   }
 
-  // --- Handlers Modal Formulario ---
-  function openCreateModal() {
+  async function openCreateModal() {
+    const isValid = await verifyActionAccess("roles.crear");
+    if (!isValid) return;
+
     setEditingRole(null);
     setIsFormOpen(true);
   }
 
-  function openEditModal(role: RoleItem) {
+  async function openEditModal(role: RoleItem) {
+    const isValid = await verifyActionAccess("roles.editar");
+    if (!isValid) return;
+
     setEditingRole(role);
     setIsFormOpen(true);
   }
@@ -124,6 +239,10 @@ export function useRoles() {
   }
 
   async function saveRole(values: RoleFormValues) {
+    const permissionNeeded = editingRole ? "roles.editar" : "roles.crear";
+    const isValid = await verifyActionAccess(permissionNeeded);
+    if (!isValid) return;
+
     setIsSaving(true);
     try {
       if (editingRole) {
@@ -155,14 +274,15 @@ export function useRoles() {
     }
   }
 
-  // --- Handlers Modal Permisos ---
   async function openPermissionsModal(role: RoleItem) {
+    const isValid = await verifyActionAccess("roles.editar");
+    if (!isValid) return;
+
     setPermissionsRole(role);
     setIsPermissionsOpen(true);
     setIsLoadingPermissions(true);
 
     try {
-      // Cargar catálogo global + permisos asignados en paralelo
       const [catalog, assignedIds] = await Promise.all([
         getPermissionsCatalog(),
         getRolePermissions(role.id),
@@ -191,6 +311,9 @@ export function useRoles() {
 
   async function savePermissions(idsPermisos: number[]) {
     if (!permissionsRole) return;
+    const isValid = await verifyActionAccess("roles.editar");
+    if (!isValid) return;
+
     setIsSaving(true);
     try {
       await syncRolePermissions(permissionsRole.id, idsPermisos);
@@ -212,8 +335,10 @@ export function useRoles() {
     }
   }
 
-  // --- Handlers Confirmación ---
-  function openConfirmModal(role: RoleItem) {
+  async function openConfirmModal(role: RoleItem) {
+    const isValid = await verifyActionAccess("roles.eliminar");
+    if (!isValid) return;
+
     setConfirmRole(role);
     setIsConfirmOpen(true);
   }
@@ -225,6 +350,9 @@ export function useRoles() {
 
   async function confirmToggleStatus() {
     if (!confirmRole) return;
+    const isValid = await verifyActionAccess("roles.eliminar");
+    if (!isValid) return;
+
     setIsToggling(true);
     try {
       await toggleRoleStatus(confirmRole);
@@ -241,9 +369,12 @@ export function useRoles() {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
   return {
     registros,
     total,
+    totalPermisosSistema: resumen.total_permisos_sistema ?? 0,
     pagina,
     setPagina,
     pageSize,
@@ -251,7 +382,6 @@ export function useRoles() {
     totalPages,
     searchInput,
     setSearchInput,
-    applySearch,
     estadoFiltro,
     handleFilterStatus,
     resumen,
@@ -259,8 +389,9 @@ export function useRoles() {
     isSaving,
     feedback,
     clearFeedback: () => setFeedback(null),
-    
-    // Modal Form
+
+    currentUser,
+
     editingRole,
     isFormOpen,
     openCreateModal,
@@ -268,7 +399,6 @@ export function useRoles() {
     closeFormModal,
     saveRole,
 
-    // Modal Permisos
     permissionsRole,
     isPermissionsOpen,
     catalogPermissions,
@@ -278,7 +408,6 @@ export function useRoles() {
     closePermissionsModal,
     savePermissions,
 
-    // Modal Confirm
     confirmRole,
     isConfirmOpen,
     isToggling,
