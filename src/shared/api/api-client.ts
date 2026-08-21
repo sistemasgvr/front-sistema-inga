@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
+import { env } from '@/config/env';
 import { AUTH_STORAGE_KEY } from '../../modules/auth/services/auth.service';
 
 export class ApiError extends Error {
@@ -33,7 +34,7 @@ export interface PaginatedResult<T> {
   };
 }
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+const baseURL = env.apiUrl;
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL,

@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { env } from '@/config/env';
+
+const API_BASE_URL = env.apiUrl;
 
 export async function apiClient<T>(endpoint: string, options?: RequestInit): Promise<T> {
   // Aquí puedes adjuntar tokens almacenados si corresponde
