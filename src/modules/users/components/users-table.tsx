@@ -16,6 +16,7 @@ type UsersTableProps = {
   users: User[];
   currentUser?: User | null;
   isLoading: boolean;
+  loadingUserId?: number | null;
   onEdit: (user: User) => void;
   onToggleStatus: (user: User) => void;
 };
@@ -24,6 +25,7 @@ export function UsersTable({
   users,
   currentUser,
   isLoading,
+  loadingUserId,
   onEdit,
   onToggleStatus,
 }: UsersTableProps) {
@@ -79,6 +81,7 @@ export function UsersTable({
                   const isActivo = targetUser.estado === 1;
                   const isTargetOwner = Boolean(targetUser.es_super_admin);
                   const isSelf = Number(currentUser?.id) === Number(targetUser.id);
+                  const isItemLoading = loadingUserId === targetUser.id;
 
                   let canEdit = false;
                   let canToggle = false;
@@ -145,8 +148,9 @@ export function UsersTable({
                           {canEdit && isActivo && (
                             <button
                               type="button"
+                              disabled={isItemLoading}
                               onClick={() => onEdit(targetUser)}
-                              className="text-gray-500 hover:text-brand-600 transition-colors"
+                              className="text-gray-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                               title="Editar usuario"
                             >
                               <Icon name="mdi:pencil-outline" size={19} />
@@ -157,8 +161,9 @@ export function UsersTable({
                             isActivo ? (
                               <button
                                 type="button"
+                                disabled={isItemLoading}
                                 onClick={() => onToggleStatus(targetUser)}
-                                className="text-gray-500 hover:text-error-600 transition-colors"
+                                className="text-gray-500 hover:text-error-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                 title="Desactivar usuario"
                               >
                                 <Icon name="mdi:trash-can-outline" size={19} />
@@ -166,8 +171,9 @@ export function UsersTable({
                             ) : (
                               <button
                                 type="button"
+                                disabled={isItemLoading}
                                 onClick={() => onToggleStatus(targetUser)}
-                                className="text-success-600 hover:text-success-700 transition-colors"
+                                className="text-success-600 hover:text-success-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                 title="Reactivar usuario"
                               >
                                 <Icon name="mdi:refresh" size={19} />

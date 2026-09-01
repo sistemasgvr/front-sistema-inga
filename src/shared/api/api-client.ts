@@ -96,19 +96,27 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-function normalizeApiMessage(message: unknown, fallback: string): string {
-  if (typeof message === 'string' && message.trim()) return message.trim();
-  if (Array.isArray(message)) {
-    const joined = message.map(String).filter(Boolean).join(' · ');
-    if (joined) return joined;
+function normalizeApiMessage(payload: any, fallback: string): string {
+  if (payload && typeof payload === 'object') {
+    if (typeof payload.cause === 'string' && payload.cause.trim()) {
+      return payload.cause.trim();
+    }
+    if (typeof payload.message === 'string' && payload.message.trim()) {
+      return payload.message.trim();
+    }
+    if (Array.isArray(payload.message)) {
+      const joined = payload.message.map(String).filter(Boolean).join(' · ');
+      if (joined) return joined;
+    }
   }
+  if (typeof payload === 'string' && payload.trim()) return payload.trim();
   return fallback;
 }
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
-    if (axios.isAxiosError<{ message?: unknown; errors?: string[] | null }>(error)) {
+    if (axios.isAxiosError<{ message?: unknown; cause?: string; errors?: string[] | null }>(error)) {
       const statusCode = error.response?.status ?? 500;
       const payload = error.response?.data;
 
@@ -122,7 +130,7 @@ apiClient.interceptors.response.use(
       }
 
       throw new ApiError(
-        normalizeApiMessage(payload?.message, error.message || 'Error de conexión'),
+        normalizeApiMessage(payload, error.message || 'Error de conexión'),
         statusCode,
         payload?.errors ?? null,
       );
@@ -142,7 +150,7 @@ function unwrapResponse<T>(response: { data: ApiResponse<T> }): T {
   if (payload.success === false) {
     const failed = payload as ApiResponse<T> & { errors?: string[] | null };
     throw new ApiError(
-      normalizeApiMessage(failed.message, 'La operación no se pudo completar'),
+      normalizeApiMessage(failed, 'La operación no se pudo completar'),
       400,
       failed.errors ?? null,
     );
@@ -150,7 +158,7 @@ function unwrapResponse<T>(response: { data: ApiResponse<T> }): T {
 
   if (payload.data === undefined) {
     throw new ApiError(
-      normalizeApiMessage(payload.message, 'El servidor no devolvió datos'),
+      normalizeApiMessage(payload, 'El servidor no devolvió datos'),
       500,
     );
   }

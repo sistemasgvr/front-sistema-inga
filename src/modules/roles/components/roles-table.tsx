@@ -16,6 +16,7 @@ type RolesTableProps = {
   currentUser?: any | null; 
   totalPermisosSistema: number;
   isLoading: boolean;
+  loadingRoleId?: number | null;
   onEdit: (role: RoleItem) => void;
   onPermissions: (role: RoleItem) => void;
   onToggleStatus: (role: RoleItem) => void;
@@ -26,6 +27,7 @@ export function RolesTable({
   currentUser,
   totalPermisosSistema,
   isLoading,
+  loadingRoleId,
   onEdit,
   onPermissions,
   onToggleStatus,
@@ -90,6 +92,7 @@ export function RolesTable({
                   const isActivo = role.estado === 1;
                   const totalPermisos = role.total_permisos ?? 0;
                   const totalUsuarios = role.total_usuarios ?? 0;
+                  const isItemLoading = loadingRoleId === role.id;
 
                   return (
                     <TableRow key={role.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
@@ -137,8 +140,9 @@ export function RolesTable({
                                 <>
                                   <button
                                     type="button"
+                                    disabled={isItemLoading}
                                     onClick={() => onPermissions(role)}
-                                    className="text-gray-500 hover:text-brand-600 transition-colors"
+                                    className="text-gray-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                     title="Gestionar permisos"
                                   >
                                     <Icon name="mdi:shield-lock-outline" size={19} />
@@ -146,8 +150,9 @@ export function RolesTable({
 
                                   <button
                                     type="button"
+                                    disabled={isItemLoading}
                                     onClick={() => onEdit(role)}
-                                    className="text-gray-500 hover:text-brand-600 transition-colors"
+                                    className="text-gray-500 hover:text-brand-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                     title="Editar rol"
                                   >
                                     <Icon name="mdi:pencil-outline" size={19} />
@@ -158,8 +163,9 @@ export function RolesTable({
                               {canDelete && (
                                 <button
                                   type="button"
+                                  disabled={isItemLoading}
                                   onClick={() => onToggleStatus(role)}
-                                  className="text-gray-500 hover:text-error-600 transition-colors"
+                                  className="text-gray-500 hover:text-error-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                   title="Desactivar rol"
                                 >
                                   <Icon name="mdi:trash-can-outline" size={19} />
@@ -170,8 +176,9 @@ export function RolesTable({
                             canActivate && (
                               <button
                                 type="button"
+                                disabled={isItemLoading}
                                 onClick={() => onToggleStatus(role)}
-                                className="text-success-600 hover:text-success-700 transition-colors"
+                                className="text-success-600 hover:text-success-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                                 title="Reactivar rol"
                               >
                                 <Icon name="mdi:refresh" size={19} />

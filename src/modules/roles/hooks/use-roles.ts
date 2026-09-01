@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/components/ui/toast/ToastContext";
 import {
   createRole,
   getPermissionsCatalog,
@@ -17,13 +18,14 @@ import type {
   RoleFormValues,
   RoleItem,
   RoleStatusFilter,
-  RolesFeedback,
   RolesResumen,
 } from "../types/roles.types";
 
 const PAGE_SIZE = 10;
 
 export function useRoles() {
+  const { toast } = useToast();
+
   const [registros, setRegistros] = useState<RoleItem[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -43,7 +45,7 @@ export function useRoles() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<RolesFeedback>(null);
+  const [loadingRoleId, setLoadingRoleId] = useState<number | null>(null);
 
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [hasLoadedSession, setHasLoadedSession] = useState(false);
@@ -143,16 +145,12 @@ export function useRoles() {
       if (result.resumen) {
         setResumen(result.resumen);
       }
-    } catch {
-      setFeedback({
-        variant: "error",
-        title: "Error al cargar",
-        message: "No se pudieron obtener los roles de la base de datos.",
-      });
+    } catch (error) {
+      toast("error", "Error de carga", error instanceof Error ? error.message : "No se pudieron obtener los roles.");
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, toast]);
 
   useEffect(() => {
     void loadRoles();
@@ -179,11 +177,7 @@ export function useRoles() {
       const userEstado = freshData?.estado ?? freshData?.sesion?.estado ?? 1;
 
       if (!fresh || userEstado === 0) {
-        setFeedback({
-          variant: "error",
-          title: "Acceso denegado",
-          message: "Tu usuario ha sido inactivado o tu sesión ya no es válida.",
-        });
+        toast("error", "Acceso denegado", "Tu usuario ha sido inactivado o tu sesión ya no es válida.");
         await logout();
         return false;
       }
@@ -201,11 +195,7 @@ export function useRoles() {
       if (requiredPermission) {
         const permisosBackend: string[] = freshData.permisos ?? [];
         if (!permisosBackend.includes(requiredPermission)) {
-          setFeedback({
-            variant: "error",
-            title: "Permiso denegado",
-            message: "Ya no cuentas con los permisos necesarios para realizar esta acción.",
-          });
+          toast("error", "Permiso denegado", "Ya no cuentas con los permisos necesarios para realizar esta acción.");
           return false;
         }
       }
@@ -218,71 +208,80 @@ export function useRoles() {
   }
 
   async function openCreateModal() {
-    const isValid = await verifyActionAccess("roles.crear");
-    if (!isValid) return;
-
+    if (isFormOpen) return;
     setEditingRole(null);
     setIsFormOpen(true);
+
+    const isValid = await verifyActionAccess("roles.crear");
+    if (!isValid) {
+      setIsFormOpen(false);
+    }
   }
 
   async function openEditModal(role: RoleItem) {
-    const isValid = await verifyActionAccess("roles.editar");
-    if (!isValid) return;
+    if (isFormOpen || loadingRoleId !== null) return;
+    setLoadingRoleId(role.id);
 
     setEditingRole(role);
     setIsFormOpen(true);
+
+    const isValid = await verifyActionAccess("roles.editar");
+    if (!isValid) {
+      setIsFormOpen(false);
+      setEditingRole(null);
+    }
+    setLoadingRoleId(null);
   }
 
   function closeFormModal() {
+    if (isSaving) return;
     setIsFormOpen(false);
     setEditingRole(null);
   }
 
   async function saveRole(values: RoleFormValues) {
-    const permissionNeeded = editingRole ? "roles.editar" : "roles.crear";
-    const isValid = await verifyActionAccess(permissionNeeded);
-    if (!isValid) return;
-
+    if (isSaving) return; 
     setIsSaving(true);
+
     try {
+      const permissionNeeded = editingRole ? "roles.editar" : "roles.crear";
+      const isValid = await verifyActionAccess(permissionNeeded);
+      if (!isValid) return;
+
       if (editingRole) {
         await updateRole(editingRole.id, values);
-        setFeedback({
-          variant: "success",
-          title: "Rol actualizado",
-          message: `El rol '${values.nombre}' se guardó correctamente.`,
-        });
+        toast("success", "Rol actualizado", `El rol '${values.nombre}' se guardó correctamente.`);
       } else {
         await createRole(values);
-        setFeedback({
-          variant: "success",
-          title: "Rol creado",
-          message: `El rol '${values.nombre}' fue registrado correctamente.`,
-        });
+        toast("success", "Rol creado", `El rol '${values.nombre}' fue registrado correctamente.`);
         setPagina(1);
       }
       closeFormModal();
       await loadRoles();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error al guardar",
-        message: error instanceof Error ? error.message : "Error inesperado.",
-      });
+      const message = error instanceof Error ? error.message : "Error inesperado al guardar el rol.";
+      toast("error", "Atención", message);
     } finally {
       setIsSaving(false);
     }
   }
 
   async function openPermissionsModal(role: RoleItem) {
-    const isValid = await verifyActionAccess("roles.editar");
-    if (!isValid) return;
+    if (isPermissionsOpen || loadingRoleId !== null) return;
+    setLoadingRoleId(role.id);
 
     setPermissionsRole(role);
     setIsPermissionsOpen(true);
     setIsLoadingPermissions(true);
 
     try {
+      const isValid = await verifyActionAccess("roles.editar");
+      if (!isValid) {
+        setIsPermissionsOpen(false);
+        setPermissionsRole(null);
+        return;
+      }
+
       const [catalog, assignedIds] = await Promise.all([
         getPermissionsCatalog(),
         getRolePermissions(role.id),
@@ -290,19 +289,18 @@ export function useRoles() {
 
       setCatalogPermissions(catalog);
       setSelectedPermissionIds(assignedIds);
-    } catch {
-      setFeedback({
-        variant: "error",
-        title: "Error de permisos",
-        message: "No se pudieron obtener los permisos del rol seleccionado.",
-      });
+    } catch (error) {
+      toast("error", "Error de permisos", "No se pudieron obtener los permisos del rol seleccionado.");
       setIsPermissionsOpen(false);
+      setPermissionsRole(null);
     } finally {
       setIsLoadingPermissions(false);
+      setLoadingRoleId(null);
     }
   }
 
   function closePermissionsModal() {
+    if (isSaving) return;
     setIsPermissionsOpen(false);
     setPermissionsRole(null);
     setCatalogPermissions([]);
@@ -310,60 +308,59 @@ export function useRoles() {
   }
 
   async function savePermissions(idsPermisos: number[]) {
-    if (!permissionsRole) return;
-    const isValid = await verifyActionAccess("roles.editar");
-    if (!isValid) return;
-
+    if (!permissionsRole || isSaving) return;
     setIsSaving(true);
+
     try {
+      const isValid = await verifyActionAccess("roles.editar");
+      if (!isValid) return;
+
       await syncRolePermissions(permissionsRole.id, idsPermisos);
-      setFeedback({
-        variant: "success",
-        title: "Permisos actualizados",
-        message: `Los permisos para el rol '${permissionsRole.nombre}' fueron guardados.`,
-      });
+      toast("success", "Permisos actualizados", `Los permisos para '${permissionsRole.nombre}' fueron guardados.`);
       closePermissionsModal();
       await loadRoles();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error al guardar permisos",
-        message: error instanceof Error ? error.message : "Error inesperado.",
-      });
+      const message = error instanceof Error ? error.message : "Error inesperado al guardar permisos.";
+      toast("error", "Atención", message);
     } finally {
       setIsSaving(false);
     }
   }
 
   async function openConfirmModal(role: RoleItem) {
-    const isValid = await verifyActionAccess("roles.eliminar");
-    if (!isValid) return;
+    if (isConfirmOpen || loadingRoleId !== null) return;
+    setLoadingRoleId(role.id);
 
-    setConfirmRole(role);
-    setIsConfirmOpen(true);
+    const isValid = await verifyActionAccess("roles.eliminar");
+    if (isValid) {
+      setConfirmRole(role);
+      setIsConfirmOpen(true);
+    }
+    setLoadingRoleId(null);
   }
 
   function closeConfirmModal() {
+    if (isToggling) return;
     setIsConfirmOpen(false);
     setConfirmRole(null);
   }
 
   async function confirmToggleStatus() {
-    if (!confirmRole) return;
-    const isValid = await verifyActionAccess("roles.eliminar");
-    if (!isValid) return;
-
+    if (!confirmRole || isToggling) return;
     setIsToggling(true);
+
     try {
+      const isValid = await verifyActionAccess("roles.eliminar");
+      if (!isValid) return;
+
       await toggleRoleStatus(confirmRole);
+      const accion = confirmRole.estado === 1 ? "desactivado" : "activado";
+      toast("info", "Estado actualizado", `El rol '${confirmRole.nombre}' ha sido ${accion}.`);
       closeConfirmModal();
       await loadRoles();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error de actualización",
-        message: error instanceof Error ? error.message : "Error inesperado.",
-      });
+      const message = error instanceof Error ? error.message : "Error inesperado.";
+      toast("error", "Error de actualización", message);
     } finally {
       setIsToggling(false);
     }
@@ -387,8 +384,7 @@ export function useRoles() {
     resumen,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback: () => setFeedback(null),
+    loadingRoleId,
 
     currentUser,
 

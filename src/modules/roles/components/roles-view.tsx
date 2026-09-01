@@ -2,7 +2,6 @@
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
@@ -29,8 +28,7 @@ export function RolesView() {
     resumen,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
+    loadingRoleId,
     currentUser,
 
     editingRole,
@@ -84,23 +82,6 @@ export function RolesView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Roles y Permisos" />
-
-      {feedback ? (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="text-theme-xs mt-2 text-gray-500 underline hover:text-gray-700 dark:text-gray-400"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      ) : null}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button
@@ -177,6 +158,7 @@ export function RolesView() {
         currentUser={currentUser}
         totalPermisosSistema={totalPermisosSistema} 
         isLoading={isLoading}
+        loadingRoleId={loadingRoleId}
         onEdit={openEditModal}
         onPermissions={openPermissionsModal}
         onToggleStatus={openConfirmModal}

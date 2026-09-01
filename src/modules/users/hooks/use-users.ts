@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listRoles } from "@/modules/roles/services/roles.service";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/components/ui/toast/ToastContext";
 import {
   createUser,
   listUsers,
@@ -15,14 +16,16 @@ import type {
   User,
   UserFormValues,
   UserStatusFilter,
-  UsersFeedback,
   UsersResumen,
 } from "../types/user.types";
 import type { RoleItem } from "@/modules/roles/types/roles.types";
+import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 
 const PAGE_SIZE = 10;
 
 export function useUsers() {
+  const { toast } = useToast();
+
   const [registros, setRegistros] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -41,7 +44,7 @@ export function useUsers() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<UsersFeedback>(null);
+  const [loadingUserId, setLoadingUserId] = useState<number | null>(null); 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoadedSession, setHasLoadedSession] = useState(false); 
@@ -50,9 +53,7 @@ export function useUsers() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [availableRoles, setAvailableRoles] = useState<RoleItem[]>([]);
-  const [availableSucursales] = useState<SucursalOption[]>([
-    { id: 1, nombre: "Sede Principal" },
-  ]);
+  const [availableSucursales, setAvailableSucursales] = useState<SucursalOption[]>([]);
 
   const [confirmUser, setConfirmUser] = useState<User | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -135,8 +136,21 @@ export function useUsers() {
     void loadRolesCatalog();
   }, [loadRolesCatalog]);
 
+  const loadSucursalesCatalog = useCallback(async () => {
+    try {
+      const res = await listSucursales({ pagina: 1, limite: 100, estado: "activos" });
+      const sucursalesMapeadas = (res.registros ?? []).map((suc) => ({
+        id: suc.id,
+        nombre: suc.nombre,
+      }));
+      setAvailableSucursales(sucursalesMapeadas);
+    } catch (error) {
+      console.error("Error al cargar lista de sucursales:", error);
+    }
+  }, []);
+
   const loadUsers = useCallback(async () => {
-    if (!hasLoadedSession) return;
+    if (!hasLoadedSession) return; 
 
     const isSuper = Boolean(currentUser?.es_super_admin || (currentUser as any)?.sesion?.es_super_admin);
     const hasListPermission = currentUser?.permisos?.includes("usuarios.listar");
@@ -162,15 +176,15 @@ export function useUsers() {
         setResumen(response.resumen);
       }
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error de carga",
-        message: error instanceof Error ? error.message : "Error al obtener usuarios.",
-      });
+      toast("error", "Error de carga", error instanceof Error ? error.message : "Error al obtener usuarios.");
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, toast]); 
+
+  useEffect(() => {
+    void loadSucursalesCatalog();
+  }, [loadSucursalesCatalog]);
 
   useEffect(() => {
     void loadUsers();
@@ -197,11 +211,7 @@ export function useUsers() {
       const userEstado = freshData?.estado ?? freshData?.sesion?.estado ?? 1;
 
       if (!fresh || userEstado === 0) {
-        setFeedback({
-          variant: "error",
-          title: "Acceso denegado",
-          message: "Tu usuario ha sido inactivado o tu sesión ya no es válida.",
-        });
+        toast("error", "Acceso denegado", "Tu usuario ha sido inactivado o tu sesión ya no es válida.");
         await logout();
         return false;
       }
@@ -219,11 +229,7 @@ export function useUsers() {
       if (requiredPermission) {
         const permisosBackend: string[] = freshData.permisos ?? [];
         if (!permisosBackend.includes(requiredPermission)) {
-          setFeedback({
-            variant: "error",
-            title: "Permiso denegado",
-            message: "Ya no cuentas con los permisos necesarios para realizar esta acción.",
-          });
+          toast("error", "Permiso denegado", "Ya no cuentas con los permisos necesarios para realizar esta acción.");
           return false;
         }
       }
@@ -236,19 +242,29 @@ export function useUsers() {
   }
 
   async function openCreateModal() {
-    const isValid = await verifyActionAccess("usuarios.crear");
-    if (!isValid) return;
-
+    if (isFormOpen) return;
     setEditingUser(null);
-    setIsFormOpen(true);
+    setIsFormOpen(true); 
+
+    const isValid = await verifyActionAccess("usuarios.crear");
+    if (!isValid) {
+      setIsFormOpen(false);
+    }
   }
 
   async function openEditModal(user: User) {
-    const isValid = await verifyActionAccess("usuarios.editar");
-    if (!isValid) return;
-
+    if (isFormOpen || loadingUserId !== null) return;
+    setLoadingUserId(user.id);
+    
     setEditingUser(user);
     setIsFormOpen(true);
+
+    const isValid = await verifyActionAccess("usuarios.editar");
+    if (!isValid) {
+      setIsFormOpen(false);
+      setEditingUser(null);
+    }
+    setLoadingUserId(null);
   }
 
   function closeFormModal() {
@@ -258,11 +274,15 @@ export function useUsers() {
   }
 
   async function openConfirmModal(user: User) {
-    const isValid = await verifyActionAccess("usuarios.eliminar");
-    if (!isValid) return;
+    if (isConfirmOpen || loadingUserId !== null) return;
+    setLoadingUserId(user.id);
 
-    setConfirmUser(user);
-    setIsConfirmOpen(true);
+    const isValid = await verifyActionAccess("usuarios.eliminar");
+    if (isValid) {
+      setConfirmUser(user);
+      setIsConfirmOpen(true);
+    }
+    setLoadingUserId(null);
   }
 
   function closeConfirmModal() {
@@ -272,49 +292,40 @@ export function useUsers() {
   }
 
   async function saveUser(values: UserFormValues) {
-    const permissionNeeded = editingUser ? "usuarios.editar" : "usuarios.crear";
-    const isValid = await verifyActionAccess(permissionNeeded);
-    if (!isValid) return;
-
+    if (isSaving) return;
     setIsSaving(true);
+
     try {
+      const permissionNeeded = editingUser ? "usuarios.editar" : "usuarios.crear";
+      const isValid = await verifyActionAccess(permissionNeeded);
+      if (!isValid) return;
+
       if (editingUser) {
         await updateUser(editingUser.id, values);
-        setFeedback({
-          variant: "success",
-          title: "Usuario actualizado",
-          message: `El usuario @${values.username} ha sido actualizado correctamente.`,
-        });
+        toast("success", "Usuario actualizado", `@${values.username} fue actualizado correctamente.`);
       } else {
         await createUser(values);
-        setFeedback({
-          variant: "success",
-          title: "Usuario registrado",
-          message: `El usuario @${values.username} ha sido creado exitosamente.`,
-        });
+        toast("success", "Usuario registrado", `@${values.username} fue creado exitosamente.`);
       }
 
       closeFormModal();
       await loadUsers();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "No se pudo guardar",
-        message: error instanceof Error ? error.message : "Error inesperado al guardar.",
-      });
+      const message = error instanceof Error ? error.message : "No se pudo procesar la solicitud.";
+      toast("error", "Atención", message);
     } finally {
       setIsSaving(false);
     }
   }
 
   async function confirmToggleStatus() {
-    if (!confirmUser) return;
-
-    const isValid = await verifyActionAccess("usuarios.eliminar");
-    if (!isValid) return;
-
+    if (!confirmUser || isToggling) return;
     setIsToggling(true);
+
     try {
+      const isValid = await verifyActionAccess("usuarios.eliminar");
+      if (!isValid) return;
+
       await toggleUserStatus(confirmUser);
 
       if (currentUser && Number(confirmUser.id) === Number(currentUser.id)) {
@@ -324,19 +335,11 @@ export function useUsers() {
       }
 
       const accion = confirmUser.estado === 1 ? "desactivado" : "activado";
-      setFeedback({
-        variant: "info",
-        title: "Estado actualizado",
-        message: `El usuario @${confirmUser.username} ha sido ${accion}.`,
-      });
+      toast("info", "Estado actualizado", `El usuario @${confirmUser.username} ha sido ${accion}.`);
       closeConfirmModal();
       await loadUsers();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error al cambiar estado",
-        message: error instanceof Error ? error.message : "Error inesperado.",
-      });
+      toast("error", "Error al cambiar estado", error instanceof Error ? error.message : "Error inesperado.");
     } finally {
       setIsToggling(false);
     }
@@ -359,8 +362,7 @@ export function useUsers() {
     resumen,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback: () => setFeedback(null),
+    loadingUserId,
 
     currentUser,
 

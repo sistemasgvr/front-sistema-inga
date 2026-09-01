@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getStoredToken, getMe, AUTH_STORAGE_KEY } from "../services/auth.service";
 
@@ -11,39 +11,36 @@ type RequireAuthProps = {
 export function RequireAuth({ children }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    async function verifySession() {
+    async function backgroundVerify() {
       const token = getStoredToken();
       
+      // Si no hay token, fuera de inmediato
       if (!token) {
         router.replace("/login");
         return;
       }
 
       try {
+        // Verificación silenciosa en segundo plano
         const user = await getMe();
-
-        if (user) {
-          setReady(true);
-        } else {
+        
+        // Si el backend responde que no hay usuario o está inactivo
+        if (!user) {
           throw new Error("Sesión inválida");
         }
       } catch (error) {
+        // Si falla la validación por detrás, limpiamos y botamos al login
         localStorage.removeItem(AUTH_STORAGE_KEY);
         sessionStorage.removeItem(AUTH_STORAGE_KEY);
         router.replace("/login");
       }
     }
 
-    setReady(false); 
-    verifySession();
+    void backgroundVerify();
   }, [pathname, router]);
 
-  if (!ready) {
-    return null;
-  }
-
+  // Renderizamos los hijos de inmediato sin bloquear ni mostrar pantallas en blanco
   return <>{children}</>;
 }
