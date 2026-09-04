@@ -13,25 +13,39 @@ export class ApiError extends Error {
   }
 }
 
-export interface ApiResponse<T> {
+/**
+ * Metadatos de paginación. Refleja `ApiMeta` del backend
+ * (`src/common/interfaces/api-response.interface.ts`).
+ */
+export interface ApiMeta<R = unknown> {
+  pagina: number;
+  limite: number;
+  total: number;
+  /** Datos adicionales del listado (p. ej. conteo de activos/inactivos). */
+  resumen?: R | null;
+}
+
+export interface ApiResponse<T, R = unknown> {
   success: boolean;
   message: string;
   data: T;
-  meta?: {
-    pagina: number;
-    limite: number;
-    total: number;
-  };
+  meta?: ApiMeta<R>;
   errors?: string[] | null;
 }
 
-export interface PaginatedResult<T> {
+export interface PaginatedResult<T, R = unknown> {
   data: T;
-  meta: {
-    pagina: number;
-    limite: number;
-    total: number;
-  };
+  meta: ApiMeta<R>;
+}
+
+/**
+ * Resultado de las acciones de baja lógica y reactivación.
+ * Refleja `AuthDeleteResult` / `AuthActivateResult` del backend.
+ */
+export interface ToggleStatusResult {
+  id: number;
+  eliminado?: boolean;
+  activado?: boolean;
 }
 
 const baseURL = env.apiUrl;
@@ -171,11 +185,11 @@ export async function apiGet<T>(url: string, config?: AxiosRequestConfig): Promi
   return unwrapResponse(response);
 }
 
-export async function apiGetPaginated<T>(
+export async function apiGetPaginated<T, R = unknown>(
   url: string,
   config?: AxiosRequestConfig,
-): Promise<PaginatedResult<T[]>> {
-  const response = await apiClient.get<ApiResponse<T[]>>(url, config);
+): Promise<PaginatedResult<T[], R>> {
+  const response = await apiClient.get<ApiResponse<T[], R>>(url, config);
   const data = response.data.data ?? ([] as T[]);
   const meta = response.data.meta ?? {
     pagina: 1,

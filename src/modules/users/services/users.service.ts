@@ -15,49 +15,22 @@ import type {
 export async function listUsers(
   params: ListUsersParams,
 ): Promise<ListUsersResult> {
-  const response = await apiGetPaginated<User>("/auth/usuarios", {
-    params: {
-      pagina: params.pagina,
-      limite: params.limite,
-      buscar: params.buscar || undefined,
-      estado: params.estado || "activos",
+  const { data, meta } = await apiGetPaginated<User, UsersResumen>(
+    "/auth/usuarios",
+    {
+      params: {
+        pagina: params.pagina,
+        limite: params.limite,
+        buscar: params.buscar || undefined,
+        estado: params.estado || "activos",
+      },
     },
-  });
-
-  const rawResponse = response as unknown as {
-    data?: User[] | { data?: User[]; meta?: any };
-    meta?: {
-      total: number;
-      resumen?: UsersResumen;
-    };
-    resumen?: UsersResumen;
-  };
-
-  let registros: User[] = [];
-  if (Array.isArray(rawResponse.data)) {
-    registros = rawResponse.data;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).data)) {
-    registros = (rawResponse.data as any).data;
-  }
-
-  const total =
-    rawResponse.meta?.total ??
-    (rawResponse.data && !Array.isArray(rawResponse.data)
-      ? (rawResponse.data as any).meta?.total
-      : 0) ??
-    registros.length;
-
-  const resumen =
-    rawResponse.meta?.resumen ??
-    rawResponse.resumen ??
-    (rawResponse.data && !Array.isArray(rawResponse.data)
-      ? (rawResponse.data as any).meta?.resumen
-      : undefined);
+  );
 
   return {
-    registros,
-    total,
-    resumen,
+    registros: data,
+    total: meta.total,
+    resumen: meta.resumen ?? undefined,
   };
 }
 

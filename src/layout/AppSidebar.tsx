@@ -21,8 +21,14 @@ type NavItem = {
   name: string;
   icon: string;
   path?: string;
-  permission?: string; 
-  subItems?: SubNavItem[];
+  permission?: string;
+  subItems?: {
+    name: string;
+    icon: string;
+    path: string;
+    pro?: boolean;
+    new?: boolean;
+  }[];
 };
 
 const navItems: NavItem[] = [
@@ -47,20 +53,20 @@ const navItems: NavItem[] = [
     icon: "mdi:silverware-fork-knife",
     name: "Productos",
     subItems: [
-      { 
-        name: "Catálogo", 
-        path: "/productos", 
-        permission: PermisoBanderas.PRODUCTOS_LISTAR 
+      {
+        name: "Catálogo",
+        path: "/productos",
+        icon: "mdi:format-list-bulleted",
       },
-      { 
-        name: "Categorías", 
-        path: "/productos/categorias", 
-        permission: PermisoBanderas.CATEGORIAS_LISTAR 
+      {
+        name: "Categorías",
+        path: "/productos/categorias",
+        icon: "mdi:shape-outline",
       },
-      { 
-        name: "Subcategorías", 
-        path: "/productos/subcategorias", 
-        permission: PermisoBanderas.SUBCATEGORIAS_LISTAR 
+      {
+        name: "Subcategorías",
+        path: "/productos/subcategorias",
+        icon: "mdi:file-tree-outline",
       },
     ],
   },
@@ -234,6 +240,7 @@ const AppSidebar: React.FC = () => {
                             : "menu-dropdown-item-inactive"
                         }`}
                       >
+                        <Icon name={subItem.icon} size={18} />
                         {subItem.name}
                       </Link>
                     </li>

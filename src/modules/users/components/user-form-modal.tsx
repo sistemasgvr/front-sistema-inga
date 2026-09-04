@@ -112,6 +112,8 @@ export function UserFormModal({
 
     if (!user && !currentValues.password) {
       next.password = "La contraseña es obligatoria para nuevos usuarios.";
+    } else if (currentValues.password && currentValues.password.length < 8) {
+      next.password = "La contraseña debe tener al menos 8 caracteres.";
     }
 
     if (currentValues.pin && currentValues.pin.length < 4) {
@@ -273,7 +275,7 @@ export function UserFormModal({
             setValues((p) => ({ ...p, password: e.target.value }));
           }}
           onBlur={() => handleBlur("password")}
-          placeholder={user ? "Mantener contraseña actual" : "Mínimo 6 caracteres"}
+          placeholder={user ? "Mantener contraseña actual" : "Mínimo 8 caracteres"}
           error={Boolean(showError("password"))}
           hint={showError("password")}
           disabled={isSaving}
