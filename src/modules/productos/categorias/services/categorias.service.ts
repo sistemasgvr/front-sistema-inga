@@ -4,6 +4,7 @@ import {
   apiPatch,
   apiDelete,
 } from "@/shared/api/api-client";
+import type { ToggleStatusResult } from "@/shared/api/api-client";
 import type {
   ListCategoriasParams,
   ListCategoriasResult,
@@ -15,86 +16,54 @@ import type {
 export async function listCategorias(
   params: ListCategoriasParams,
 ): Promise<ListCategoriasResult> {
-  const response = await apiGetPaginated<CategoriaItem>("/productos/categorias", {
-    params: {
-      pagina: params.pagina,
-      limite: params.limite,
-      buscar: params.buscar || undefined,
-      estado: params.estado || "activos",
-      es_carta: params.es_carta,
+  const { data, meta } = await apiGetPaginated<CategoriaItem, CategoriasResumen>(
+    "/productos/categorias",
+    {
+      params: {
+        pagina: params.pagina,
+        limite: params.limite,
+        buscar: params.buscar || undefined,
+        estado: params.estado || "activos",
+        es_carta: params.es_carta,
+      },
     },
-  });
-
-  const rawResponse = response as unknown as {
-    data?: CategoriaItem[] | { data?: CategoriaItem[]; meta?: any; registros?: CategoriaItem[] };
-    meta?: {
-      total: number;
-      resumen?: CategoriasResumen;
-    };
-    registros?: CategoriaItem[];
-    total?: number;
-    resumen?: CategoriasResumen;
-  };
-
-  let registros: CategoriaItem[] = [];
-  if (Array.isArray(rawResponse.registros)) {
-    registros = rawResponse.registros;
-  } else if (Array.isArray(rawResponse.data)) {
-    registros = rawResponse.data;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).registros)) {
-    registros = (rawResponse.data as any).registros;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).data)) {
-    registros = (rawResponse.data as any).data;
-  }
-
-  const total =
-    rawResponse.total ??
-    rawResponse.meta?.total ??
-    (rawResponse.data as any)?.total ??
-    (rawResponse.data as any)?.meta?.total ??
-    registros.length;
-
-  const resumen =
-    rawResponse.resumen ??
-    rawResponse.meta?.resumen ??
-    (rawResponse.data as any)?.resumen ??
-    (rawResponse.data as any)?.meta?.resumen;
+  );
 
   return {
-    registros,
-    total,
-    resumen,
+    registros: data,
+    total: meta.total,
+    resumen: meta.resumen ?? undefined,
   };
 }
 
 export async function createCategoria(values: CategoriaFormValues): Promise<CategoriaItem> {
-  const response = await apiPost<any>("/productos/categorias", {
+  const response = await apiPost<CategoriaItem>("/productos/categorias", {
     ...values,
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
-  return response?.registro || response?.data || response;
+  return response;
 }
 
 export async function updateCategoria(
   id: number,
   values: CategoriaFormValues,
 ): Promise<CategoriaItem> {
-  const response = await apiPatch<any>(`/productos/categorias/${id}`, {
+  const response = await apiPatch<CategoriaItem>(`/productos/categorias/${id}`, {
     ...values,
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
-  return response?.registro || response?.data || response;
+  return response;
 }
 
-export async function toggleCategoriaStatus(categoria: CategoriaItem): Promise<any> {
+export async function toggleCategoriaStatus(categoria: CategoriaItem): Promise<ToggleStatusResult> {
   const catId = Number(categoria.id);
   if (categoria.estado === 1) {
-    return apiDelete<any>(`/productos/categorias/${catId}`);
+    return apiDelete<ToggleStatusResult>(`/productos/categorias/${catId}`);
   } else {
-    return apiPatch<any>(`/productos/categorias/${catId}/activar`);
+    return apiPatch<ToggleStatusResult>(`/productos/categorias/${catId}/activar`);
   }
 }

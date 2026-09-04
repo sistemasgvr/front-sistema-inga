@@ -4,6 +4,7 @@ import {
   apiPatch,
   apiDelete,
 } from "@/shared/api/api-client";
+import type { ToggleStatusResult } from "@/shared/api/api-client";
 import type {
   ListAlmacenesParams,
   ListAlmacenesResult,
@@ -15,79 +16,54 @@ import type {
 export async function listAlmacenes(
   params: ListAlmacenesParams,
 ): Promise<ListAlmacenesResult> {
-  const response = await apiGetPaginated<AlmacenItem>("/almacenes", {
-    params: {
-      pagina: params.pagina,
-      limite: params.limite,
-      buscar: params.buscar || undefined,
-      estado: params.estado || "activos",
-      id_sucursal: params.id_sucursal,
+  const { data, meta } = await apiGetPaginated<AlmacenItem, AlmacenesResumen>(
+    "/almacenes",
+    {
+      params: {
+        pagina: params.pagina,
+        limite: params.limite,
+        buscar: params.buscar || undefined,
+        estado: params.estado || "activos",
+        id_sucursal: params.id_sucursal,
+      },
     },
-  });
+  );
 
-  const rawResponse = response as unknown as {
-    data?: AlmacenItem[] | { data?: AlmacenItem[]; meta?: any; registros?: AlmacenItem[] };
-    meta?: { total: number; resumen?: AlmacenesResumen };
-    registros?: AlmacenItem[];
-    total?: number;
-    resumen?: AlmacenesResumen;
+  return {
+    registros: data,
+    total: meta.total,
+    resumen: meta.resumen ?? undefined,
   };
-
-  let registros: AlmacenItem[] = [];
-  if (Array.isArray(rawResponse.registros)) {
-    registros = rawResponse.registros;
-  } else if (Array.isArray(rawResponse.data)) {
-    registros = rawResponse.data;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).registros)) {
-    registros = (rawResponse.data as any).registros;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).data)) {
-    registros = (rawResponse.data as any).data;
-  }
-
-  const total =
-    rawResponse.total ??
-    rawResponse.meta?.total ??
-    (rawResponse.data as any)?.total ??
-    (rawResponse.data as any)?.meta?.total ??
-    registros.length;
-
-  const resumen =
-    rawResponse.resumen ??
-    rawResponse.meta?.resumen ??
-    (rawResponse.data as any)?.resumen ??
-    (rawResponse.data as any)?.meta?.resumen;
-
-  return { registros, total, resumen };
 }
 
 export async function createAlmacen(values: AlmacenFormValues): Promise<AlmacenItem> {
-  const response = await apiPost<any>("/almacenes", {
+  const response = await apiPost<AlmacenItem>("/almacenes", {
     ...values,
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
-  return response?.registro || response?.data || response;
+  return response;
 }
 
 export async function updateAlmacen(
   id: number,
   values: AlmacenFormValues,
 ): Promise<AlmacenItem> {
-  const response = await apiPatch<any>(`/almacenes/${id}`, {
+  const response = await apiPatch<AlmacenItem>(`/almacenes/${id}`, {
     ...values,
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
-  return response?.registro || response?.data || response;
+  return response;
 }
 
-export async function toggleAlmacenStatus(almacen: AlmacenItem): Promise<any> {
+export async function toggleAlmacenStatus(almacen: AlmacenItem): Promise<ToggleStatusResult> {
   const almacenId = Number(almacen.id);
   if (almacen.estado === 1) {
-    return apiDelete<any>(`/almacenes/${almacenId}`);
+    return apiDelete<ToggleStatusResult>(`/almacenes/${almacenId}`);
   } else {
-    return apiPatch<any>(`/almacenes/${almacenId}/activar`);
+    return apiPatch<ToggleStatusResult>(`/almacenes/${almacenId}/activar`);
   }
 }

@@ -17,42 +17,22 @@ import type {
 export async function listRoles(
   params: ListRolesParams,
 ): Promise<ListRolesResult> {
-  const response = await apiGetPaginated<RoleItem>("/auth/roles", {
-    params: {
-      pagina: params.pagina,
-      limite: params.limite,
-      buscar: params.buscar || undefined,
-      estado: params.estado || "activos",
+  const { data, meta } = await apiGetPaginated<RoleItem, RolesResumen>(
+    "/auth/roles",
+    {
+      params: {
+        pagina: params.pagina,
+        limite: params.limite,
+        buscar: params.buscar || undefined,
+        estado: params.estado || "activos",
+      },
     },
-  });
-
-  const rawResponse = response as unknown as {
-    data?: RoleItem[] | { data?: RoleItem[]; meta?: any };
-    meta?: {
-      total: number;
-      resumen?: RolesResumen;
-    };
-    resumen?: RolesResumen;
-  };
-
-  let registros: RoleItem[] = [];
-  if (Array.isArray(rawResponse.data)) {
-    registros = rawResponse.data;
-  } else if (rawResponse.data && Array.isArray((rawResponse.data as any).data)) {
-    registros = (rawResponse.data as any).data;
-  }
-
-  const total =
-    rawResponse.meta?.total ?? (rawResponse.data as any)?.meta?.total ?? 0;
-  const resumen =
-    rawResponse.meta?.resumen ??
-    rawResponse.resumen ??
-    (rawResponse.data as any)?.meta?.resumen;
+  );
 
   return {
-    registros,
-    total,
-    resumen,
+    registros: data,
+    total: meta.total,
+    resumen: meta.resumen ?? undefined,
   };
 }
 
@@ -96,17 +76,10 @@ export async function getPermissionsCatalog(): Promise<PermisoItem[]> {
 }
 
 export async function getRolePermissions(idRol: number): Promise<number[]> {
-  const response = await apiGet<any>(`/auth/roles/${idRol}`);
-
-  const rawData = response?.data || response;
-
-  if (Array.isArray(rawData?.permisos)) {
-    return rawData.permisos.map((p: any) => (typeof p === "object" ? p.id : p));
-  }
-  if (Array.isArray(rawData?.idsPermisos)) {
-    return rawData.idsPermisos;
-  }
-  return [];
+  const rol = await apiGet<{ permisos?: PermisoItem[] }>(
+    `/auth/roles/${idRol}`,
+  );
+  return rol?.permisos?.map((permiso) => permiso.id) ?? [];
 }
 
 export async function syncRolePermissions(

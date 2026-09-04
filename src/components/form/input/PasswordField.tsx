@@ -23,7 +23,7 @@ export function PasswordField({
   value,
   onChange,
   onBlur,
-  placeholder = "Mínimo 6 caracteres",
+  placeholder = "Mínimo 8 caracteres",
   error,
   hint,
   disabled,
