@@ -29,9 +29,9 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalItems <= 0) return null;
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      {/* LADO IZQUIERDO: RESUMEN Y SELECTOR DE TAMAÑO DE PÁGINA */}
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col items-center justify-center gap-4 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+      {/* LADO IZQUIERDO: RESUMEN Y SELECTOR (CENTRADO EN MÓVIL, A LA IZQUIERDA EN ESCRITORIO) */}
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
         <p className="text-theme-sm text-gray-500 dark:text-gray-400">
           Mostrando{" "}
           <span className="font-medium text-gray-800 dark:text-white">
@@ -67,8 +67,8 @@ const Pagination: React.FC<PaginationProps> = ({
         ) : null}
       </div>
 
-      {/* LADO DERECHO: NAVEGACIÓN Y RANGOS */}
-      <div className="flex items-center">
+      {/* LADO DERECHO: NAVEGACIÓN (CENTRADO EN MÓVIL, A LA DERECHA EN ESCRITORIO) */}
+      <div className="flex items-center justify-center sm:justify-end">
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}

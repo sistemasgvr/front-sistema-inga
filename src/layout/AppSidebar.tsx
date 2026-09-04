@@ -3,17 +3,26 @@
 import BrandLogo from "@/components/common/BrandLogo";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
-import { getStoredUser } from "@/modules/auth/services/auth.service"; 
+import { getMe, getStoredUser } from "@/modules/auth/services/auth.service"; 
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
+
+type SubNavItem = {
+  name: string;
+  path: string;
+  permission?: string;
+  pro?: boolean;
+  new?: boolean;
+};
 
 type NavItem = {
   name: string;
   icon: string;
   path?: string;
   permission?: string; 
-  subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
+  subItems?: SubNavItem[];
 };
 
 const navItems: NavItem[] = [
@@ -26,34 +35,46 @@ const navItems: NavItem[] = [
     icon: "mdi:account-group-outline",
     name: "Usuarios",
     path: "/users",
-    permission: "usuarios.listar", 
+    permission: PermisoBanderas.USUARIOS_LISTAR, 
   },
   {
     icon: "mdi:shield-key-outline",
     name: "Roles y Permisos",
     path: "/roles",
-    permission: "roles.listar", 
+    permission: PermisoBanderas.ROLES_LISTAR, 
   },
   {
     icon: "mdi:silverware-fork-knife",
     name: "Productos",
     subItems: [
-      { name: "Catálogo", path: "/productos" },
-      { name: "Categorías", path: "/productos/categorias" },
-      { name: "Subcategorías", path: "/productos/subcategorias" },
+      { 
+        name: "Catálogo", 
+        path: "/productos", 
+        permission: PermisoBanderas.PRODUCTOS_LISTAR 
+      },
+      { 
+        name: "Categorías", 
+        path: "/productos/categorias", 
+        permission: PermisoBanderas.CATEGORIAS_LISTAR 
+      },
+      { 
+        name: "Subcategorías", 
+        path: "/productos/subcategorias", 
+        permission: PermisoBanderas.SUBCATEGORIAS_LISTAR 
+      },
     ],
   },
   {
     icon: "mdi:warehouse",
     name: "Almacenes",
     path: "/almacenes",
-    permission: "ALMACENES_LISTAR",
+    permission: PermisoBanderas.ALMACENES_LISTAR,
   },
   {
     icon: "mdi:printer-settings",
     name: "Estaciones",
     path: "/estaciones",
-    permission: "ESTACIONES_LISTAR",
+    permission: PermisoBanderas.ESTACIONES_LISTAR,
   },
   {
     icon: "mdi:form-select",
@@ -69,17 +90,70 @@ const AppSidebar: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const authUser = getStoredUser();
-    setCurrentUser(authUser);
+    async function syncSidebarSession() {
+      const stored = getStoredUser();
+      if (stored) {
+        setCurrentUser(stored);
+      }
+
+      try {
+        const fresh = await getMe();
+        if (fresh) {
+          setCurrentUser(fresh);
+        }
+      } catch {
+        // En caso de fallo el guard redirige a login
+      }
+    }
+
+    void syncSidebarSession();
   }, []);
 
   const isActive = (path: string) => path === pathname;
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (!item.permission) return true; 
-    if (currentUser?.es_super_admin) return true;
-    return currentUser?.permisos?.includes(item.permission);
-  });
+  const isSuperAdmin = Boolean(
+    currentUser?.es_super_admin || 
+    currentUser?.esSuperAdmin || 
+    currentUser?.sesion?.es_super_admin
+  );
+
+  const userPermisos: string[] = 
+    currentUser?.permisos ?? 
+    currentUser?.sesion?.permisos ?? 
+    [];
+
+  function hasAccess(permission?: string): boolean {
+    if (!permission) return true;
+    if (isSuperAdmin) return true;
+    return userPermisos.includes(permission);
+  }
+
+  // Filtrado recursivo de la navegación
+  const filteredNavItems = navItems
+    .map((item) => {
+      // Si el ítem principal requiere un permiso directo y no lo tiene, se descarta
+      if (item.permission && !hasAccess(item.permission)) {
+        return null;
+      }
+
+      // Si tiene subítems, se filtran según los permisos del usuario
+      if (item.subItems && item.subItems.length > 0) {
+        const allowedSubItems = item.subItems.filter((sub) => hasAccess(sub.permission));
+        
+        // Si no tiene acceso a ningún subítem, se oculta el menú padre completo
+        if (allowedSubItems.length === 0) {
+          return null;
+        }
+
+        return {
+          ...item,
+          subItems: allowedSubItems,
+        };
+      }
+
+      return item;
+    })
+    .filter(Boolean) as NavItem[];
 
   useEffect(() => {
     filteredNavItems.forEach((nav) => {

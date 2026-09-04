@@ -5,6 +5,7 @@ import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.servi
 import { listRoles } from "@/modules/roles/services/roles.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import {
   createUser,
   listUsers,
@@ -65,6 +66,7 @@ export function useUsers() {
       if (stored) {
         const storedAny = stored as any;
         const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
+        const permisosStored: string[] = storedAny.permisos ?? storedAny.sesion?.permisos ?? [];
 
         setCurrentUser({
           id: stored.id,
@@ -75,8 +77,9 @@ export function useUsers() {
           telefono: stored.telefono ?? null,
           id_sucursal_default: stored.id_sucursal_default ?? null,
           es_super_admin: isSuperStored,
-          permisos: stored.permisos ?? [],
+          permisos: permisosStored,
           estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+          fecha_creacion: storedAny.fecha_creacion ?? "",
         });
       }
 
@@ -97,7 +100,7 @@ export function useUsers() {
             freshData.sesion?.es_super_admin
           );
 
-          const permisosBackend: string[] = freshData.permisos ?? [];
+          const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
 
           setCurrentUser({
             id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
@@ -110,6 +113,7 @@ export function useUsers() {
             es_super_admin: isSuper,
             permisos: permisosBackend,
             estado: userEstado,
+            fecha_creacion: freshData.fecha_creacion ?? "",
           });
         } else {
           await logout();
@@ -152,8 +156,8 @@ export function useUsers() {
   const loadUsers = useCallback(async () => {
     if (!hasLoadedSession) return; 
 
-    const isSuper = Boolean(currentUser?.es_super_admin || (currentUser as any)?.sesion?.es_super_admin);
-    const hasListPermission = currentUser?.permisos?.includes("usuarios.listar");
+    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+    const hasListPermission = currentUser?.permisos?.includes(PermisoBanderas.USUARIOS_LISTAR);
 
     if (currentUser && !isSuper && !hasListPermission) {
       setIsLoading(false);
@@ -180,7 +184,7 @@ export function useUsers() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, toast]); 
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser, toast]); 
 
   useEffect(() => {
     void loadSucursalesCatalog();
@@ -227,7 +231,7 @@ export function useUsers() {
       }
 
       if (requiredPermission) {
-        const permisosBackend: string[] = freshData.permisos ?? [];
+        const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
         if (!permisosBackend.includes(requiredPermission)) {
           toast("error", "Permiso denegado", "Ya no cuentas con los permisos necesarios para realizar esta acción.");
           return false;
@@ -246,7 +250,7 @@ export function useUsers() {
     setEditingUser(null);
     setIsFormOpen(true); 
 
-    const isValid = await verifyActionAccess("usuarios.crear");
+    const isValid = await verifyActionAccess(PermisoBanderas.USUARIOS_CREAR);
     if (!isValid) {
       setIsFormOpen(false);
     }
@@ -259,7 +263,7 @@ export function useUsers() {
     setEditingUser(user);
     setIsFormOpen(true);
 
-    const isValid = await verifyActionAccess("usuarios.editar");
+    const isValid = await verifyActionAccess(PermisoBanderas.USUARIOS_EDITAR);
     if (!isValid) {
       setIsFormOpen(false);
       setEditingUser(null);
@@ -277,7 +281,10 @@ export function useUsers() {
     if (isConfirmOpen || loadingUserId !== null) return;
     setLoadingUserId(user.id);
 
-    const isValid = await verifyActionAccess("usuarios.eliminar");
+    const isActivo = user.estado === 1;
+    const requiredPermission = isActivo ? PermisoBanderas.USUARIOS_ELIMINAR : PermisoBanderas.USUARIOS_ACTIVAR;
+
+    const isValid = await verifyActionAccess(requiredPermission);
     if (isValid) {
       setConfirmUser(user);
       setIsConfirmOpen(true);
@@ -296,7 +303,7 @@ export function useUsers() {
     setIsSaving(true);
 
     try {
-      const permissionNeeded = editingUser ? "usuarios.editar" : "usuarios.crear";
+      const permissionNeeded = editingUser ? PermisoBanderas.USUARIOS_EDITAR : PermisoBanderas.USUARIOS_CREAR;
       const isValid = await verifyActionAccess(permissionNeeded);
       if (!isValid) return;
 
@@ -323,7 +330,10 @@ export function useUsers() {
     setIsToggling(true);
 
     try {
-      const isValid = await verifyActionAccess("usuarios.eliminar");
+      const isActivo = confirmUser.estado === 1;
+      const requiredPermission = isActivo ? PermisoBanderas.USUARIOS_ELIMINAR : PermisoBanderas.USUARIOS_ACTIVAR;
+
+      const isValid = await verifyActionAccess(requiredPermission);
       if (!isValid) return;
 
       await toggleUserStatus(confirmUser);
@@ -334,7 +344,7 @@ export function useUsers() {
         return;
       }
 
-      const accion = confirmUser.estado === 1 ? "desactivado" : "activado";
+      const accion = isActivo ? "desactivado" : "activado";
       toast("info", "Estado actualizado", `El usuario @${confirmUser.username} ha sido ${accion}.`);
       closeConfirmModal();
       await loadUsers();

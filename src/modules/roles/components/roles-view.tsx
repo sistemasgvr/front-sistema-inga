@@ -83,11 +83,12 @@ export function RolesView() {
     <div>
       <PageBreadcrumb pageTitle="Roles y Permisos" />
 
+      {/* FILTROS SUPERIORES DE ESTADO */}
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => handleFilterStatus("activos")}
-          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
             estadoFiltro === "activos"
               ? "bg-emerald-600 text-white shadow-xs"
               : "bg-success-50 text-success-600 hover:bg-success-100 dark:bg-success-500/10 dark:text-success-400"
@@ -103,7 +104,7 @@ export function RolesView() {
         <button
           type="button"
           onClick={() => handleFilterStatus("inactivos")}
-          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
             estadoFiltro === "inactivos"
               ? "bg-rose-600 text-white shadow-xs"
               : "bg-error-50 text-error-600 hover:bg-error-100 dark:bg-error-500/10 dark:text-error-400"
@@ -119,7 +120,7 @@ export function RolesView() {
         <button
           type="button"
           onClick={() => handleFilterStatus("todos")}
-          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
             estadoFiltro === "todos"
               ? "bg-slate-700 text-white shadow-xs dark:bg-slate-600"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
@@ -133,8 +134,9 @@ export function RolesView() {
         </button>
       </div>
 
+      {/* BARRA BUSCADOR + NUEVO ROL */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full max-w-md">
+        <div className="w-full sm:max-w-md">
           <Input
             type="search"
             placeholder="Buscar por código o nombre..."
@@ -146,6 +148,7 @@ export function RolesView() {
         <Button
           size="sm"
           type="button"
+          className="w-full sm:w-auto"
           onClick={openCreateModal}
           startIcon={<Icon name="mdi:plus" size={18} />}
         >
