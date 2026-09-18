@@ -62,6 +62,94 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: "mdi:account-multiple-outline",
+    name: "Personas",
+    permission: "personas.listar",
+    subItems: [
+      {
+        name: "Clientes y proveedores",
+        path: "/personas",
+        icon: "mdi:card-account-details-outline",
+      },
+      {
+        name: "Convenios",
+        path: "/personas/convenios",
+        icon: "mdi:handshake-outline",
+      },
+      {
+        name: "Cuentas por cobrar",
+        path: "/cuentas-por-cobrar",
+        icon: "mdi:cash-plus",
+      },
+      {
+        name: "Cuentas por pagar",
+        path: "/cuentas-por-pagar",
+        icon: "mdi:cash-remove",
+      },
+    ],
+  },
+  {
+    icon: "mdi:cash-register",
+    name: "Caja",
+    permission: "turnos.ver",
+    subItems: [
+      {
+        name: "Mi turno",
+        path: "/caja",
+        icon: "mdi:cash-clock",
+      },
+      {
+        name: "Historial de turnos",
+        path: "/caja/turnos",
+        icon: "mdi:clipboard-text-clock-outline",
+      },
+      {
+        name: "Cajas físicas",
+        path: "/caja/cajas",
+        icon: "mdi:cash-register",
+      },
+    ],
+  },
+  {
+    icon: "mdi:account-cash-outline",
+    name: "Planilla",
+    permission: "planilla.pagos.listar",
+    subItems: [
+      {
+        name: "Pagos de planilla",
+        path: "/planilla",
+        icon: "mdi:cash-clock",
+      },
+      {
+        name: "Personal",
+        path: "/planilla/trabajadores",
+        icon: "mdi:account-hard-hat-outline",
+      },
+    ],
+  },
+  {
+    icon: "mdi:receipt-text-outline",
+    name: "Gastos",
+    permission: "gastos.listar",
+    subItems: [
+      {
+        name: "Compras del día",
+        path: "/gastos/diarios",
+        icon: "mdi:cart-outline",
+      },
+      {
+        name: "Gastos del mes",
+        path: "/gastos",
+        icon: "mdi:cash-minus",
+      },
+      {
+        name: "Categorías",
+        path: "/gastos/categorias",
+        icon: "mdi:folder-outline",
+      },
+    ],
+  },
+  {
     icon: "mdi:warehouse",
     name: "Almacenes",
     path: "/almacenes",
@@ -72,11 +160,6 @@ const navItems: NavItem[] = [
     name: "Estaciones",
     path: "/estaciones",
     permission: "ESTACIONES_LISTAR",
-  },
-  {
-    icon: "mdi:form-select",
-    name: "Formularios",
-    path: "/form-elements",
   },
 ];
 
@@ -99,15 +182,32 @@ const AppSidebar: React.FC = () => {
     return currentUser?.permisos?.includes(item.permission);
   });
 
+  // Abro solo el submenú que contiene la ruta actual, y SOLO cuando cambia la
+  // ruta.
+  //
+  // Antes este efecto dependía también de `filteredNavItems`, que se recalcula
+  // en cada render y por lo tanto es un array nuevo cada vez. Resultado: el
+  // efecto corría en cada render. Si yo estaba en /productos/categorias y abría
+  // el menú "Caja", cambiaba `openSubmenu` → se re-renderizaba → el efecto
+  // volvía a correr → veía que la ruta seguía siendo la de Productos y
+  // reabría "Productos", cerrando "Caja" al instante. Por eso no se podía
+  // abrir otro menú con hijos, pero sí navegar a uno sin hijos: ahí la ruta
+  // cambiaba y el efecto ya no tenía nada que reabrir.
+  //
+  // Dependiendo solo de `pathname`, el efecto corre al navegar y no vuelve a
+  // pelearse con lo que el usuario abre a mano.
   useEffect(() => {
-    filteredNavItems.forEach((nav) => {
-      nav.subItems?.forEach((subItem) => {
-        if (isActive(subItem.path) && openSubmenu !== nav.name) {
-          toggleSubmenu(nav.name);
-        }
-      });
-    });
-  }, [pathname, filteredNavItems]);
+    const navDeLaRuta = navItems.find((nav) =>
+      nav.subItems?.some((subItem) => subItem.path === pathname),
+    );
+
+    if (navDeLaRuta && openSubmenu !== navDeLaRuta.name) {
+      toggleSubmenu(navDeLaRuta.name);
+    }
+    // `openSubmenu` y `toggleSubmenu` quedan fuera a propósito: si los incluyera
+    // volvería a correr cuando el usuario abre otro menú, que es justo el bug.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const renderMenuItems = (items: NavItem[]) => (
     <ul className="flex flex-col gap-4">
@@ -164,7 +264,10 @@ const AppSidebar: React.FC = () => {
             {hasSubItems && (isExpanded || isHovered || isMobileOpen) && (
               <div
                 className={`overflow-hidden transition-all duration-300 ${
-                  isSubmenuOpen ? "max-h-40 mt-2" : "max-h-0"
+                  // max-h generoso a propósito: solo actúa como tope para que
+                  // la transición de apertura tenga a dónde animar. Con 3 ítems
+                  // el valor anterior (max-h-40 = 160px) ya cortaba el último.
+                  isSubmenuOpen ? "max-h-96 mt-2" : "max-h-0"
                 }`}
               >
                 <ul className="ml-9 space-y-1">
