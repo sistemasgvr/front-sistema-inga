@@ -22,7 +22,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${outfit.className} dark:bg-gray-900`}>
+      {/*
+        suppressHydrationWarning va acá porque las extensiones del navegador
+        (ColorZilla, Grammarly y compañía) le inyectan atributos al <body> antes
+        de que React arranque, y eso hace que el HTML del servidor y el del
+        navegador no coincidan. React lo reporta como error de hidratación
+        aunque nuestro código esté bien.
+
+        Solo silencia diferencias de atributos EN ESTE elemento: no baja a los
+        hijos, así que un mismatch real dentro de la app se va a seguir viendo.
+      */}
+      <body
+        suppressHydrationWarning
+        className={`${outfit.className} dark:bg-gray-900`}
+      >
         <ThemeProvider>
           <SidebarProvider>
             <ToastProvider>
