@@ -161,6 +161,12 @@ const navItems: NavItem[] = [
     path: "/estaciones",
     permission: "ESTACIONES_LISTAR",
   },
+  {
+    icon: "mdi:floor-plan",
+    name: "Ambientes",
+    path: "/ambientes",
+    permission: "ambientes.listar",
+  },
 ];
 
 const AppSidebar: React.FC = () => {

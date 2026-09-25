@@ -11,6 +11,7 @@ type FormModalProps = {
   title: string;
   subtitle?: string;
   isSaving: boolean;
+  submitDisabled?: boolean;
   maxWidth?: string;
   children: ReactNode;
   submitText?: string;
@@ -24,6 +25,7 @@ export function FormModal({
   title,
   subtitle,
   isSaving,
+  submitDisabled = false,
   maxWidth = "max-w-[640px]",
   children,
   submitText = "Guardar",
@@ -67,7 +69,7 @@ export function FormModal({
           <Button size="sm" variant="outline" type="button" onClick={onClose} disabled={isSaving}>
             {cancelText}
           </Button>
-          <Button size="sm" type="submit" disabled={isSaving}>
+          <Button size="sm" type="submit" disabled={isSaving || submitDisabled}>
             {isSaving ? "Guardando..." : submitText}
           </Button>
         </div>
