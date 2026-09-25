@@ -60,6 +60,8 @@ export function RolesView() {
   const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
   const hasListPermission = currentUser?.permisos?.includes("roles.listar");
 
+  const canCreate = isSuper || currentUser?.permisos?.includes("roles.crear");
+
   if (currentUser && !isSuper && !hasListPermission) {
     return (
       <div>
@@ -83,7 +85,6 @@ export function RolesView() {
     <div>
       <PageBreadcrumb pageTitle="Roles y Permisos" />
 
-      {/* FILTROS SUPERIORES DE ESTADO */}
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -134,7 +135,6 @@ export function RolesView() {
         </button>
       </div>
 
-      {/* BARRA BUSCADOR + NUEVO ROL */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="w-full sm:max-w-md">
           <Input
@@ -145,6 +145,7 @@ export function RolesView() {
           />
         </div>
 
+        {canCreate && (
         <Button
           size="sm"
           type="button"
@@ -154,6 +155,7 @@ export function RolesView() {
         >
           Nuevo Rol
         </Button>
+        )}
       </div>
 
       <RolesTable

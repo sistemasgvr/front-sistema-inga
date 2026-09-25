@@ -1,9 +1,10 @@
+// subcategoria-form-modal.tsx
 "use client";
 
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Button from "@/components/ui/button/Button";
-import { Modal } from "@/components/ui/modal";
+import Select from "@/components/form/Select";
+import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
 import type { SubCategoriaItem, SubCategoriaFormValues } from "../types/subcategorias.types";
 import type { CategoriaItem } from "../../categorias/types/categorias.types";
@@ -14,6 +15,7 @@ type SubCategoriaFormModalProps = {
   onSubmit: (values: SubCategoriaFormValues) => Promise<void>;
   subcategoria: SubCategoriaItem | null;
   categorias: CategoriaItem[];
+  filtroCategoria?: number;
   isSaving: boolean;
 };
 
@@ -22,105 +24,156 @@ export function SubCategoriaFormModal({
   onClose,
   onSubmit,
   subcategoria,
-  categorias,
+  categorias = [],
+  filtroCategoria,
   isSaving,
 }: SubCategoriaFormModalProps) {
   const [values, setValues] = useState<SubCategoriaFormValues>({
-    id_categoria: categorias[0]?.id ?? 1,
+    id_categoria: filtroCategoria ?? categorias[0]?.id ?? 1,
     codigo: "",
     nombre: "",
-    orden: 0,
+    orden: 10,
   });
+
+  const [errors, setErrors] = useState<Partial<Record<keyof SubCategoriaFormValues, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof SubCategoriaFormValues, boolean>>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
+
     if (subcategoria) {
       setValues({
         id_categoria: subcategoria.id_categoria,
         codigo: subcategoria.codigo || "",
         nombre: subcategoria.nombre || "",
-        orden: subcategoria.orden ?? 0,
+        orden: subcategoria.orden ?? 10,
       });
     } else {
       setValues({
-        id_categoria: categorias[0]?.id ?? 1,
+        id_categoria: filtroCategoria ?? categorias[0]?.id ?? 1,
         codigo: "",
         nombre: "",
-        orden: 0,
+        orden: 10,
       });
     }
-  }, [isOpen, subcategoria, categorias]);
+    setErrors({});
+    setTouched({});
+    setIsSubmitted(false);
+  }, [isOpen, subcategoria, categorias, filtroCategoria]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!values.nombre.trim() || !values.codigo.trim() || !values.id_categoria) return;
+  function handleBlur(field: keyof SubCategoriaFormValues) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function validate(currentValues: SubCategoriaFormValues = values): boolean {
+    const next: Partial<Record<keyof SubCategoriaFormValues, string>> = {};
+
+    if (!currentValues.nombre.trim()) next.nombre = "El nombre es obligatorio.";
+    if (!currentValues.codigo.trim()) next.codigo = "El código es obligatorio.";
+    if (!currentValues.id_categoria) next.id_categoria = "Debes seleccionar una categoría padre." as any;
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  useEffect(() => {
+    if (isOpen) validate(values);
+  }, [values]);
+
+  function showError(field: keyof SubCategoriaFormValues): string | undefined {
+    return (isSubmitted || touched[field]) ? errors[field] : undefined;
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (isSaving) return;
+    setIsSubmitted(true);
+
+    if (!validate()) return;
     await onSubmit(values);
   }
 
+  const categoriaOptions = categorias.map((cat) => ({
+    value: String(cat.id),
+    label: `${cat.nombre} (${cat.codigo})`,
+  }));
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[550px] p-6 lg:p-8">
-      <form onSubmit={handleSubmit}>
-        <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-          {subcategoria ? "Editar Subcategoría" : "Nueva Subcategoría"}
-        </h4>
-        <p className="text-xs text-gray-500 mb-6">Asigna la subcategoría a su categoría correspondiente.</p>
+    <FormModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      title={subcategoria ? "Editar subcategoría" : "Nueva subcategoría"}
+      subtitle={
+        subcategoria
+          ? "Actualiza la subcategoría en su categoría correspondiente."
+          : "Completa la información requerida para registrar una subcategoría."
+      }
+      isSaving={isSaving}
+    >
+      <div className="space-y-4">
+        <div>
+          <Label>Categoría Padre *</Label>
+          <Select
+            options={categoriaOptions}
+            defaultValue={values.id_categoria ? String(values.id_categoria) : ""}
+            placeholder={categorias.length === 0 ? "Cargando categorías..." : "Selecciona categoría..."}
+            disabled={isSaving || categorias.length === 0}
+            error={Boolean(showError("id_categoria"))}
+            hint={showError("id_categoria")}
+            onChange={(val) => {
+              setValues((p) => ({ ...p, id_categoria: Number(val) }));
+              handleBlur("id_categoria");
+            }}
+          />
+        </div>
 
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="id_categoria">Categoría Padre *</Label>
-            <select
-              id="id_categoria"
-              value={values.id_categoria}
-              onChange={(e) => setValues((p) => ({ ...p, id_categoria: Number(e.target.value) }))}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              disabled={isSaving}
-            >
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.nombre} ({cat.codigo})</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="codigo">Código *</Label>
-              <Input
-                id="codigo"
-                value={values.codigo}
-                onChange={(e) => setValues((p) => ({ ...p, codigo: e.target.value }))}
-                placeholder="Ej. ENT-CRI"
-                disabled={isSaving}
-              />
-            </div>
-            <div>
-              <Label htmlFor="orden">Orden</Label>
-              <Input
-                id="orden"
-                type="number"
-                value={values.orden}
-                onChange={(e) => setValues((p) => ({ ...p, orden: Number(e.target.value) }))}
-                disabled={isSaving}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="nombre">Nombre de la Subcategoría *</Label>
+            <Label htmlFor="codigo">Código *</Label>
             <Input
-              id="nombre"
-              value={values.nombre}
-              onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
-              placeholder="Ej. Entradas Criollas"
+              id="codigo"
+              value={values.codigo}
+              onChange={(e) => setValues((p) => ({ ...p, codigo: e.target.value }))}
+              onBlur={() => handleBlur("codigo")}
+              placeholder="Ej. ENT-CRI"
+              error={Boolean(showError("codigo"))}
+              hint={showError("codigo")}
               disabled={isSaving}
             />
           </div>
+
+          <div>
+            <Label htmlFor="orden">Orden / Prioridad</Label>
+            <Input
+              id="orden"
+              type="number"
+              value={values.orden}
+              onChange={(e) => setValues((p) => ({ ...p, orden: Number(e.target.value) }))}
+              placeholder="Ej. 10, 20, 30"
+              disabled={isSaving}
+            />
+            <p className="mt-1 text-[11px] text-gray-400">
+              Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
+            </p>
+          </div>
         </div>
 
-        <div className="mt-8 flex justify-end gap-3 border-t pt-4 dark:border-gray-800">
-          <Button size="sm" variant="outline" type="button" onClick={onClose} disabled={isSaving}>Cancelar</Button>
-          <Button size="sm" type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
+        <div>
+          <Label htmlFor="nombre">Nombre de Subcategoría *</Label>
+          <Input
+            id="nombre"
+            value={values.nombre}
+            onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
+            onBlur={() => handleBlur("nombre")}
+            placeholder="Ej. Entradas Criollas"
+            error={Boolean(showError("nombre"))}
+            hint={showError("nombre")}
+            disabled={isSaving}
+          />
         </div>
-      </form>
-    </Modal>
+      </div>
+    </FormModal>
   );
 }

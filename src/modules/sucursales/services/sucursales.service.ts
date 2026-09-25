@@ -9,28 +9,37 @@ import type {
   ListSucursalesResult,
   Sucursal,
   SucursalFormValues,
-  SucursalesResumen,
 } from "../types/sucursal.types";
 
 export async function listSucursales(
-  params: ListSucursalesParams,
+  params?: ListSucursalesParams,
 ): Promise<ListSucursalesResult> {
-  const { data, meta } = await apiGetPaginated<Sucursal, SucursalesResumen>(
-    "/general/sucursales",
-    {
-      params: {
-        pagina: params.pagina,
-        limite: params.limite,
-        buscar: params.buscar || undefined,
-        estado: params.estado || "activos",
-      },
+  const response = await apiGetPaginated<any>("/general/sucursales", {
+    params: {
+      pagina: params?.pagina ?? 1,
+      limite: params?.limite ?? 100,
+      buscar: params?.buscar || undefined,
+      estado: params?.estado || "activos",
     },
-  );
+  });
+
+  const raw = response as any;
+
+  const registros: Sucursal[] = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.data)
+      ? raw.data
+      : Array.isArray(raw?.data?.data)
+        ? raw.data.data
+        : [];
+
+  const total = raw?.meta?.total ?? raw?.data?.meta?.total ?? registros.length;
+  const resumen = raw?.meta?.resumen ?? raw?.data?.meta?.resumen;
 
   return {
-    registros: data,
-    total: meta.total,
-    resumen: meta.resumen ?? undefined,
+    registros,
+    total,
+    resumen,
   };
 }
 

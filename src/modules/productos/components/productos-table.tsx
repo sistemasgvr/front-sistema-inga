@@ -37,13 +37,14 @@ export function ProductosTable({
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
       <div className="max-w-full overflow-x-auto">
-        <div className="min-w-[1000px]">
+        <div className="min-w-[1050px]">
           <Table>
             <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
               <TableRow>
-                <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Código / Nombre</TableCell>
+                <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Ítem / Código</TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subcategoría</TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Tipo</TableCell>
+                <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo Receta</TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Precio Venta</TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Disponible</TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Estado</TableCell>
@@ -53,33 +54,63 @@ export function ProductosTable({
             <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="px-5 py-8 text-center text-sm text-gray-500">Cargando productos...</TableCell>
+                  <TableCell colSpan={8} className="px-5 py-8 text-center text-sm text-gray-500">Cargando productos...</TableCell>
                 </TableRow>
               ) : safeProductos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="px-5 py-8 text-center text-sm text-gray-500">No se encontraron productos.</TableCell>
+                  <TableCell colSpan={8} className="px-5 py-8 text-center text-sm text-gray-500">No se encontraron productos.</TableCell>
                 </TableRow>
               ) : (
                 safeProductos.map((prod) => {
                   const isActivo = prod.estado === 1;
                   const tipoInfo = TIPO_PRODUCTO_MAP[prod.tipo_producto] || { label: "General", color: "light" };
                   const aceptaReceta = [3, 4, 5].includes(prod.tipo_producto);
+                  const costoReceta = Number(prod.costo_receta_calculado || 0);
 
                   return (
                     <TableRow key={prod.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                      <TableCell className="px-5 py-4 text-start">
-                        <span className="block text-xs font-bold text-brand-600 dark:text-brand-400">{prod.codigo_interno}</span>
-                        <span className="block text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{prod.nombre}</span>
+                      <TableCell className="px-5 py-3.5 text-start">
+                        <div className="flex items-center gap-3">
+                          {prod.imagen_url ? (
+                            <img
+                              src={prod.imagen_url}
+                              alt={prod.nombre}
+                              className="h-10 w-10 shrink-0 rounded-lg object-cover border border-gray-200 dark:border-gray-700"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                              <Icon name="mdi:image-off-outline" size={20} />
+                            </div>
+                          )}
+                          <div>
+                            <span className="block text-xs font-bold text-brand-600 dark:text-brand-400">{prod.codigo_interno}</span>
+                            <span className="block text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{prod.nombre}</span>
+                          </div>
+                        </div>
                       </TableCell>
+
                       <TableCell className="px-5 py-4 text-start">
                         <span className="text-sm text-gray-700 dark:text-gray-300">{prod.nombre_subcategoria || "Sin subcategoría"}</span>
                       </TableCell>
+
                       <TableCell className="px-5 py-4 text-center">
                         <Badge size="sm" color={tipoInfo.color as any}>{tipoInfo.label}</Badge>
                       </TableCell>
+
+                      <TableCell className="px-5 py-4 text-end">
+                        {aceptaReceta ? (
+                          <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                            S/ {costoReceta.toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </TableCell>
+
                       <TableCell className="px-5 py-4 text-end">
                         <span className="text-sm font-bold text-gray-900 dark:text-white">S/ {Number(prod.precio_venta).toFixed(2)}</span>
                       </TableCell>
+
                       <TableCell className="px-5 py-4 text-center">
                         <button
                           type="button"
@@ -95,16 +126,18 @@ export function ProductosTable({
                           {prod.disponible_venta ? "En Carta" : "Agotado"}
                         </button>
                       </TableCell>
+
                       <TableCell className="px-5 py-4 text-center">
                         <Badge size="sm" color={isActivo ? "success" : "error"}>{isActivo ? "Activo" : "Inactivo"}</Badge>
                       </TableCell>
+
                       <TableCell className="px-5 py-4 text-center">
                         <div className="flex items-center justify-center gap-2.5">
                           {isActivo && aceptaReceta && (
                             <button
                               type="button"
                               onClick={() => onManageReceta(prod)}
-                              className="text-gray-500 hover:text-brand-600 transition-colors"
+                              className="text-gray-500 hover:text-brand-600 transition-colors cursor-pointer"
                               title="Gestionar Receta"
                             >
                               <Icon name="mdi:receipt-text-outline" size={19} />
@@ -114,7 +147,7 @@ export function ProductosTable({
                             <button
                               type="button"
                               onClick={() => onEdit(prod)}
-                              className="text-gray-500 hover:text-brand-600 transition-colors"
+                              className="text-gray-500 hover:text-brand-600 transition-colors cursor-pointer"
                               title="Editar producto"
                             >
                               <Icon name="mdi:pencil-outline" size={19} />
@@ -123,7 +156,7 @@ export function ProductosTable({
                           <button
                             type="button"
                             onClick={() => onToggleStatus(prod)}
-                            className={isActivo ? "text-gray-500 hover:text-error-600" : "text-success-600 hover:text-success-700"}
+                            className={isActivo ? "text-gray-500 hover:text-error-600 cursor-pointer" : "text-success-600 hover:text-success-700 cursor-pointer"}
                             title={isActivo ? "Dar de baja" : "Activar"}
                           >
                             <Icon name={isActivo ? "mdi:trash-can-outline" : "mdi:refresh"} size={19} />

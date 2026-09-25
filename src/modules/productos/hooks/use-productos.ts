@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getMe, logout } from "@/modules/auth/services/auth.service";
+import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/components/ui/toast/ToastContext";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import {
   listProductos,
   createProducto,
@@ -11,6 +13,7 @@ import {
   toggleProductoStatus,
   getUnidadesMedida,
 } from "../services/productos.service";
+import { listCategorias } from "../categorias/services/categorias.service";
 import { listSubCategorias } from "../subcategorias/services/subcategorias.service";
 import { listAlmacenes } from "@/modules/almacenes/services/almacenes.service";
 import { listEstaciones } from "@/modules/estaciones/services/estaciones.service";
@@ -22,10 +25,13 @@ import type {
   UnidadMedidaItem,
   UnidadConversionItem,
 } from "../types/productos.types";
+import type { User } from "@/modules/users/types/user.types";
 
 const PAGE_SIZE = 10;
 
 export function useProductos() {
+  const { toast } = useToast();
+
   const [registros, setRegistros] = useState<ProductoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
@@ -45,15 +51,16 @@ export function useProductos() {
 
   const [unidades, setUnidades] = useState<UnidadMedidaItem[]>([]);
   const [conversiones, setConversiones] = useState<UnidadConversionItem[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [subcategorias, setSubcategorias] = useState<any[]>([]);
   const [almacenes, setAlmacenes] = useState<any[]>([]);
   const [estaciones, setEstaciones] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ variant: "success" | "error" | "info"; title: string; message: string } | null>(null);
+  const [loadingProductoId, setLoadingProductoId] = useState<number | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoadedSession, setHasLoadedSession] = useState(false);
 
   const [editingProducto, setEditingProducto] = useState<ProductoItem | null>(null);
@@ -67,65 +74,113 @@ export function useProductos() {
   const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function syncSessionUser() {
-      const stored = getStoredUserFromStorage();
-      if (stored) {
-        setCurrentUser(stored);
+      const stored = getStoredUser();
+      if (stored && isMounted) {
+        const storedAny = stored as any;
+        const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
+        const permisosStored: string[] = storedAny.permisos ?? storedAny.sesion?.permisos ?? [];
+
+        setCurrentUser({
+          id: stored.id,
+          username: stored.username,
+          email: stored.email,
+          nombres: stored.nombres ?? "",
+          apellidos: stored.apellidos ?? "",
+          telefono: stored.telefono ?? null,
+          id_sucursal_default: stored.id_sucursal_default ?? null,
+          es_super_admin: isSuperStored,
+          permisos: permisosStored,
+          estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+          fecha_creacion: storedAny.fecha_creacion ?? "",
+        });
       }
+
       try {
         const fresh = await getMe();
-        if (fresh) {
+        if (fresh && isMounted) {
           const freshData = fresh as any;
-          if ((freshData.estado ?? freshData.sesion?.estado ?? 1) === 0) {
+          const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
+
+          if (userEstado === 0) {
             await logout();
             return;
           }
+
+          const isSuper = Boolean(
+            freshData.es_super_admin || 
+            freshData.esSuperAdmin || 
+            freshData.sesion?.es_super_admin
+          );
+
+          const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
+
           setCurrentUser({
             id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
             username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
-            es_super_admin: Boolean(freshData.es_super_admin || freshData.sesion?.es_super_admin),
-            permisos: freshData.permisos ?? [],
+            email: freshData.email ?? freshData.sesion?.correo ?? "",
+            nombres: freshData.nombres ?? freshData.sesion?.nombres ?? "",
+            apellidos: freshData.apellidos ?? freshData.sesion?.apellidos ?? "",
+            telefono: freshData.telefono ?? null,
+            id_sucursal_default: freshData.id_sucursal_default ?? null,
+            es_super_admin: isSuper,
+            permisos: permisosBackend,
+            estado: userEstado,
+            fecha_creacion: freshData.fecha_creacion ?? "",
           });
+        } else if (!fresh && isMounted) {
+          await logout();
         }
       } catch {
       } finally {
-        setHasLoadedSession(true);
+        if (isMounted) {
+          setHasLoadedSession(true);
+        }
       }
     }
+
     void syncSessionUser();
     void loadCatalogosAuxiliares();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  function getStoredUserFromStorage() {
+  const loadCatalogosAuxiliares = useCallback(async () => {
     try {
-      const data = localStorage.getItem("user");
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function loadCatalogosAuxiliares() {
-    try {
-      const [respUnidades, respSub, respAlm, respEst] = await Promise.all([
-        getUnidadesMedida(),
+      const [respUnidades, respCat, respSub, respAlm, respEst] = await Promise.all([
+        getUnidadesMedida().catch(() => ({ unidades: [], conversiones: [] })),
+        listCategorias({ pagina: 1, limite: 100, estado: "activos" }).catch(() => ({ registros: [] })),
         listSubCategorias({ pagina: 1, limite: 100, estado: "activos" }).catch(() => ({ registros: [] })),
         listAlmacenes({ pagina: 1, limite: 100, estado: "activos" }).catch(() => ({ registros: [] })),
         listEstaciones({ pagina: 1, limite: 100, estado: "activos" }).catch(() => ({ registros: [] })),
       ]);
 
-      setUnidades(respUnidades.unidades);
-      setConversiones(respUnidades.conversiones);
-      setSubcategorias(respSub.registros || []);
-      setAlmacenes(respAlm.registros || []);
-      setEstaciones(respEst.registros || []);
+      setUnidades(respUnidades.unidades ?? []);
+      setConversiones(respUnidades.conversiones ?? []);
+      setCategorias(respCat.registros ?? []);
+      setSubcategorias(respSub.registros ?? []);
+      setAlmacenes(respAlm.registros ?? []);
+      setEstaciones(respEst.registros ?? []);
     } catch {
-      // Silencioso o manejo de error opcional
     }
-  }
+  }, []);
 
   const loadProductos = useCallback(async () => {
     if (!hasLoadedSession) return;
+
+    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+    const userPermisos = currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
+    const hasListPermission = isSuper || userPermisos.includes(PermisoBanderas.PRODUCTOS_LISTAR);
+
+    if (currentUser && !hasListPermission) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await listProductos({
@@ -135,110 +190,191 @@ export function useProductos() {
         estado: estadoFiltro,
         tipo_producto: tipoFiltro,
       });
-      setRegistros(result.registros);
-      setTotal(result.total);
+      setRegistros(result.registros ?? []);
+      setTotal(result.total ?? 0);
       if (result.resumen) setResumen(result.resumen);
-    } catch {
-      setFeedback({
-        variant: "error",
-        title: "Error al cargar",
-        message: "No se pudieron obtener los productos.",
-      });
+    } catch (error) {
+      toast("error", "Error de carga", error instanceof Error ? error.message : "No se pudieron obtener los productos.");
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, tipoFiltro, hasLoadedSession]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, tipoFiltro, hasLoadedSession, currentUser, toast]);
 
   useEffect(() => {
     void loadProductos();
   }, [loadProductos]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [debouncedSearch]);
 
   function handleFilterStatus(status: ProductoStatusFilter) {
     setEstadoFiltro(status);
     setPagina(1);
   }
 
+  function handlePageSizeChange(newSize: number) {
+    setPageSize(newSize);
+    setPagina(1);
+  }
+
+  async function verifyActionAccess(requiredPermission?: string): Promise<boolean> {
+    try {
+      const fresh = await getMe();
+      const freshData = fresh as any;
+      const userEstado = freshData?.estado ?? freshData?.sesion?.estado ?? 1;
+
+      if (!fresh || userEstado === 0) {
+        toast("error", "Acceso denegado", "Tu usuario ha sido inactivado o tu sesión ya no es válida.");
+        await logout();
+        return false;
+      }
+
+      const isSuper = Boolean(
+        freshData.es_super_admin || 
+        freshData.esSuperAdmin || 
+        freshData.sesion?.es_super_admin
+      );
+
+      if (isSuper) return true;
+
+      if (requiredPermission) {
+        const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
+        if (!permisosBackend.includes(requiredPermission)) {
+          toast("error", "Permiso denegado", "No cuentas con el permiso necesario para realizar esta acción.");
+          return false;
+        }
+      }
+
+      return true;
+    } catch {
+      toast("error", "Atención", "No se pudo verificar el permiso en el servidor.");
+      return false;
+    }
+  }
+
   async function openCreateModal() {
+    if (isFormOpen) return;
+
+    const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_CREAR);
+    if (!isValid) return;
+
     setEditingProducto(null);
+    await loadCatalogosAuxiliares();
     setIsFormOpen(true);
   }
 
   async function openEditModal(producto: ProductoItem) {
+    if (isFormOpen || loadingProductoId !== null) return;
+    setLoadingProductoId(producto.id);
+
+    const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_EDITAR);
+    if (!isValid) {
+      setLoadingProductoId(null);
+      return;
+    }
+
     setEditingProducto(producto);
+    await loadCatalogosAuxiliares();
     setIsFormOpen(true);
+    setLoadingProductoId(null);
   }
 
   function closeFormModal() {
+    if (isSaving) return;
     setIsFormOpen(false);
     setEditingProducto(null);
   }
 
   async function saveProducto(values: ProductoFormValues) {
+    if (isSaving) return;
     setIsSaving(true);
+
     try {
+      const permissionNeeded = editingProducto ? PermisoBanderas.PRODUCTOS_EDITAR : PermisoBanderas.PRODUCTOS_CREAR;
+      const isValid = await verifyActionAccess(permissionNeeded);
+      if (!isValid) return;
+
       if (editingProducto) {
         await updateProducto(editingProducto.id, values);
-        setFeedback({ variant: "success", title: "Actualizado", message: `Producto '${values.nombre}' actualizado con éxito.` });
+        toast("success", "Producto actualizado", `'${values.nombre}' fue actualizado correctamente.`);
       } else {
         await createProducto(values);
-        setFeedback({ variant: "success", title: "Registrado", message: `Producto '${values.nombre}' creado con éxito.` });
+        toast("success", "Producto registrado", `'${values.nombre}' fue creado exitosamente.`);
         setPagina(1);
       }
+
       closeFormModal();
       await loadProductos();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error al guardar",
-        message: error instanceof Error ? error.message : "Error inesperado.",
-      });
+      const message = error instanceof Error ? error.message : "No se pudo procesar la solicitud.";
+      toast("error", "Atención", message);
     } finally {
       setIsSaving(false);
     }
   }
 
   async function handleToggleDisponibilidad(id: number) {
+    const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_EDITAR);
+    if (!isValid) return;
+
     try {
       await toggleDisponibilidadProducto(id);
+      toast("info", "Disponibilidad actualizada", "Se modificó la disponibilidad en la carta.");
       await loadProductos();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error",
-        message: error instanceof Error ? error.message : "No se pudo cambiar la disponibilidad.",
-      });
+      toast("error", "Atención", error instanceof Error ? error.message : "No se pudo cambiar la disponibilidad.");
     }
   }
 
-  function openConfirmModal(producto: ProductoItem) {
-    setConfirmProducto(producto);
-    setIsConfirmOpen(true);
+  async function openConfirmModal(producto: ProductoItem) {
+    if (isConfirmOpen || loadingProductoId !== null) return;
+    setLoadingProductoId(producto.id);
+
+    const isActivo = producto.estado === 1;
+    const requiredPermission = isActivo ? PermisoBanderas.PRODUCTOS_ELIMINAR : PermisoBanderas.PRODUCTOS_ACTIVAR;
+
+    const isValid = await verifyActionAccess(requiredPermission);
+    if (isValid) {
+      setConfirmProducto(producto);
+      setIsConfirmOpen(true);
+    }
+    setLoadingProductoId(null);
   }
 
   function closeConfirmModal() {
+    if (isToggling) return;
     setIsConfirmOpen(false);
     setConfirmProducto(null);
   }
 
   async function confirmToggleStatus() {
-    if (!confirmProducto) return;
+    if (!confirmProducto || isToggling) return;
     setIsToggling(true);
+
     try {
+      const isActivo = confirmProducto.estado === 1;
+      const requiredPermission = isActivo ? PermisoBanderas.PRODUCTOS_ELIMINAR : PermisoBanderas.PRODUCTOS_ACTIVAR;
+
+      const isValid = await verifyActionAccess(requiredPermission);
+      if (!isValid) return;
+
       await toggleProductoStatus(confirmProducto);
+      const accion = isActivo ? "dado de baja" : "activado";
+      toast("info", "Estado actualizado", `El producto '${confirmProducto.nombre}' ha sido ${accion}.`);
       closeConfirmModal();
       await loadProductos();
     } catch (error) {
-      setFeedback({
-        variant: "error",
-        title: "Error",
-        message: error instanceof Error ? error.message : "Error al cambiar estado.",
-      });
+      toast("error", "Error al cambiar estado", error instanceof Error ? error.message : "Error inesperado.");
     } finally {
       setIsToggling(false);
     }
   }
 
-  function openRecetasModal(producto: ProductoItem) {
+  async function openRecetasModal(producto: ProductoItem) {
+    const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_VER);
+    if (!isValid) return;
+
     setRecetaProducto(producto);
     setIsRecetaOpen(true);
   }
@@ -256,7 +392,7 @@ export function useProductos() {
     pagina,
     setPagina,
     pageSize,
-    setPageSize: (size: number) => { setPageSize(size); setPagina(1); },
+    setPageSize: handlePageSizeChange,
     totalPages,
     searchInput,
     setSearchInput,
@@ -267,14 +403,17 @@ export function useProductos() {
     resumen,
     unidades,
     conversiones,
+    categorias,
     subcategorias,
     almacenes,
     estaciones,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback: () => setFeedback(null),
+    loadingProductoId,
+
     currentUser,
+    hasLoadedSession,
+
     editingProducto,
     isFormOpen,
     openCreateModal,
@@ -282,10 +421,12 @@ export function useProductos() {
     closeFormModal,
     saveProducto,
     handleToggleDisponibilidad,
+
     recetaProducto,
     isRecetaOpen,
     openRecetasModal,
     closeRecetasModal,
+
     confirmProducto,
     isConfirmOpen,
     isToggling,

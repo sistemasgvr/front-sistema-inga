@@ -76,6 +76,7 @@ export function useSucursales() {
           es_super_admin: isSuperStored,
           permisos: stored.permisos ?? [],
           estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+          fecha_creacion: storedAny.fecha_creacion ?? storedAny.fechaCreacion ?? new Date().toISOString(),
         });
       }
 
@@ -108,6 +109,7 @@ export function useSucursales() {
             es_super_admin: isSuper,
             permisos: freshData.permisos ?? [],
             estado: userEstado,
+            fecha_creacion: freshData.fecha_creacion ?? freshData.fechaCreacion ?? new Date().toISOString(),
           });
         }
       } catch {

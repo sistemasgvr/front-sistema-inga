@@ -54,6 +54,8 @@ export function UsersView() {
   const userPermisos = currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
   const hasListPermission = userPermisos.includes(PermisoBanderas.USUARIOS_LISTAR);
 
+  const canCreateUser = isSuper || userPermisos.includes(PermisoBanderas.USUARIOS_CREAR);
+
   if (currentUser && !isSuper && !hasListPermission) {
     return (
       <div>
@@ -137,6 +139,7 @@ export function UsersView() {
           />
         </div>
 
+        {canCreateUser && (
         <Button
           size="sm"
           type="button"
@@ -146,6 +149,7 @@ export function UsersView() {
         >
           Nuevo usuario
         </Button>
+        )}
       </div>
 
       <UsersTable

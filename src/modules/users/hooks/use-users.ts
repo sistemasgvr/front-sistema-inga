@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listRoles } from "@/modules/roles/services/roles.service";
+import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
@@ -20,7 +21,6 @@ import type {
   UsersResumen,
 } from "../types/user.types";
 import type { RoleItem } from "@/modules/roles/types/roles.types";
-import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 
 const PAGE_SIZE = 10;
 
@@ -48,7 +48,6 @@ export function useUsers() {
   const [loadingUserId, setLoadingUserId] = useState<number | null>(null); 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [hasLoadedSession, setHasLoadedSession] = useState(false); 
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -115,55 +114,43 @@ export function useUsers() {
             estado: userEstado,
             fecha_creacion: freshData.fecha_creacion ?? "",
           });
-        } else {
-          await logout();
         }
       } catch {
-      } finally {
-        setHasLoadedSession(true); 
       }
     }
 
     void syncSessionUser();
   }, []);
 
-  const loadRolesCatalog = useCallback(async () => {
+  const loadFormCatalogs = useCallback(async () => {
     try {
       const res = await listRoles({ pagina: 1, limite: 100, estado: "activos" });
       setAvailableRoles(res.registros ?? []);
-    } catch (error) {
-      console.error("Error al cargar lista de roles:", error);
+    } catch {
+      setAvailableRoles([]);
     }
-  }, []);
 
-  useEffect(() => {
-    void loadRolesCatalog();
-  }, [loadRolesCatalog]);
-
-  const loadSucursalesCatalog = useCallback(async () => {
     try {
       const res = await listSucursales({ pagina: 1, limite: 100, estado: "activos" });
-      const sucursalesMapeadas = (res.registros ?? []).map((suc) => ({
+      const rawList = Array.isArray(res) 
+        ? res 
+        : Array.isArray((res as any)?.registros) 
+          ? (res as any).registros 
+          : Array.isArray((res as any)?.data) 
+            ? (res as any).data 
+            : [];
+
+      const sucursalesMapeadas = rawList.map((suc: any) => ({
         id: suc.id,
         nombre: suc.nombre,
       }));
       setAvailableSucursales(sucursalesMapeadas);
-    } catch (error) {
-      console.error("Error al cargar lista de sucursales:", error);
+    } catch {
+      setAvailableSucursales([]);
     }
   }, []);
 
   const loadUsers = useCallback(async () => {
-    if (!hasLoadedSession) return; 
-
-    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
-    const hasListPermission = currentUser?.permisos?.includes(PermisoBanderas.USUARIOS_LISTAR);
-
-    if (currentUser && !isSuper && !hasListPermission) {
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     try {
       const response = await listUsers({
@@ -173,8 +160,8 @@ export function useUsers() {
         estado: estadoFiltro,
       });
 
-      setRegistros(response.registros);
-      setTotal(response.total);
+      setRegistros(response.registros ?? []);
+      setTotal(response.total ?? 0);
 
       if (response.resumen) {
         setResumen(response.resumen);
@@ -184,11 +171,7 @@ export function useUsers() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser, toast]); 
-
-  useEffect(() => {
-    void loadSucursalesCatalog();
-  }, [loadSucursalesCatalog]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, toast]);
 
   useEffect(() => {
     void loadUsers();
@@ -233,41 +216,42 @@ export function useUsers() {
       if (requiredPermission) {
         const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
         if (!permisosBackend.includes(requiredPermission)) {
-          toast("error", "Permiso denegado", "Ya no cuentas con los permisos necesarios para realizar esta acción.");
+          toast("error", "Permiso denegado", "No cuentas con el permiso necesario para realizar esta acción.");
           return false;
         }
       }
 
       return true;
     } catch {
-      await logout();
+      toast("error", "Atención", "No se pudo verificar el permiso en el servidor.");
       return false;
     }
   }
 
   async function openCreateModal() {
     if (isFormOpen) return;
-    setEditingUser(null);
-    setIsFormOpen(true); 
 
     const isValid = await verifyActionAccess(PermisoBanderas.USUARIOS_CREAR);
-    if (!isValid) {
-      setIsFormOpen(false);
-    }
+    if (!isValid) return;
+    
+    setEditingUser(null);
+    await loadFormCatalogs();
+    setIsFormOpen(true); 
   }
 
   async function openEditModal(user: User) {
     if (isFormOpen || loadingUserId !== null) return;
     setLoadingUserId(user.id);
-    
-    setEditingUser(user);
-    setIsFormOpen(true);
 
     const isValid = await verifyActionAccess(PermisoBanderas.USUARIOS_EDITAR);
     if (!isValid) {
-      setIsFormOpen(false);
-      setEditingUser(null);
+      setLoadingUserId(null);
+      return;
     }
+
+    setEditingUser(user);
+    await loadFormCatalogs();
+    setIsFormOpen(true);
     setLoadingUserId(null);
   }
 

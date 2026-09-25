@@ -65,72 +65,80 @@ export function useRoles() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  useEffect(() => {
-    async function syncSessionUser() {
-      const stored = getStoredUser();
-      if (stored) {
-        const storedAny = stored as any;
-        const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
-        const permisosStored: string[] = storedAny.permisos ?? storedAny.sesion?.permisos ?? [];
+useEffect(() => {
+  let isMounted = true;
+
+  async function syncSessionUser() {
+    const stored = getStoredUser();
+    if (stored && isMounted) {
+      const storedAny = stored as any;
+      const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
+      const permisosStored: string[] = storedAny.permisos ?? storedAny.sesion?.permisos ?? [];
+
+      setCurrentUser({
+        id: stored.id,
+        username: stored.username,
+        email: stored.email,
+        nombres: stored.nombres ?? "",
+        apellidos: stored.apellidos ?? "",
+        telefono: stored.telefono ?? null,
+        id_sucursal_default: stored.id_sucursal_default ?? null,
+        es_super_admin: isSuperStored,
+        permisos: permisosStored,
+        estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+        fecha_creacion: storedAny.fecha_creacion ?? "",
+      });
+    }
+
+    try {
+      const fresh = await getMe();
+      if (fresh && isMounted) {
+        const freshData = fresh as any;
+        const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
+
+        if (userEstado === 0) {
+          await logout();
+          return;
+        }
+
+        const isSuper = Boolean(
+          freshData.es_super_admin || 
+          freshData.esSuperAdmin || 
+          freshData.sesion?.es_super_admin
+        );
+
+        const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
 
         setCurrentUser({
-          id: stored.id,
-          username: stored.username,
-          email: stored.email,
-          nombres: stored.nombres ?? "",
-          apellidos: stored.apellidos ?? "",
-          telefono: stored.telefono ?? null,
-          id_sucursal_default: stored.id_sucursal_default ?? null,
-          es_super_admin: isSuperStored,
-          permisos: permisosStored,
-          estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
-          fecha_creacion: storedAny.fecha_creacion ?? "",
+          id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
+          username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
+          email: freshData.email ?? freshData.sesion?.correo ?? "",
+          nombres: freshData.nombres ?? freshData.sesion?.nombres ?? "",
+          apellidos: freshData.apellidos ?? freshData.sesion?.apellidos ?? "",
+          telefono: freshData.telefono ?? null,
+          id_sucursal_default: freshData.id_sucursal_default ?? null,
+          es_super_admin: isSuper,
+          permisos: permisosBackend,
+          estado: userEstado,
+          fecha_creacion: freshData.fecha_creacion ?? "",
         });
+      } else if (!fresh && isMounted) {
+        await logout();
       }
-
-      try {
-        const fresh = await getMe();
-        if (fresh) {
-          const freshData = fresh as any;
-          const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
-
-          if (userEstado === 0) {
-            await logout();
-            return;
-          }
-
-          const isSuper = Boolean(
-            freshData.es_super_admin || 
-            freshData.esSuperAdmin || 
-            freshData.sesion?.es_super_admin
-          );
-
-          const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
-
-          setCurrentUser({
-            id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
-            username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
-            email: freshData.email ?? freshData.sesion?.correo ?? "",
-            nombres: freshData.nombres ?? freshData.sesion?.nombres ?? "",
-            apellidos: freshData.apellidos ?? freshData.sesion?.apellidos ?? "",
-            telefono: freshData.telefono ?? null,
-            id_sucursal_default: freshData.id_sucursal_default ?? null,
-            es_super_admin: isSuper,
-            permisos: permisosBackend,
-            estado: userEstado,
-            fecha_creacion: freshData.fecha_creacion ?? "",
-          });
-        } else {
-          await logout();
-        }
-      } catch {
-      } finally {
+    } catch {
+    } finally {
+      if (isMounted) {
         setHasLoadedSession(true);
       }
     }
+  }
 
-    void syncSessionUser();
-  }, []);
+  void syncSessionUser();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   const loadRoles = useCallback(async () => {
     if (!hasLoadedSession) return;
@@ -223,13 +231,12 @@ export function useRoles() {
 
   async function openCreateModal() {
     if (isFormOpen) return;
+    
+    const isValid = await verifyActionAccess(PermisoBanderas.ROLES_CREAR);
+    if (!isValid) return;
+
     setEditingRole(null);
     setIsFormOpen(true);
-
-    const isValid = await verifyActionAccess(PermisoBanderas.ROLES_CREAR);
-    if (!isValid) {
-      setIsFormOpen(false);
-    }
   }
 
   async function openEditModal(role: RoleItem) {
@@ -282,20 +289,27 @@ export function useRoles() {
 
   async function openPermissionsModal(role: RoleItem) {
     if (isPermissionsOpen || loadingRoleId !== null) return;
-    setLoadingRoleId(role.id);
 
+    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+    const userPermisos = currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
+
+    const canEdit = isSuper || userPermisos.includes(PermisoBanderas.ROLES_EDITAR);
+    const canViewRole = isSuper || userPermisos.includes(PermisoBanderas.ROLES_VER);
+
+    if (!canEdit || !canViewRole) {
+      toast(
+        "error", 
+        "Acceso denegado", 
+        "Necesitas los permisos 'roles.editar' y 'roles.ver' para gestionar la matriz de permisos."
+      );
+      return; 
+    }
+
+    setLoadingRoleId(role.id);
     setPermissionsRole(role);
-    setIsPermissionsOpen(true);
     setIsLoadingPermissions(true);
 
     try {
-      const isValid = await verifyActionAccess(PermisoBanderas.ROLES_EDITAR);
-      if (!isValid) {
-        setIsPermissionsOpen(false);
-        setPermissionsRole(null);
-        return;
-      }
-
       const [catalog, assignedIds] = await Promise.all([
         getPermissionsCatalog(),
         getRolePermissions(role.id),
@@ -303,8 +317,10 @@ export function useRoles() {
 
       setCatalogPermissions(catalog);
       setSelectedPermissionIds(assignedIds);
+      setIsPermissionsOpen(true);
     } catch (error) {
-      toast("error", "Error de permisos", "No se pudieron obtener los permisos del rol seleccionado.");
+      const apiMessage = error instanceof Error ? error.message : "No se pudieron obtener los permisos del rol.";
+      toast("error", "Atención", apiMessage);
       setIsPermissionsOpen(false);
       setPermissionsRole(null);
     } finally {

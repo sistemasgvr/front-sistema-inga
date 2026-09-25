@@ -16,17 +16,29 @@ import type {
 export async function listSubCategorias(
   params: ListSubCategoriasParams,
 ): Promise<ListSubCategoriasResult> {
+  const queryParams: Record<string, any> = {
+    pagina: params.pagina,
+    limite: params.limite,
+    estado: params.estado || "activos",
+  };
+
+  if (params.buscar && params.buscar.trim() !== "") {
+    queryParams.buscar = params.buscar.trim();
+  }
+
+  // Si id_categoria tiene un valor válido, lo casteamos como Number
+  if (params.id_categoria !== undefined && params.id_categoria !== null && params.id_categoria !== ("" as any)) {
+    const parsedId = Number(params.id_categoria);
+    if (!isNaN(parsedId) && parsedId > 0) {
+      queryParams.id_categoria = parsedId;
+    }
+  }
+
   const { data, meta } = await apiGetPaginated<
     SubCategoriaItem,
     SubCategoriasResumen
   >("/productos/subcategorias", {
-    params: {
-      pagina: params.pagina,
-      limite: params.limite,
-      buscar: params.buscar || undefined,
-      estado: params.estado || "activos",
-      id_categoria: params.id_categoria || undefined,
-    },
+    params: queryParams,
   });
 
   return {
@@ -39,6 +51,8 @@ export async function listSubCategorias(
 export async function createSubCategoria(values: SubCategoriaFormValues): Promise<SubCategoriaItem> {
   const response = await apiPost<SubCategoriaItem>("/productos/subcategorias", {
     ...values,
+    id_categoria: Number(values.id_categoria),
+    orden: Number(values.orden ?? 0),
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });
@@ -51,6 +65,8 @@ export async function updateSubCategoria(
 ): Promise<SubCategoriaItem> {
   const response = await apiPatch<SubCategoriaItem>(`/productos/subcategorias/${id}`, {
     ...values,
+    id_categoria: Number(values.id_categoria),
+    orden: Number(values.orden ?? 0),
     codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });

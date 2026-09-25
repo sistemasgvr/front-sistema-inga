@@ -49,7 +49,7 @@ export function RolesTable({
 
   return (
     <div>
-      {/* VISTA MÓVIL (TARJETAS) */}
+      {/* VISTA MÓVIL */}
       <div className="block md:hidden space-y-3">
         {isLoading ? (
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -178,7 +178,7 @@ export function RolesTable({
         )}
       </div>
 
-      {/* VISTA ESCRITORIO (TABLA TRADICIONAL) */}
+      {/* VISTA ESCRITORIO */}
       <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
         <div className="max-w-full overflow-x-auto">
           <div className="min-w-[850px]">

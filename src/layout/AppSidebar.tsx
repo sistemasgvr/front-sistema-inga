@@ -12,6 +12,7 @@ import React, { useEffect, useState } from "react";
 type SubNavItem = {
   name: string;
   path: string;
+  icon?: string;
   permission?: string;
   pro?: boolean;
   new?: boolean;
@@ -22,13 +23,7 @@ type NavItem = {
   icon: string;
   path?: string;
   permission?: string;
-  subItems?: {
-    name: string;
-    icon: string;
-    path: string;
-    pro?: boolean;
-    new?: boolean;
-  }[];
+  subItems?: SubNavItem[];
 };
 
 const navItems: NavItem[] = [
@@ -57,16 +52,19 @@ const navItems: NavItem[] = [
         name: "Catálogo",
         path: "/productos",
         icon: "mdi:format-list-bulleted",
+        permission: PermisoBanderas.PRODUCTOS_LISTAR,
       },
       {
         name: "Categorías",
         path: "/productos/categorias",
         icon: "mdi:shape-outline",
+        permission: PermisoBanderas.CATEGORIAS_LISTAR,
       },
       {
         name: "Subcategorías",
         path: "/productos/subcategorias",
         icon: "mdi:file-tree-outline",
+        permission: PermisoBanderas.SUBCATEGORIAS_LISTAR,
       },
     ],
   },
@@ -240,7 +238,7 @@ const AppSidebar: React.FC = () => {
                             : "menu-dropdown-item-inactive"
                         }`}
                       >
-                        <Icon name={subItem.icon} size={18} />
+                        {subItem.icon && <Icon name={subItem.icon} size={18} />}
                         {subItem.name}
                       </Link>
                     </li>

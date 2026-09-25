@@ -134,7 +134,7 @@ apiClient.interceptors.response.use(
       const statusCode = error.response?.status ?? 500;
       const payload = error.response?.data;
 
-      if (statusCode === 401 || statusCode === 403) {
+      if (statusCode === 401) {
         const isLoginRequest = error.config?.url?.includes('/auth/login');
         const hadToken = Boolean(getAccessToken());
 

@@ -5,6 +5,7 @@ import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import { FormEvent, useEffect, useState } from "react";
 import type { PermisoItem, RoleItem } from "../types/roles.types";
 
@@ -62,10 +63,41 @@ export function RolePermissionsModal({
     {},
   );
 
-  function handleTogglePermission(id: number) {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
+function handleTogglePermission(permiso: PermisoItem) {
+    setSelectedIds((prevIds) => {
+      const isCurrentlySelected = prevIds.includes(permiso.id);
+
+      if (!isCurrentlySelected) {
+        const newIds = [permiso.id];
+
+        if (
+          permiso.codigo === PermisoBanderas.USUARIOS_EDITAR ||
+          permiso.codigo === PermisoBanderas.USUARIOS_CREAR
+        ) {
+          const rolesListar = safeCatalog.find(
+            (p) => p.codigo === PermisoBanderas.ROLES_LISTAR
+          );
+          const sucursalesListar = safeCatalog.find(
+            (p) => p.codigo === PermisoBanderas.SUCURSALES_LISTAR
+          );
+
+          if (rolesListar) newIds.push(rolesListar.id);
+          if (sucursalesListar) newIds.push(sucursalesListar.id);
+        }
+
+        if (permiso.codigo === PermisoBanderas.ROLES_EDITAR) {
+          const rolesVer = safeCatalog.find(
+            (p) => p.codigo === PermisoBanderas.ROLES_VER
+          );
+
+          if (rolesVer) newIds.push(rolesVer.id);
+        }
+
+        return Array.from(new Set([...prevIds, ...newIds]));
+      }
+
+      return prevIds.filter((id) => id !== permiso.id);
+    });
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -128,7 +160,7 @@ export function RolePermissionsModal({
                     return (
                       <div
                         key={permiso.id}
-                        onClick={() => handleTogglePermission(permiso.id)}
+                        onClick={() => handleTogglePermission(permiso)}
                         className={`flex cursor-pointer items-start gap-3 rounded-lg p-3 transition-colors ${
                           isChecked
                             ? "bg-brand-50/50 dark:bg-brand-500/10"
@@ -139,7 +171,7 @@ export function RolePermissionsModal({
                           <Checkbox
                             id={`perm-${permiso.id}`}
                             checked={isChecked}
-                            onChange={() => handleTogglePermission(permiso.id)}
+                            onChange={() => handleTogglePermission(permiso)}
                           />
                         </div>
                         <div className="select-none">
