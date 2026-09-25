@@ -9,28 +9,37 @@ import type {
   ListUsersResult,
   User,
   UserFormValues,
-  UsersResumen,
 } from "../types/user.types";
 
 export async function listUsers(
   params: ListUsersParams,
 ): Promise<ListUsersResult> {
-  const { data, meta } = await apiGetPaginated<User, UsersResumen>(
-    "/auth/usuarios",
-    {
-      params: {
-        pagina: params.pagina,
-        limite: params.limite,
-        buscar: params.buscar || undefined,
-        estado: params.estado || "activos",
-      },
+  const response = await apiGetPaginated<any>("/auth/usuarios", {
+    params: {
+      pagina: params.pagina,
+      limite: params.limite,
+      buscar: params.buscar || undefined,
+      estado: params.estado || "activos",
     },
-  );
+  });
+
+  const raw = response as any;
+
+  const registros: User[] = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.data)
+      ? raw.data
+      : Array.isArray(raw?.data?.data)
+        ? raw.data.data
+        : [];
+
+  const total = raw?.meta?.total ?? raw?.data?.meta?.total ?? registros.length;
+  const resumen = raw?.meta?.resumen ?? raw?.data?.meta?.resumen;
 
   return {
-    registros: data,
-    total: meta.total,
-    resumen: meta.resumen ?? undefined,
+    registros,
+    total,
+    resumen,
   };
 }
 

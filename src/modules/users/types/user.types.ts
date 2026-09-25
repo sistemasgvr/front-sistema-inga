@@ -15,10 +15,22 @@ export type User = {
   apellidos: string;
   telefono: string | null;
   id_sucursal_default: number | null;
-  es_super_admin?: boolean;
-  permisos?: string[];
+  es_super_admin: boolean;
   estado: UserStatus;
+  fecha_creacion: string;
+  fecha_modificacion?: string;
   roles?: RoleItem[];
+  permisos?: string[];
+  sesion?: {
+    id_usuario?: number;
+    nombre_usuario?: string;
+    correo?: string;
+    nombres?: string;
+    apellidos?: string;
+    es_super_admin?: boolean;
+    estado?: UserStatus;
+    permisos?: string[];
+  };
 };
 
 export type UserFormValues = {

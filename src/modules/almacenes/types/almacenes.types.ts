@@ -3,10 +3,12 @@ export type AlmacenStatus = 1 | 0;
 export type AlmacenItem = {
   id: number;
   id_sucursal: number;
+  nombre_sucursal?: string;
   codigo: string;
   nombre: string;
   descripcion?: string | null;
   tipo_almacen: number;
+  tipo_almacen_nombre?: string;
   es_principal: boolean;
   estado: AlmacenStatus;
   fecha_creacion?: string;

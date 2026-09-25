@@ -181,7 +181,6 @@ export function UserFormModal({
       }
       isSaving={isSaving}
     >
-      {/* Alerta de Error del Backend en el Modal */}
       {serverError && (
         <div className="mb-4">
           <Alert

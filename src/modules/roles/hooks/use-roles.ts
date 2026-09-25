@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import {
   createRole,
   getPermissionsCatalog,
@@ -20,6 +21,7 @@ import type {
   RoleStatusFilter,
   RolesResumen,
 } from "../types/roles.types";
+import type { User } from "@/modules/users/types/user.types";
 
 const PAGE_SIZE = 10;
 
@@ -47,7 +49,7 @@ export function useRoles() {
   const [isSaving, setIsSaving] = useState(false);
   const [loadingRoleId, setLoadingRoleId] = useState<number | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoadedSession, setHasLoadedSession] = useState(false);
 
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
@@ -63,67 +65,87 @@ export function useRoles() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
-  useEffect(() => {
-    async function syncSessionUser() {
-      const stored = getStoredUser();
-      if (stored) {
-        const storedAny = stored as any;
-        const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
+useEffect(() => {
+  let isMounted = true;
+
+  async function syncSessionUser() {
+    const stored = getStoredUser();
+    if (stored && isMounted) {
+      const storedAny = stored as any;
+      const isSuperStored = Boolean(storedAny.es_super_admin || storedAny.sesion?.es_super_admin);
+      const permisosStored: string[] = storedAny.permisos ?? storedAny.sesion?.permisos ?? [];
+
+      setCurrentUser({
+        id: stored.id,
+        username: stored.username,
+        email: stored.email,
+        nombres: stored.nombres ?? "",
+        apellidos: stored.apellidos ?? "",
+        telefono: stored.telefono ?? null,
+        id_sucursal_default: stored.id_sucursal_default ?? null,
+        es_super_admin: isSuperStored,
+        permisos: permisosStored,
+        estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+        fecha_creacion: storedAny.fecha_creacion ?? "",
+      });
+    }
+
+    try {
+      const fresh = await getMe();
+      if (fresh && isMounted) {
+        const freshData = fresh as any;
+        const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
+
+        if (userEstado === 0) {
+          await logout();
+          return;
+        }
+
+        const isSuper = Boolean(
+          freshData.es_super_admin || 
+          freshData.esSuperAdmin || 
+          freshData.sesion?.es_super_admin
+        );
+
+        const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
 
         setCurrentUser({
-          id: stored.id,
-          username: stored.username,
-          email: stored.email,
-          es_super_admin: isSuperStored,
-          permisos: stored.permisos ?? [],
-          estado: storedAny.estado ?? storedAny.sesion?.estado ?? 1,
+          id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
+          username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
+          email: freshData.email ?? freshData.sesion?.correo ?? "",
+          nombres: freshData.nombres ?? freshData.sesion?.nombres ?? "",
+          apellidos: freshData.apellidos ?? freshData.sesion?.apellidos ?? "",
+          telefono: freshData.telefono ?? null,
+          id_sucursal_default: freshData.id_sucursal_default ?? null,
+          es_super_admin: isSuper,
+          permisos: permisosBackend,
+          estado: userEstado,
+          fecha_creacion: freshData.fecha_creacion ?? "",
         });
+      } else if (!fresh && isMounted) {
+        await logout();
       }
-
-      try {
-        const fresh = await getMe();
-        if (fresh) {
-          const freshData = fresh as any;
-          const userEstado = freshData.estado ?? freshData.sesion?.estado ?? 1;
-
-          if (userEstado === 0) {
-            await logout();
-            return;
-          }
-
-          const isSuper = Boolean(
-            freshData.es_super_admin || 
-            freshData.esSuperAdmin || 
-            freshData.sesion?.es_super_admin
-          );
-
-          const permisosBackend: string[] = freshData.permisos ?? [];
-
-          setCurrentUser({
-            id: freshData.id ?? freshData.sesion?.id_usuario ?? 1,
-            username: freshData.username ?? freshData.sesion?.nombre_usuario ?? "",
-            email: freshData.email ?? freshData.sesion?.correo ?? "",
-            es_super_admin: isSuper,
-            permisos: permisosBackend,
-            estado: userEstado,
-          });
-        } else {
-          await logout();
-        }
-      } catch {
-      } finally {
+    } catch {
+    } finally {
+      if (isMounted) {
         setHasLoadedSession(true);
       }
     }
+  }
 
-    void syncSessionUser();
-  }, []);
+  void syncSessionUser();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   const loadRoles = useCallback(async () => {
     if (!hasLoadedSession) return;
 
     const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
-    const hasListPermission = currentUser?.permisos?.includes("roles.listar");
+    const userPermisos = currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
+    const hasListPermission = userPermisos.includes(PermisoBanderas.ROLES_LISTAR);
 
     if (currentUser && !isSuper && !hasListPermission) {
       setIsLoading(false);
@@ -150,7 +172,7 @@ export function useRoles() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, toast]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, hasLoadedSession, currentUser, toast]);
 
   useEffect(() => {
     void loadRoles();
@@ -193,7 +215,7 @@ export function useRoles() {
       }
 
       if (requiredPermission) {
-        const permisosBackend: string[] = freshData.permisos ?? [];
+        const permisosBackend: string[] = freshData.permisos ?? freshData.sesion?.permisos ?? [];
         if (!permisosBackend.includes(requiredPermission)) {
           toast("error", "Permiso denegado", "Ya no cuentas con los permisos necesarios para realizar esta acción.");
           return false;
@@ -209,13 +231,12 @@ export function useRoles() {
 
   async function openCreateModal() {
     if (isFormOpen) return;
+    
+    const isValid = await verifyActionAccess(PermisoBanderas.ROLES_CREAR);
+    if (!isValid) return;
+
     setEditingRole(null);
     setIsFormOpen(true);
-
-    const isValid = await verifyActionAccess("roles.crear");
-    if (!isValid) {
-      setIsFormOpen(false);
-    }
   }
 
   async function openEditModal(role: RoleItem) {
@@ -225,7 +246,7 @@ export function useRoles() {
     setEditingRole(role);
     setIsFormOpen(true);
 
-    const isValid = await verifyActionAccess("roles.editar");
+    const isValid = await verifyActionAccess(PermisoBanderas.ROLES_EDITAR);
     if (!isValid) {
       setIsFormOpen(false);
       setEditingRole(null);
@@ -244,7 +265,7 @@ export function useRoles() {
     setIsSaving(true);
 
     try {
-      const permissionNeeded = editingRole ? "roles.editar" : "roles.crear";
+      const permissionNeeded = editingRole ? PermisoBanderas.ROLES_EDITAR : PermisoBanderas.ROLES_CREAR;
       const isValid = await verifyActionAccess(permissionNeeded);
       if (!isValid) return;
 
@@ -268,20 +289,27 @@ export function useRoles() {
 
   async function openPermissionsModal(role: RoleItem) {
     if (isPermissionsOpen || loadingRoleId !== null) return;
-    setLoadingRoleId(role.id);
 
+    const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
+    const userPermisos = currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
+
+    const canEdit = isSuper || userPermisos.includes(PermisoBanderas.ROLES_EDITAR);
+    const canViewRole = isSuper || userPermisos.includes(PermisoBanderas.ROLES_VER);
+
+    if (!canEdit || !canViewRole) {
+      toast(
+        "error", 
+        "Acceso denegado", 
+        "Necesitas los permisos 'roles.editar' y 'roles.ver' para gestionar la matriz de permisos."
+      );
+      return; 
+    }
+
+    setLoadingRoleId(role.id);
     setPermissionsRole(role);
-    setIsPermissionsOpen(true);
     setIsLoadingPermissions(true);
 
     try {
-      const isValid = await verifyActionAccess("roles.editar");
-      if (!isValid) {
-        setIsPermissionsOpen(false);
-        setPermissionsRole(null);
-        return;
-      }
-
       const [catalog, assignedIds] = await Promise.all([
         getPermissionsCatalog(),
         getRolePermissions(role.id),
@@ -289,8 +317,10 @@ export function useRoles() {
 
       setCatalogPermissions(catalog);
       setSelectedPermissionIds(assignedIds);
+      setIsPermissionsOpen(true);
     } catch (error) {
-      toast("error", "Error de permisos", "No se pudieron obtener los permisos del rol seleccionado.");
+      const apiMessage = error instanceof Error ? error.message : "No se pudieron obtener los permisos del rol.";
+      toast("error", "Atención", apiMessage);
       setIsPermissionsOpen(false);
       setPermissionsRole(null);
     } finally {
@@ -312,7 +342,7 @@ export function useRoles() {
     setIsSaving(true);
 
     try {
-      const isValid = await verifyActionAccess("roles.editar");
+      const isValid = await verifyActionAccess(PermisoBanderas.ROLES_EDITAR);
       if (!isValid) return;
 
       await syncRolePermissions(permissionsRole.id, idsPermisos);
@@ -331,7 +361,10 @@ export function useRoles() {
     if (isConfirmOpen || loadingRoleId !== null) return;
     setLoadingRoleId(role.id);
 
-    const isValid = await verifyActionAccess("roles.eliminar");
+    const isActivo = role.estado === 1;
+    const requiredPermission = isActivo ? PermisoBanderas.ROLES_ELIMINAR : PermisoBanderas.ROLES_ACTIVAR;
+
+    const isValid = await verifyActionAccess(requiredPermission);
     if (isValid) {
       setConfirmRole(role);
       setIsConfirmOpen(true);
@@ -350,11 +383,14 @@ export function useRoles() {
     setIsToggling(true);
 
     try {
-      const isValid = await verifyActionAccess("roles.eliminar");
+      const isActivo = confirmRole.estado === 1;
+      const requiredPermission = isActivo ? PermisoBanderas.ROLES_ELIMINAR : PermisoBanderas.ROLES_ACTIVAR;
+
+      const isValid = await verifyActionAccess(requiredPermission);
       if (!isValid) return;
 
       await toggleRoleStatus(confirmRole);
-      const accion = confirmRole.estado === 1 ? "desactivado" : "activado";
+      const accion = isActivo ? "desactivado" : "activado";
       toast("info", "Estado actualizado", `El rol '${confirmRole.nombre}' ha sido ${accion}.`);
       closeConfirmModal();
       await loadRoles();

@@ -2,8 +2,8 @@
 
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Button from "@/components/ui/button/Button";
-import { Modal } from "@/components/ui/modal";
+import Checkbox from "@/components/form/input/Checkbox";
+import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
 import type { CategoriaItem, CategoriaFormValues } from "../types/categorias.types";
 
@@ -15,6 +15,14 @@ type CategoriaFormModalProps = {
   isSaving: boolean;
 };
 
+const EMPTY_FORM: CategoriaFormValues = {
+  codigo: "",
+  nombre: "",
+  descripcion: "",
+  es_carta: false,
+  orden: 10,
+};
+
 export function CategoriaFormModal({
   isOpen,
   onClose,
@@ -22,114 +30,157 @@ export function CategoriaFormModal({
   categoria,
   isSaving,
 }: CategoriaFormModalProps) {
-  const [values, setValues] = useState<CategoriaFormValues>({
-    codigo: "",
-    nombre: "",
-    descripcion: "",
-    es_carta: false,
-    orden: 0,
-  });
+  const [values, setValues] = useState<CategoriaFormValues>(EMPTY_FORM);
+  const [errors, setErrors] = useState<Partial<Record<keyof CategoriaFormValues, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof CategoriaFormValues, boolean>>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
+
     if (categoria) {
       setValues({
         codigo: categoria.codigo || "",
         nombre: categoria.nombre || "",
         descripcion: categoria.descripcion || "",
         es_carta: Boolean(categoria.es_carta),
-        orden: categoria.orden ?? 0,
+        orden: categoria.orden ?? 10,
       });
     } else {
-      setValues({
-        codigo: "",
-        nombre: "",
-        descripcion: "",
-        es_carta: false,
-        orden: 0,
-      });
+      setValues(EMPTY_FORM);
     }
+    setErrors({});
+    setTouched({});
+    setIsSubmitted(false);
   }, [isOpen, categoria]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!values.nombre.trim() || !values.codigo.trim()) return;
+  function handleBlur(field: keyof CategoriaFormValues) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function validate(currentValues: CategoriaFormValues = values): boolean {
+    const next: Partial<Record<keyof CategoriaFormValues, string>> = {};
+
+    if (!currentValues.codigo.trim()) {
+      next.codigo = "El código es obligatorio.";
+    }
+    if (!currentValues.nombre.trim()) {
+      next.nombre = "El nombre de la categoría es obligatorio.";
+    }
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      validate(values);
+    }
+  }, [values]);
+
+  function showError(field: keyof CategoriaFormValues): string | undefined {
+    return (isSubmitted || touched[field]) ? errors[field] : undefined;
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (isSaving) return;
+    setIsSubmitted(true);
+
+    if (!validate()) return;
     await onSubmit(values);
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[550px] p-6 lg:p-8">
-      <form onSubmit={handleSubmit}>
-        <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-          {categoria ? "Editar Categoría" : "Nueva Categoría"}
-        </h4>
-        <p className="text-xs text-gray-500 mb-6">Administra los datos de agrupación principal.</p>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="codigo">Código *</Label>
-              <Input
-                id="codigo"
-                value={values.codigo}
-                onChange={(e) => setValues((p) => ({ ...p, codigo: e.target.value }))}
-                placeholder="Ej. CAT-01"
-                disabled={isSaving}
-              />
-            </div>
-            <div>
-              <Label htmlFor="orden">Orden</Label>
-              <Input
-                id="orden"
-                type="number"
-                value={values.orden}
-                onChange={(e) => setValues((p) => ({ ...p, orden: Number(e.target.value) }))}
-                disabled={isSaving}
-              />
-            </div>
-          </div>
-
+    <FormModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      title={categoria ? "Editar Categoría" : "Nueva Categoría"}
+      subtitle={
+        categoria
+          ? "Actualiza la información de agrupación principal."
+          : "Completa la información requerida para registrar una nueva categoría."
+      }
+      isSaving={isSaving}
+      maxWidth="max-w-[550px]"
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="nombre">Nombre de la Categoría *</Label>
+            <Label htmlFor="codigo">Código *</Label>
             <Input
-              id="nombre"
-              value={values.nombre}
-              onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
-              placeholder="Ej. Platos Principales"
+              id="codigo"
+              value={values.codigo}
+              onChange={(e) =>
+                setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }))
+              }
+              onBlur={() => handleBlur("codigo")}
+              placeholder="Ej. CAT-01"
+              error={Boolean(showError("codigo"))}
+              hint={showError("codigo")}
               disabled={isSaving}
             />
           </div>
 
           <div>
-            <Label htmlFor="descripcion">Descripción</Label>
+            <Label htmlFor="orden">Orden / Prioridad</Label>
             <Input
-              id="descripcion"
-              value={values.descripcion}
-              onChange={(e) => setValues((p) => ({ ...p, descripcion: e.target.value }))}
-              placeholder="Breve descripción..."
+              id="orden"
+              type="number"
+              value={values.orden}
+              onChange={(e) =>
+                setValues((p) => ({ ...p, orden: Number(e.target.value) }))
+              }
+              onBlur={() => handleBlur("orden")}
+              placeholder="Ej. 10, 20, 30"
               disabled={isSaving}
             />
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <input
-              type="checkbox"
-              id="es_carta"
-              checked={values.es_carta}
-              onChange={(e) => setValues((p) => ({ ...p, es_carta: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-            />
-            <label htmlFor="es_carta" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              ¿Visible en Carta del Restaurante?
-            </label>
+            <p className="mt-1 text-[11px] text-gray-400">
+              Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
+            </p>
           </div>
         </div>
 
-        <div className="mt-8 flex justify-end gap-3 border-t pt-4 dark:border-gray-800">
-          <Button size="sm" variant="outline" type="button" onClick={onClose} disabled={isSaving}>Cancelar</Button>
-          <Button size="sm" type="submit" disabled={isSaving}>{isSaving ? "Guardando..." : "Guardar"}</Button>
+        <div>
+          <Label htmlFor="nombre">Nombre de la Categoría *</Label>
+          <Input
+            id="nombre"
+            value={values.nombre}
+            onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
+            onBlur={() => handleBlur("nombre")}
+            placeholder="Ej. Platos Principales"
+            error={Boolean(showError("nombre"))}
+            hint={showError("nombre")}
+            disabled={isSaving}
+          />
         </div>
-      </form>
-    </Modal>
+
+        <div>
+          <Label htmlFor="descripcion">Descripción</Label>
+          <Input
+            id="descripcion"
+            value={values.descripcion}
+            onChange={(e) =>
+              setValues((p) => ({ ...p, descripcion: e.target.value }))
+            }
+            placeholder="Breve descripción orientativa..."
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="pt-2">
+          <Checkbox
+            id="es_carta"
+            label="¿Visible en Carta del Restaurante?"
+            checked={values.es_carta}
+            onChange={(checked) =>
+              setValues((p) => ({ ...p, es_carta: checked }))
+            }
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+    </FormModal>
   );
 }

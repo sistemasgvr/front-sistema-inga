@@ -3,20 +3,23 @@
 import { LISTA_IDS, useLista } from "@/modules/listas";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Button from "@/components/ui/button/Button";
-import { Modal } from "@/components/ui/modal";
-import { FormEvent, useState } from "react";
-import type {
-  EstacionItem,
-  EstacionFormValues,
-} from "../types/estaciones.types";
+import Select from "@/components/form/Select";
+import Checkbox from "@/components/form/input/Checkbox";
+import Alert from "@/components/ui/alert/Alert";
+import { FormModal } from "@/components/ui/modal/FormModal";
+import { useCatalogo } from "@/shared/hooks/useCatalogo";
+import { FormEvent, useEffect, useState } from "react";
+import type { EstacionItem, EstacionFormValues } from "../types/estaciones.types";
+import type { SucursalOption } from "@/modules/users/types/user.types";
 
 type EstacionFormModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (values: EstacionFormValues) => Promise<void>;
   estacion: EstacionItem | null;
+  availableSucursales?: SucursalOption[];
   isSaving: boolean;
+  defaultSucursalId?: number;
 };
 
 export function EstacionFormModal(props: EstacionFormModalProps) {
@@ -29,190 +32,240 @@ function EstacionFormContent({
   onClose,
   onSubmit,
   estacion,
+  availableSucursales = [],
   isSaving,
+  defaultSucursalId = 1,
 }: EstacionFormModalProps) {
-  const tipos = useLista(LISTA_IDS.ESTACION_TIPO, { enabled: isOpen });
+  const { opciones: tiposEstacion, isLoading: isLoadingTipos } = useCatalogo("ESTACION_TIPO");
+
   const [values, setValues] = useState<EstacionFormValues>({
-    id_sucursal: estacion?.id_sucursal ?? 1,
-    codigo: estacion?.codigo || "",
-    nombre: estacion?.nombre || "",
-    tipo_estacion: estacion?.tipo_estacion ?? 0,
-    impresora_nombre: estacion?.impresora_nombre || "",
-    impresora_ip: estacion?.impresora_ip || "",
-    usa_kds: Boolean(estacion?.usa_kds),
+    id_sucursal: defaultSucursalId,
+    codigo: "",
+    nombre: "",
+    tipo_estacion: 1,
+    impresora_nombre: "",
+    impresora_ip: "",
+    usa_kds: false,
   });
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (
-      !values.nombre.trim() ||
-      !values.codigo.trim() ||
-      tipos.isLoading ||
-      tipos.error ||
-      !tipos.selectOptions.some((o) => o.value === String(values.tipo_estacion))
-    )
-      return;
-    await onSubmit(values);
+  const [errors, setErrors] = useState<Partial<Record<keyof EstacionFormValues, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof EstacionFormValues, boolean>>>({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (estacion) {
+      setValues({
+        id_sucursal: estacion.id_sucursal ?? defaultSucursalId,
+        codigo: estacion.codigo || "",
+        nombre: estacion.nombre || "",
+        tipo_estacion: estacion.tipo_estacion ?? 1,
+        impresora_nombre: estacion.impresora_nombre || "",
+        impresora_ip: estacion.impresora_ip || "",
+        usa_kds: Boolean(estacion.usa_kds),
+      });
+    } else {
+      setValues({
+        id_sucursal: availableSucursales[0]?.id ?? defaultSucursalId,
+        codigo: "",
+        nombre: "",
+        tipo_estacion: tiposEstacion[0]?.valor_entero ?? 1,
+        impresora_nombre: "",
+        impresora_ip: "",
+        usa_kds: false,
+      });
+    }
+    setErrors({});
+    setTouched({});
+    setIsSubmitted(false);
+    setServerError(null);
+  }, [isOpen, estacion, defaultSucursalId, availableSucursales, tiposEstacion]);
+
+  function handleBlur(field: keyof EstacionFormValues) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
   }
 
+  function validate(currentValues: EstacionFormValues = values): boolean {
+    const next: Partial<Record<keyof EstacionFormValues, string>> = {};
+
+    if (!currentValues.codigo.trim()) next.codigo = "El código es obligatorio.";
+    if (!currentValues.nombre.trim()) next.nombre = "El nombre de la estación es obligatorio.";
+    if (!currentValues.id_sucursal) next.id_sucursal = "La sucursal es obligatoria.";
+    if (!currentValues.tipo_estacion) next.tipo_estacion = "El tipo de estación es obligatorio.";
+
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      validate(values);
+    }
+  }, [values]);
+
+  function showError(field: keyof EstacionFormValues): string | undefined {
+    return isSubmitted || touched[field] ? errors[field] : undefined;
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (isSaving) return;
+    setIsSubmitted(true);
+    setServerError(null);
+
+    if (!validate()) return;
+
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      setServerError(
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error inesperado al procesar la solicitud."
+      );
+    }
+  }
+
+  const sucursalOptions = availableSucursales.map((suc) => ({
+    value: String(suc.id),
+    label: suc.nombre,
+  }));
+
+  const tipoEstacionOptions = tiposEstacion.map((tipo) => ({
+    value: String(tipo.valor_entero),
+    label: tipo.nombre,
+  }));
+
   return (
-    <Modal
+    <FormModal
       isOpen={isOpen}
       onClose={onClose}
-      className="max-w-[550px] p-6 lg:p-8"
+      onSubmit={handleSubmit}
+      title={estacion ? "Editar estación" : "Nueva estación"}
+      subtitle={
+        estacion
+          ? "Actualiza la configuración de impresión y KDS de la estación."
+          : "Completa la información requerida para registrar una nueva estación."
+      }
+      isSaving={isSaving}
     >
-      <form onSubmit={handleSubmit}>
-        <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-          {estacion ? "Editar Estación" : "Nueva Estación"}
-        </h4>
-        <p className="text-xs text-gray-500 mb-6">
-          Administra las configuraciones de impresión y KDS de la estación.
-        </p>
-
-        <div className="space-y-4">
-          {(tipos.error ||
-            (!tipos.isLoading && tipos.selectOptions.length === 0)) && (
-            <div role="alert" className="text-sm text-error-600">
-              {tipos.error ?? "No hay tipos activos disponibles."}{" "}
-              <button
-                type="button"
-                onClick={tipos.recargar}
-                className="underline"
-              >
-                Reintentar
-              </button>
-            </div>
-          )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="codigo">Código *</Label>
-              <Input
-                id="codigo"
-                value={values.codigo}
-                onChange={(e) =>
-                  setValues((p) => ({ ...p, codigo: e.target.value }))
-                }
-                placeholder="Ej. EST-COC"
-                disabled={isSaving}
-              />
-            </div>
-            <div>
-              <Label htmlFor="tipo_estacion">Tipo de Estación</Label>
-              <select
-                id="tipo_estacion"
-                value={
-                  tipos.selectOptions.some(
-                    (o) => o.value === String(values.tipo_estacion),
-                  )
-                    ? values.tipo_estacion
-                    : ""
-                }
-                onChange={(e) =>
-                  setValues((p) => ({
-                    ...p,
-                    tipo_estacion: Number(e.target.value),
-                  }))
-                }
-                disabled={isSaving || tipos.isLoading || Boolean(tipos.error)}
-                className="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              >
-                <option value="">
-                  {tipos.isLoading ? "Cargando tipos..." : "Selecciona un tipo"}
-                </option>
-                {tipos.selectOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="nombre">Nombre de la Estación *</Label>
-            <Input
-              id="nombre"
-              value={values.nombre}
-              onChange={(e) =>
-                setValues((p) => ({ ...p, nombre: e.target.value }))
-              }
-              placeholder="Ej. Cocina Principal"
-              disabled={isSaving}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="impresora_nombre">Nombre Impresora</Label>
-              <Input
-                id="impresora_nombre"
-                value={values.impresora_nombre}
-                onChange={(e) =>
-                  setValues((p) => ({ ...p, impresora_nombre: e.target.value }))
-                }
-                placeholder="Ej. Ticketera Cocina"
-                disabled={isSaving}
-              />
-            </div>
-            <div>
-              <Label htmlFor="impresora_ip">IP Impresora</Label>
-              <Input
-                id="impresora_ip"
-                value={values.impresora_ip}
-                onChange={(e) =>
-                  setValues((p) => ({ ...p, impresora_ip: e.target.value }))
-                }
-                placeholder="Ej. 192.168.1.50"
-                disabled={isSaving}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <input
-              type="checkbox"
-              id="usa_kds"
-              checked={values.usa_kds}
-              onChange={(e) =>
-                setValues((p) => ({ ...p, usa_kds: e.target.checked }))
-              }
-              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-            />
-            <label
-              htmlFor="usa_kds"
-              className="text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              ¿Utiliza pantalla KDS?
-            </label>
-          </div>
+      {serverError && (
+        <div className="mb-4">
+          <Alert variant="error" title="Error al guardar" message={serverError} />
         </div>
+      )}
 
-        <div className="mt-8 flex justify-end gap-3 border-t pt-4 dark:border-gray-800">
-          <Button
-            size="sm"
-            variant="outline"
-            type="button"
-            onClick={onClose}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="codigo">Código *</Label>
+          <Input
+            id="codigo"
+            value={values.codigo}
+            onChange={(e) => {
+              setServerError(null);
+              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
+            }}
+            onBlur={() => handleBlur("codigo")}
+            placeholder="Ej. EST-COC"
+            error={Boolean(showError("codigo"))}
+            hint={showError("codigo")}
             disabled={isSaving}
-          >
-            Cancelar
-          </Button>
-          <Button
-            size="sm"
-            type="submit"
-            disabled={
-              isSaving ||
-              tipos.isLoading ||
-              Boolean(tipos.error) ||
-              !tipos.selectOptions.some(
-                (o) => o.value === String(values.tipo_estacion),
-              )
-            }
-          >
-            {isSaving ? "Guardando..." : "Guardar"}
-          </Button>
+          />
         </div>
-      </form>
-    </Modal>
+
+        <div>
+          <Label>Tipo de estación *</Label>
+          <Select
+            options={tipoEstacionOptions}
+            defaultValue={values.tipo_estacion ? String(values.tipo_estacion) : ""}
+            placeholder={isLoadingTipos ? "Cargando tipos..." : "Seleccione tipo..."}
+            disabled={isSaving || isLoadingTipos}
+            error={Boolean(showError("tipo_estacion"))}
+            hint={showError("tipo_estacion")}
+            onChange={(val) => {
+              setServerError(null);
+              setValues((p) => ({ ...p, tipo_estacion: Number(val) }));
+              handleBlur("tipo_estacion");
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="nombre">Nombre de la estación *</Label>
+          <Input
+            id="nombre"
+            value={values.nombre}
+            onChange={(e) => {
+              setServerError(null);
+              setValues((p) => ({ ...p, nombre: e.target.value }));
+            }}
+            onBlur={() => handleBlur("nombre")}
+            placeholder="Ej. Cocina Principal"
+            error={Boolean(showError("nombre"))}
+            hint={showError("nombre")}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <Label>Sucursal asignada *</Label>
+          <Select
+            options={
+              sucursalOptions.length > 0
+                ? sucursalOptions
+                : [{ value: String(defaultSucursalId), label: "Sede Principal" }]
+            }
+            defaultValue={values.id_sucursal ? String(values.id_sucursal) : String(defaultSucursalId)}
+            placeholder={availableSucursales.length === 0 ? "Cargando sucursales..." : "Seleccione sucursal..."}
+            disabled={isSaving || availableSucursales.length === 0}
+            error={Boolean(showError("id_sucursal"))}
+            hint={showError("id_sucursal")}
+            onChange={(val) => {
+              setServerError(null);
+              setValues((p) => ({ ...p, id_sucursal: Number(val) }));
+              handleBlur("id_sucursal");
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="impresora_nombre">Nombre Impresora</Label>
+          <Input
+            id="impresora_nombre"
+            value={values.impresora_nombre}
+            onChange={(e) => setValues((p) => ({ ...p, impresora_nombre: e.target.value }))}
+            placeholder="Ej. Ticketera Cocina"
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="impresora_ip">IP Impresora</Label>
+          <Input
+            id="impresora_ip"
+            value={values.impresora_ip}
+            onChange={(e) => setValues((p) => ({ ...p, impresora_ip: e.target.value }))}
+            placeholder="Ej. 192.168.1.50"
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+
+      <div className="pt-2">
+        <Checkbox
+          id="usa_kds"
+          label="¿Utiliza pantalla de cocina KDS?"
+          checked={values.usa_kds}
+          onChange={(checked) => setValues((p) => ({ ...p, usa_kds: checked }))}
+          disabled={isSaving}
+        />
+      </div>
+    </FormModal>
   );
 }

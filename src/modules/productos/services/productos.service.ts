@@ -15,7 +15,21 @@ import type {
   ProductosResumen,
   UnidadesResponse,
   InsumoProcesadoItem,
+  CategoriaItem,
 } from "../types/productos.types";
+
+export async function uploadProductoImagenApi(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiPost<{ url: string }>("/productos/upload-imagen", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.url;
+}
 
 export async function listProductos(
   params: ListProductosParams,
@@ -98,4 +112,14 @@ export async function getInsumosProcesados(busqueda?: string): Promise<InsumoPro
     { params: { busqueda: busqueda || undefined } },
   );
   return response?.registros ?? [];
+}
+
+export async function getCategoriasCatalogo(): Promise<CategoriaItem[]> {
+  const { data } = await apiGetPaginated<CategoriaItem>("/productos/categorias", {
+    params: {
+      limite: 100,
+      estado: "activos",
+    },
+  });
+  return data ?? [];
 }

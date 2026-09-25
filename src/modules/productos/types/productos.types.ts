@@ -7,10 +7,12 @@ export type ProductoItem = {
   id_categoria?: number;
   nombre_categoria?: string;
   id_unidad_medida: number;
+  nombre_unidad_medida?: string;
   simbolo_unidad?: string;
   id_estacion?: number | null;
   nombre_estacion?: string | null;
   id_almacen_stock?: number | null;
+  nombre_almacen?: string | null;
   codigo_interno: string;
   nombre: string;
   descripcion?: string | null;
@@ -24,6 +26,18 @@ export type ProductoItem = {
   imagen_url?: string | null;
   estado: ProductoStatus;
   fecha_creacion?: string;
+  fecha_modificacion?: string;
+};
+
+export type CategoriaItem = {
+  id: number;
+  nombre: string;
+};
+
+export type SubcategoriaItem = {
+  id: number;
+  id_categoria?: number;
+  nombre: string;
 };
 
 export type UnidadMedidaItem = {

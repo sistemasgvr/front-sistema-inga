@@ -3,35 +3,38 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/icon";
 
-export interface Option {
+export interface ComboboxOption {
   value: string;
   label: string;
+  sublabel?: string;
 }
 
-interface SelectProps {
-  options: Option[];
+interface ComboboxProps {
+  options: ComboboxOption[];
   placeholder?: string;
   searchPlaceholder?: string;
   onChange: (value: string) => void;
+  onSearchChange?: (term: string) => void;
   className?: string;
   defaultValue?: string;
   disabled?: boolean;
   error?: boolean;
   hint?: string;
-  searchableThreshold?: number;
+  isLoading?: boolean;
 }
 
-const Select: React.FC<SelectProps> = ({
+export const Combobox: React.FC<ComboboxProps> = ({
   options,
   placeholder = "Seleccione una opción",
   searchPlaceholder = "Buscar...",
   onChange,
+  onSearchChange,
   className = "",
   defaultValue = "",
   disabled = false,
   error = false,
   hint,
-  searchableThreshold = 7,
+  isLoading = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
@@ -65,12 +68,22 @@ const Select: React.FC<SelectProps> = ({
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
 
-  const shouldShowSearch = options.length > searchableThreshold;
-  const filteredOptions = shouldShowSearch
-    ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : options;
+  const filteredOptions = onSearchChange
+    ? options
+    : options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (opt.sublabel &&
+            opt.sublabel.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+
+  const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (onSearchChange) {
+      onSearchChange(value);
+    }
+  };
 
   const handleSelect = (value: string) => {
     setSelectedValue(value);
@@ -116,27 +129,29 @@ const Select: React.FC<SelectProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 z-50 mt-1.5 max-h-64 min-w-full w-max max-w-[340px] overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl transition-all dark:border-gray-800 dark:bg-gray-900">
-          {shouldShowSearch && (
-            <div className="relative mb-1.5 p-1">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 pl-8 text-xs text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
-              />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-gray-400 dark:text-gray-500 pointer-events-none">
-                <Icon name="mdi:magnify" size={16} />
-              </span>
-            </div>
-          )}
+        <div className="absolute left-0 right-0 z-50 mt-1.5 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl transition-all dark:border-gray-800 dark:bg-gray-900">
+          <div className="relative mb-1.5 p-1">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchTerm}
+              onChange={handleSearchInput}
+              placeholder={searchPlaceholder}
+              className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 pl-8 text-xs text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-2 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
+            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-gray-400 dark:text-gray-500 pointer-events-none">
+              <Icon name="mdi:magnify" size={16} />
+            </span>
+          </div>
 
-          <div className="max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-center text-xs text-gray-400">
-                No hay coincidencias
+          <div className="max-h-52 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {isLoading ? (
+              <div className="px-3 py-3 text-center text-xs text-gray-400">
+                Buscando insumos...
+              </div>
+            ) : filteredOptions.length === 0 ? (
+              <div className="px-3 py-3 text-center text-xs text-gray-400">
+                No se encontraron coincidencias
               </div>
             ) : (
               filteredOptions.map((option) => {
@@ -146,15 +161,26 @@ const Select: React.FC<SelectProps> = ({
                     key={option.value}
                     type="button"
                     onClick={() => handleSelect(option.value)}
-                    className={`flex w-full items-center justify-between gap-3 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                    className={`flex w-full items-center justify-between rounded-lg px-3.5 py-2 text-xs font-medium transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
                         : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/60"
                     }`}
                   >
-                    <span className="whitespace-nowrap">{option.label}</span>
+                    <div className="flex flex-col text-left truncate pr-2">
+                      <span className="truncate">{option.label}</span>
+                      {option.sublabel && (
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          {option.sublabel}
+                        </span>
+                      )}
+                    </div>
                     {isSelected && (
-                      <Icon name="mdi:check" size={18} className="text-brand-500 dark:text-brand-400 shrink-0" />
+                      <Icon
+                        name="mdi:check"
+                        size={16}
+                        className="text-brand-500 dark:text-brand-400 shrink-0"
+                      />
                     )}
                   </button>
                 );
@@ -172,5 +198,3 @@ const Select: React.FC<SelectProps> = ({
     </div>
   );
 };
-
-export default Select;
