@@ -1,0 +1,86 @@
+.lid {
+  transform-origin: 160px 163px;
+  animation: lift 5s ease-in-out infinite;
+}
+
+.steam,
+.steamMiddle,
+.steamLast {
+  animation: steam 3s ease-in-out infinite;
+}
+
+.steamMiddle {
+  animation-delay: -1s;
+}
+.steamLast {
+  animation-delay: -2s;
+}
+.sparkle {
+  animation: glimmer 4s ease-in-out infinite;
+}
+
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: glimmer 1.8s ease-in-out infinite;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes lift {
+  0%,
+  25%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50%,
+  65% {
+    transform: translateY(-7px) rotate(-2deg);
+  }
+}
+
+@keyframes steam {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(3px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes glimmer {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lid,
+  .steam,
+  .steamMiddle,
+  .steamLast,
+  .sparkle,
+  .dots span {
+    animation: none;
+  }
+}

@@ -16,7 +16,6 @@ type Resultado = {
   error: string | null;
 };
 
-/** Hook de datos sin UI: cada vista reutiliza su propio Select y mensajes. */
 export function useLista(
   referencia: ListaReferencia,
   {

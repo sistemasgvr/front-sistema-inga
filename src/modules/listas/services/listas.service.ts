@@ -9,7 +9,6 @@ export function listarListas(signal?: AbortSignal) {
   return apiGet<Lista[]>("/general/listas", { signal });
 }
 
-/** Consulta gen_lista_opcion por el ID de gen_lista definido en LISTA_IDS. */
 export function obtenerLista(
   referencia: ListaReferencia,
   signal?: AbortSignal,

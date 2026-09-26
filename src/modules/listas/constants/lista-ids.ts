@@ -1,8 +1,3 @@
-/**
- * IDs reales de gen_lista, confirmados con los datos proporcionados por el usuario.
- * Administrar aquí la correspondencia al agregar o cambiar una lista.
- * Consultar: SELECT id, codigo FROM gen_lista ORDER BY id;
- */
 export const LISTA_IDS = {
   ALMACEN_TIPO: 1,
   ESTACION_TIPO: 2,

@@ -56,6 +56,7 @@ function AlmacenFormContent({
     if (!isOpen) return;
 
     if (almacen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setValues({
         id_sucursal: almacen.id_sucursal ?? defaultSucursalId,
         codigo: almacen.codigo || "",
@@ -98,6 +99,7 @@ function AlmacenFormContent({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       validate(values);
     }
   }, [values]);

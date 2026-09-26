@@ -65,7 +65,7 @@ const navItems: NavItem[] = [
         path: "/productos/subcategorias",
         icon: "mdi:file-tree-outline",
         permission: PermisoBanderas.SUBCATEGORIAS_LISTAR,
-      },
+      }
     ],
   },
   {
@@ -168,11 +168,23 @@ const navItems: NavItem[] = [
     path: "/estaciones",
     permission: PermisoBanderas.ESTACIONES_LISTAR,
   },
+
   {
     icon: "mdi:floor-plan",
     name: "Ambientes",
-    path: "/ambientes",
     permission: "ambientes.listar",
+    subItems: [
+      {
+        name: "Distribución",
+        path: "/ambientes/distribucion",
+        icon: "mdi:map-marker-radius-outline",
+      },
+      {
+        name: "Mesas",
+        path: "/ambientes/mesas",
+        icon: "ic:round-table-restaurant",
+      }
+    ],
   },
 ];
 

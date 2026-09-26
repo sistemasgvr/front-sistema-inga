@@ -270,10 +270,17 @@ export function AmbientesView() {
                 </div>
               )}
             </div>
-            <div className="overflow-x-auto">
-              <Table className="w-full text-left text-sm">
-                <TableHeader className="border-y border-gray-100 text-xs text-gray-500 dark:border-gray-800">
-                  <TableRow>
+            {/* Cabecera de 44 px + cinco filas de 60 px. */}
+            <div
+              key={selected.id}
+              className="max-h-[344px] overflow-auto"
+              role="region"
+              aria-label="Mesas del salón: lista desplazable"
+              tabIndex={0}
+            >
+              <Table className="w-full min-w-[640px] whitespace-nowrap text-left text-sm">
+                <TableHeader className="sticky top-0 z-10 border-y border-gray-100 bg-white text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900">
+                  <TableRow className="h-11">
                     <TableCell isHeader className="px-3 py-3">
                       Mesa
                     </TableCell>
@@ -292,7 +299,7 @@ export function AmbientesView() {
                   {selectedMesas.map((m) => (
                     <TableRow
                       key={m.id}
-                      className="border-b border-gray-100 dark:border-gray-800"
+                      className="h-[60px] border-b border-gray-100 dark:border-gray-800"
                     >
                       <TableCell className="px-3 py-3 font-medium text-gray-800 dark:text-white">
                         {m.codigo}
