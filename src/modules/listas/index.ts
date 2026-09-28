@@ -7,6 +7,7 @@ export {
 } from "./services/listas.service";
 export { opcionesParaSelect } from "./utils/listas.utils";
 export { useLista } from "./hooks/use-lista";
+export { ListaSelect } from "./components/lista-select";
 export type {
   Lista,
   ListaConOpciones,

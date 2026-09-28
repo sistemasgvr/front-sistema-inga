@@ -10,11 +10,13 @@ import type {
   Salon,
   SucursalOption,
   Pedido,
+  PedidoResumen,
   ProductoOption,
   AbrirPedidoValues,
   AgregarItemValues,
   AnularValues,
 } from "../types/mesas.types";
+import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
 
 /* ------------------------------- Sucursales ------------------------------- */
 
@@ -42,17 +44,38 @@ export const listMesas = (idSucursal: number) =>
 
 export const listMesasPorSalon = async (
   idSalon: number,
+  signal?: AbortSignal,
 ): Promise<Mesa[]> => {
-  const { data, meta } = await apiGetPaginated<Mesa>("/salon/mesas", {
-    params: { id_salon: idSalon, estado: "todos", limite: 100, pagina: 1 },
-  });
-  return data ?? [];
+  const mesas: Mesa[] = [];
+  for (let pagina = 1; ; pagina++) {
+    const { data, meta } = await apiGetPaginated<Mesa>("/salon/mesas", {
+      params: { id_salon: idSalon, estado: "activos", limite: 100, pagina },
+      signal,
+    });
+    mesas.push(...data);
+    if (!data.length || mesas.length >= meta.total) return mesas;
+  }
 };
 
 /* -------------------------------- Pedidos --------------------------------- */
 
-export const obtenerPedido = (id: number) =>
-  apiGet<Pedido>(`/pedidos/${id}`);
+export const listPedidosEnCurso = async (
+  idSucursal: number,
+  tiposPedido: readonly number[],
+  signal?: AbortSignal,
+): Promise<PedidoResumen[]> => {
+  const pedidos: PedidoResumen[] = [];
+  for (let pagina = 1; ; pagina++) {
+    const { data, meta } = await apiGetPaginated<PedidoResumen>("/pedidos", {
+      params: { id_sucursal: idSucursal, tipos_pedido: tiposPedido.join(","), en_curso: true, limite: 100, pagina },
+      signal,
+    });
+    pedidos.push(...data);
+    if (!data.length || pedidos.length >= meta.total) return pedidos;
+  }
+};
+
+export const obtenerPedido = (id: number) => apiGet<Pedido>(`/pedidos/${id}`);
 
 export const abrirPedido = (values: AbrirPedidoValues) =>
   apiPost<Pedido>("/pedidos", values);
@@ -70,7 +93,8 @@ export const anularItem = (
   idPedido: number,
   idItem: number,
   values: AnularValues,
-) => apiDelete<Pedido>(`/pedidos/${idPedido}/items/${idItem}`, { data: values });
+) =>
+  apiDelete<Pedido>(`/pedidos/${idPedido}/items/${idItem}`, { data: values });
 
 export const comandarPedido = (idPedido: number) =>
   apiPost<Pedido>(`/pedidos/${idPedido}/comandar`);
@@ -80,38 +104,47 @@ export const cambiarEstadoPedido = (
   values: { estado_pedido: number } & Partial<AnularValues>,
 ) => apiPut<Pedido>(`/pedidos/${idPedido}/estado`, values);
 
+/** Cancela un pedido abierto que nunca tuvo productos (solo quien lo abrió). */
+export const descartarPedido = (idPedido: number) =>
+  apiPost<Pedido>(`/pedidos/${idPedido}/descartar`);
+
 export const anularPedido = (idPedido: number, values: AnularValues) =>
   apiPost<Pedido>(`/pedidos/${idPedido}/anular`, values);
 
 /* ------------------------------- Productos -------------------------------- */
 
-export const listProductosParaPedido = async (): Promise<ProductoOption[]> => {
-  const { data } = await apiGetPaginated<ProductoOption>("/productos", {
-    params: {
-      estado: "activos",
-      limite: 500,
-      pagina: 1,
-    },
-  });
-  return data ?? [];
-};
+async function listCatalogo<T>(
+  url: string,
+  signal?: AbortSignal,
+): Promise<T[]> {
+  const result: T[] = [];
+  for (let pagina = 1; ; pagina++) {
+    const { data, meta } = await apiGetPaginated<T>(url, {
+      params: { estado: "activos", limite: 100, pagina },
+      signal,
+    });
+    result.push(...data);
+    if (!data.length || result.length >= meta.total) return result;
+  }
+}
+
+export const listProductosParaPedido = async (
+  signal?: AbortSignal,
+): Promise<ProductoOption[]> =>
+  (await listCatalogo<ProductoOption>("/productos", signal)).filter(
+    (p) => p.disponible_venta,
+  );
 
 /* ---------------------------------- Mozos ---------------------------------- */
 
-export const listMozos = async (): Promise<
-  { id: number; nombre: string }[]
-> => {
-  const { data } = await apiGetPaginated<{
+export const listMozos = async (
+  signal?: AbortSignal,
+): Promise<{ id: number; nombre: string }[]> => {
+  const data = await listCatalogo<{
     id: number;
     nombres: string;
     apellidos: string;
-  }>("/auth/usuarios", {
-    params: {
-      limite: 100,
-      pagina: 1,
-      estado: "activos",
-    },
-  });
+  }>("/auth/usuarios", signal);
   return (data ?? []).map((u) => ({
     id: u.id,
     nombre: `${u.nombres} ${u.apellidos}`,
@@ -123,12 +156,5 @@ export const listMozos = async (): Promise<
 export const getTurnoActivo = async (
   idUsuario: number,
 ): Promise<{ id: number } | null> => {
-  try {
-    const response = await apiGet<{ registro: { id: number } | null }>(
-      `/caja/turnos/abierto/${idUsuario}`,
-    );
-    return response?.registro ?? null;
-  } catch {
-    return null;
-  }
+  return getTurnoAbierto(idUsuario);
 };

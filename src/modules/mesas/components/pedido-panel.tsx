@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
 import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import type { Pedido, PedidoItem, Feedback } from "../types/mesas.types";
-import type { ListaSelectOption } from "@/modules/listas/types/listas.types";
+import { ListaSelect, LISTA_IDS } from "@/modules/listas";
 
 interface PedidoPanelProps {
   pedido: Pedido | null;
@@ -17,13 +17,13 @@ interface PedidoPanelProps {
   onComandar: () => void;
   onCambiarEstado: (estado: number) => void;
   onAnular: () => void;
-  onCerrar: () => void;
   onAgregarItem: () => void;
   onGenerarComprobante: (tipo: string, documento: string) => void;
-  comprobanteOptions: ListaSelectOption[];
+  /** Oculta el botón "Añadir platos" (cuando el panel ya está junto a la carta). */
+  hideAgregar?: boolean;
 }
 
-const ESTADO_STYLES: Record<number, { className: string; label: string }> = {
+export const ESTADO_PEDIDO_STYLES: Record<number, { className: string; label: string }> = {
   1: {
     className:
       "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-500/10 dark:text-blue-400",
@@ -51,7 +51,12 @@ const ESTADO_STYLES: Record<number, { className: string; label: string }> = {
   },
 };
 
-const TIPO_DOCUMENTO: Record<string, { label: string; placeholder: string; maxLength: number }> = {
+const TIPO_PEDIDO_LABEL: Record<number, string> = { 1: "Mesa", 2: "Para llevar", 3: "Delivery" };
+
+const TIPO_DOCUMENTO: Record<
+  string,
+  { label: string; placeholder: string; maxLength: number }
+> = {
   BOLETA: { label: "DNI", placeholder: "Ingrese el DNI", maxLength: 8 },
   FACTURA: { label: "RUC", placeholder: "Ingrese el RUC", maxLength: 11 },
   NOTA_VENTA: { label: "DNI", placeholder: "Ingrese el DNI", maxLength: 8 },
@@ -65,32 +70,39 @@ export function PedidoPanel({
   onComandar,
   onCambiarEstado,
   onAnular,
-  onCerrar,
   onAgregarItem,
   onGenerarComprobante,
-  comprobanteOptions,
+  hideAgregar = false,
 }: PedidoPanelProps) {
   const [showAnularConfirm, setShowAnularConfirm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
 
-  const estado = pedido ? ESTADO_STYLES[pedido.estado_pedido] ?? ESTADO_STYLES[1] : null;
+  const estado = pedido
+    ? (ESTADO_PEDIDO_STYLES[pedido.estado_pedido] ?? ESTADO_PEDIDO_STYLES[1])
+    : null;
   const itemsPendientes = pedido
-    ? pedido.items.filter((i) => i.estado === 1 && i.tipo_linea !== 3)
+    ? pedido.items.filter(
+        (i) =>
+          i.estado === 1 &&
+          i.tipo_linea !== 3 &&
+          !i.stock_descontado &&
+          i.id_comanda === null,
+      )
     : [];
 
-  const puedeComandar = itemsPendientes.length > 0;
-  const puedePorCobrar = pedido?.estado_pedido === 2 && itemsPendientes.length === 0;
+  const puedeComandar =
+    (pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2) &&
+    itemsPendientes.length > 0;
+  const puedePorCobrar =
+    pedido?.estado_pedido === 2 && itemsPendientes.length === 0;
   const puedePagar = pedido?.estado_pedido === 3;
-  const puedeAnular = pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
-  const puedeAgregarItems = pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
+  const puedeAnular =
+    pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
+  const puedeAgregarItems =
+    pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
 
-  const tipoSeleccionado = comprobanteOptions.find(
-    (c) => c.value === tipoComprobante,
-  );
-  const documentoInfo = tipoSeleccionado
-    ? TIPO_DOCUMENTO[tipoSeleccionado.label.toUpperCase().replace(/\s+/g, "_")]
-    : null;
+  const documentoInfo = TIPO_DOCUMENTO[tipoComprobante];
 
   const subtotal = pedido?.monto_subtotal ?? 0;
   const igv = pedido?.monto_igv ?? 0;
@@ -99,35 +111,25 @@ export function PedidoPanel({
   return (
     <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-800">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {pedido ? `Pedido ${pedido.codigo}` : "Resumen del pedido"}
-          </h3>
-          <p className="text-sm text-gray-500">
+      <div className="flex items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {pedido ? `Pedido ${pedido.codigo}` : "Resumen del pedido" }
+            </h3>
+            {estado && (
+              <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${estado.className}`}>
+                {estado.label}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
             {pedido
-              ? `Mesa ${pedido.codigo_mesa} · ${pedido.nombre_mozo}`
+              ? [pedido.codigo_mesa ? `Mesa ${pedido.codigo_mesa}` : TIPO_PEDIDO_LABEL[pedido.tipo_pedido], pedido.nombre_cliente && `Cliente: ${pedido.nombre_cliente}${pedido.telefono_cliente ? ` (${pedido.telefono_cliente})` : ""}`, pedido.nombre_mozo && `Mozo: ${pedido.nombre_mozo}`].filter(Boolean).join(" · ")
               : "Selecciona una mesa para comenzar"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {estado && (
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-medium ${estado.className}`}
-            >
-              {estado.label}
-            </span>
-          )}
-          {pedido && (
-            <button
-              type="button"
-              onClick={onCerrar}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-            >
-              <Icon name="mdi:close" size={20} />
-            </button>
-          )}
-        </div>
+        {!hideAgregar && (!pedido || puedeAgregarItems) && <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onAgregarItem} disabled={saving} startIcon={<Icon name="mdi:plus" size={18} />}>Añadir platos</Button>}
       </div>
 
       {/* Feedback */}
@@ -139,10 +141,18 @@ export function PedidoPanel({
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto p-4">
-        {!pedido ? (
+        {!pedido && loading ? (
+          <p role="status" className="py-12 text-center text-sm text-gray-500">
+            Cargando pedido...
+          </p>
+        ) : !pedido ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="mb-4 rounded-full bg-gray-100 p-4 dark:bg-gray-800">
-              <Icon name="mdi:table-chair" size={32} className="text-gray-400" />
+              <Icon
+                name="mdi:table-chair"
+                size={32}
+                className="text-gray-400"
+              />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               No hay nada por el momento
@@ -202,22 +212,17 @@ export function PedidoPanel({
       <div className="border-t border-gray-200 p-4 dark:border-gray-800">
         <div className="space-y-3">
           <Label>Tipo de comprobante</Label>
-          <div className="flex gap-2">
-            {comprobanteOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setTipoComprobante(option.value)}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                  tipoComprobante === option.value
-                    ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
-                    : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          <ListaSelect
+            idLista={LISTA_IDS.COMPROBANTE_TIPO}
+            campoValor="codigo"
+            defaultValue={tipoComprobante}
+            disabled={!pedido || saving}
+            placeholder="Seleccione un comprobante"
+            onChange={(value) => {
+              setTipoComprobante(value);
+              setNumeroDocumento("");
+            }}
+          />
 
           {documentoInfo && (
             <div>
@@ -241,7 +246,7 @@ export function PedidoPanel({
               className="w-full"
               startIcon={<Icon name="mdi:receipt-text-outline" size={18} />}
             >
-              Emitir {tipoSeleccionado?.label}
+              Emitir comprobante
             </Button>
           )}
         </div>
@@ -250,17 +255,6 @@ export function PedidoPanel({
       {/* Acciones */}
       <div className="border-t border-gray-200 p-4 dark:border-gray-800">
         <div className="space-y-2">
-          {puedeAgregarItems && (
-            <Button
-              onClick={onAgregarItem}
-              disabled={saving}
-              variant="outline"
-              className="w-full"
-              startIcon={<Icon name="mdi:plus" size={18} />}
-            >
-              Agregar producto
-            </Button>
-          )}
 
           {puedeComandar && (
             <Button
@@ -346,9 +340,7 @@ function PedidoItemRow({ item }: { item: PedidoItem }) {
             {item.nombre_producto}
           </p>
           {item.observacion && (
-            <p className="mt-0.5 text-xs text-gray-500">
-              {item.observacion}
-            </p>
+            <p className="mt-0.5 text-xs text-gray-500">{item.observacion}</p>
           )}
           {item.adicionales.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1">
@@ -357,7 +349,7 @@ function PedidoItemRow({ item }: { item: PedidoItem }) {
                   key={adj.id}
                   className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                 >
-                  + {adj.nombre_adicional}
+                  + {adj.nombre}
                 </span>
               ))}
             </div>
@@ -366,9 +358,7 @@ function PedidoItemRow({ item }: { item: PedidoItem }) {
         <div className="text-right">
           <p
             className={`text-sm font-semibold ${
-              esAnulado
-                ? "text-gray-400"
-                : "text-gray-900 dark:text-white"
+              esAnulado ? "text-gray-400" : "text-gray-900 dark:text-white"
             }`}
           >
             S/ {item.monto_subtotal.toFixed(2)}

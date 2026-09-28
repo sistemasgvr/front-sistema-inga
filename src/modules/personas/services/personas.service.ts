@@ -56,12 +56,36 @@ export async function buscarPersonas(
   busqueda: string,
   rol: PersonaRolFilter = "todos",
   limite = 15,
+  signal?: AbortSignal,
 ): Promise<PersonaBusquedaItem[]> {
   const response = await apiGet<{ registros: PersonaBusquedaItem[] }>(
     "/personas/buscar",
-    { params: { buscar: busqueda || undefined, rol, limite } },
+    { params: { buscar: busqueda || undefined, rol, limite }, signal },
   );
   return response?.registros ?? [];
+}
+
+export type ClienteRapidoValues = {
+  nombres: string;
+  apellido_paterno: string;
+  /** DNI opcional: si viene vacío la persona se crea sin documento. */
+  dni?: string;
+  telefono?: string;
+  direccion?: string;
+};
+
+/** Alta rápida de un cliente (persona natural) desde la toma de pedidos. */
+export async function crearClienteRapido(values: ClienteRapidoValues): Promise<PersonaItem> {
+  const dni = values.dni?.trim();
+  return apiPost<PersonaItem>("/personas", {
+    tipo_persona: 1,
+    ...(dni ? { tipo_documento: 1, num_documento: dni } : {}),
+    nombres: values.nombres.trim(),
+    apellido_paterno: values.apellido_paterno.trim(),
+    telefono: values.telefono?.trim() || undefined,
+    direccion: values.direccion?.trim() || undefined,
+    es_cliente: true,
+  });
 }
 
 /**

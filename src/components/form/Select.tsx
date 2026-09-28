@@ -8,7 +8,7 @@ export interface Option {
   label: string;
 }
 
-interface SelectProps {
+export interface SelectProps {
   options: Option[];
   placeholder?: string;
   searchPlaceholder?: string;
@@ -19,6 +19,9 @@ interface SelectProps {
   error?: boolean;
   hint?: string;
   searchableThreshold?: number;
+  onOpen?: () => void;
+  isLoading?: boolean;
+  loadError?: string | null;
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -32,6 +35,9 @@ const Select: React.FC<SelectProps> = ({
   error = false,
   hint,
   searchableThreshold = 7,
+  onOpen,
+  isLoading = false,
+  loadError,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
@@ -39,9 +45,11 @@ const Select: React.FC<SelectProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const [previousDefault, setPreviousDefault] = useState(defaultValue);
+  if (previousDefault !== defaultValue) {
+    setPreviousDefault(defaultValue);
     setSelectedValue(defaultValue);
-  }, [defaultValue]);
+  }
 
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -68,7 +76,7 @@ const Select: React.FC<SelectProps> = ({
   const shouldShowSearch = options.length > searchableThreshold;
   const filteredOptions = shouldShowSearch
     ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     : options;
 
@@ -84,14 +92,19 @@ const Select: React.FC<SelectProps> = ({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        onClick={() => {
+          if (!isOpen) onOpen?.();
+          setIsOpen(!isOpen);
+        }}
         className={`flex h-11 w-full items-center justify-between rounded-xl border bg-white px-4 py-2.5 text-left text-sm font-medium shadow-xs transition-all duration-200 cursor-pointer
           ${
             error
               ? "border-error-500 ring-3 ring-error-500/10 dark:border-error-500"
               : isOpen
-              ? "border-brand-500 ring-3 ring-brand-500/10 dark:border-brand-500"
-              : "border-gray-300 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-600"
+                ? "border-brand-500 ring-3 ring-brand-500/10 dark:border-brand-500"
+                : "border-gray-300 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-600"
           }
           ${disabled ? "cursor-not-allowed bg-gray-100 opacity-60 dark:bg-gray-800" : "dark:bg-gray-900"}
         `}
@@ -134,7 +147,25 @@ const Select: React.FC<SelectProps> = ({
           )}
 
           <div className="max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {filteredOptions.length === 0 ? (
+            {isLoading ? (
+              <div
+                role="status"
+                className="px-3 py-2 text-center text-xs text-gray-500"
+              >
+                Cargando opciones...
+              </div>
+            ) : loadError ? (
+              <div role="alert" className="px-3 py-2 text-xs text-error-500">
+                {loadError}
+                <button
+                  type="button"
+                  onClick={onOpen}
+                  className="mt-2 block font-medium underline"
+                >
+                  Reintentar
+                </button>
+              </div>
+            ) : filteredOptions.length === 0 ? (
               <div className="px-3 py-2 text-center text-xs text-gray-400">
                 No hay coincidencias
               </div>
@@ -154,7 +185,11 @@ const Select: React.FC<SelectProps> = ({
                   >
                     <span className="whitespace-nowrap">{option.label}</span>
                     {isSelected && (
-                      <Icon name="mdi:check" size={18} className="text-brand-500 dark:text-brand-400 shrink-0" />
+                      <Icon
+                        name="mdi:check"
+                        size={18}
+                        className="text-brand-500 dark:text-brand-400 shrink-0"
+                      />
                     )}
                   </button>
                 );
@@ -165,7 +200,9 @@ const Select: React.FC<SelectProps> = ({
       )}
 
       {hint && (
-        <p className={`mt-1.5 text-xs ${error ? "text-error-500" : "text-gray-500"}`}>
+        <p
+          className={`mt-1.5 text-xs ${error ? "text-error-500" : "text-gray-500"}`}
+        >
           {hint}
         </p>
       )}

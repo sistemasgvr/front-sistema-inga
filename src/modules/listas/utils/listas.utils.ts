@@ -1,4 +1,5 @@
 import type {
+  CampoEtiquetaLista,
   CampoValorLista,
   ListaOpcion,
   ListaSelectOption,
@@ -7,11 +8,12 @@ import type {
 export function opcionesParaSelect(
   opciones: readonly ListaOpcion[],
   campo: CampoValorLista = "valor_entero",
+  campoEtiqueta: CampoEtiquetaLista = "nombre",
 ): ListaSelectOption[] {
   return opciones.flatMap((opcion) => {
     const value = opcion[campo];
     return value === null || value === undefined
       ? []
-      : [{ value: String(value), label: opcion.nombre }];
+      : [{ value: String(value), label: opcion[campoEtiqueta] }];
   });
 }

@@ -21,4 +21,5 @@ export interface ListaConOpciones extends Lista {
 
 export type ListaReferencia = number;
 export type CampoValorLista = "valor_entero" | "codigo" | "id";
+export type CampoEtiquetaLista = "nombre" | "codigo";
 export type ListaSelectOption = { value: string; label: string };

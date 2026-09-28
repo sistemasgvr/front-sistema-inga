@@ -16,6 +16,8 @@ export type Mesa = {
   capacidad_personas: number;
   estado_mesa: EstadoMesa;
   estado: number;
+  /** Pedido en curso (abierto, comandado o por cobrar) de la mesa, si lo tiene. */
+  id_pedido_activo?: number | null;
 };
 
 export type Salon = {
@@ -43,15 +45,16 @@ export type PedidoItem = {
   observacion: string | null;
   estado: number;
   tipo_linea: number;
+  id_comanda: number | null;
+  stock_descontado: boolean;
   adicionales: PedidoAdicional[];
 };
 
 export type PedidoAdicional = {
   id: number;
   id_adicional: number;
-  nombre_adicional: string;
-  precio: number;
-  cantidad: number;
+  nombre: string;
+  precio_adicional: number;
 };
 
 export type Pedido = {
@@ -60,6 +63,9 @@ export type Pedido = {
   tipo_pedido: TipoPedido;
   id_mesa: number | null;
   codigo_mesa: string | null;
+  id_persona: number | null;
+  nombre_cliente: string | null;
+  telefono_cliente: string | null;
   id_mozo: number;
   nombre_mozo: string;
   id_turno: number;
@@ -83,7 +89,27 @@ export type ProductoOption = {
   afecto_igv: boolean;
   id_categoria: number;
   nombre_categoria: string;
-  disponible: boolean;
+  disponible_venta: boolean;
+  tipo_producto: number;
+  id_subcategoria: number;
+  nombre_subcategoria: string;
+  controla_stock: boolean;
+  simbolo_unidad?: string;
+  stock_disponible?: number | null;
+};
+
+export type AdicionalCarta = {
+  id: number;
+  nombre: string;
+  precio_adicional: number;
+  estado: number;
+};
+
+export type FiltrosCarta = {
+  buscar: string;
+  tipo_producto: string;
+  id_categoria: string;
+  id_subcategoria: string;
 };
 
 export type AbrirPedidoValues = {
@@ -92,6 +118,7 @@ export type AbrirPedidoValues = {
   id_sucursal?: number;
   id_mozo: number;
   id_turno: number;
+  id_persona?: number;
   num_comensales?: number;
   observacion?: string;
 };
@@ -101,6 +128,7 @@ export type AgregarItemValues = {
   cantidad: number;
   precio_unitario?: number;
   observacion?: string;
+  adicionales?: { id_adicional: number }[];
 };
 
 export type AnularValues = {
@@ -175,11 +203,29 @@ export const ESTADOS_PEDIDO: Record<
   },
 };
 
-export const TIPOS_PEDIDO: Record<
-  TipoPedido,
-  { label: string; icon: string }
-> = {
-  1: { label: "Mesa", icon: "mdi:table-chair" },
-  2: { label: "Llevar", icon: "mdi:shopping-outline" },
-  3: { label: "Delivery", icon: "mdi:motorbike" },
+export const TIPOS_PEDIDO: Record<TipoPedido, { label: string; icon: string }> =
+  {
+    1: { label: "Mesa", icon: "mdi:table-chair" },
+    2: { label: "Llevar", icon: "mdi:shopping-outline" },
+    3: { label: "Delivery", icon: "mdi:motorbike" },
+  };
+
+/** Fila del listado de pedidos (GET /pedidos). */
+export type PedidoResumen = {
+  id: number;
+  codigo: string;
+  tipo_pedido: TipoPedido;
+  id_sucursal: number;
+  id_mesa: number | null;
+  codigo_mesa: string | null;
+  id_persona: number | null;
+  nombre_cliente: string | null;
+  telefono_cliente: string | null;
+  id_mozo: number;
+  nombre_mozo: string | null;
+  estado_pedido: EstadoPedido;
+  observacion: string | null;
+  monto_total: number;
+  fecha_apertura: string;
+  cantidad_items: number;
 };

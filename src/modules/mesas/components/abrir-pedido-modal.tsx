@@ -1,17 +1,21 @@
 "use client";
 import { useState, FormEvent } from "react";
-import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import { FormModal } from "@/components/ui/modal/FormModal";
+import Alert from "@/components/ui/alert/Alert";
 import type { Mesa, AbrirPedidoValues } from "../types/mesas.types";
-import { TIPOS_PEDIDO } from "../types/mesas.types";
+import { LISTA_IDS, ListaSelect } from "@/modules/listas";
+import { getStoredUser } from "@/modules/auth/services/auth.service";
+
+// Desde una mesa el pedido siempre es de tipo MESA; llevar y delivery tienen su propio modal.
+const TIPO_MESA = "1";
+const CODIGOS_TIPO_MESA = ["MESA"];
 
 interface AbrirPedidoModalProps {
   isOpen: boolean;
   mesa: Mesa;
-  mozos: { id: number; nombre: string }[];
   turnoActivo: { id: number } | null;
   isSaving: boolean;
   error?: string;
@@ -19,37 +23,40 @@ interface AbrirPedidoModalProps {
   onSubmit: (values: AbrirPedidoValues) => Promise<boolean>;
 }
 
-export function AbrirPedidoModal({
+export function AbrirPedidoModal(props: AbrirPedidoModalProps) {
+  if (!props.isOpen) return null;
+  return <AbrirPedidoContent key={props.mesa.id} {...props} />;
+}
+
+function AbrirPedidoContent({
   isOpen,
   mesa,
-  mozos,
   turnoActivo,
   isSaving,
   error,
   onClose,
   onSubmit,
 }: AbrirPedidoModalProps) {
-  const [tipoPedido, setTipoPedido] = useState("");
-  const [idMozo, setIdMozo] = useState("");
+  // El mozo es el usuario de la sesión: coincide con auth_usuario.id y no se puede cambiar.
+  const [usuario] = useState(getStoredUser);
+  const idMozo = usuario?.id ?? null;
+  const nombreMozo = usuario ? [usuario.nombres, usuario.apellidos].filter(Boolean).join(" ") : "";
+  const tipoPedido = TIPO_MESA;
   const [numComensales, setNumComensales] = useState("2");
   const [observacion, setObservacion] = useState("");
 
-  const mozoOptions = mozos.map((m) => ({
-    value: String(m.id),
-    label: m.nombre,
-  }));
-
-  const tipoOptions = Object.entries(TIPOS_PEDIDO).map(([value, info]) => ({
-    value,
-    label: info.label,
-  }));
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!idMozo || !turnoActivo || !tipoPedido) return;
+    if (
+      isSaving ||
+      !idMozo ||
+      !turnoActivo ||
+      Number(numComensales) <= 0
+    )
+      return;
 
     const values: AbrirPedidoValues = {
-      tipo_pedido: Number(tipoPedido) as 1 | 2 | 3,
+      tipo_pedido: 1,
       id_mesa: mesa.id,
       id_mozo: Number(idMozo),
       id_turno: turnoActivo.id,
@@ -71,28 +78,31 @@ export function AbrirPedidoModal({
       title={`Abrir pedido - Mesa ${mesa.codigo}`}
       subtitle="Completa los datos para abrir un nuevo pedido"
       isSaving={isSaving}
-      submitDisabled={!idMozo || !turnoActivo || !tipoPedido}
+      submitDisabled={!idMozo || !turnoActivo}
       submitText="Abrir pedido"
     >
       <div className="space-y-4">
         <div>
           <Label>Tipo de pedido</Label>
-          <Select
-            options={tipoOptions}
+          <ListaSelect
+            idLista={LISTA_IDS.PEDIDO_TIPO}
+            campoEtiqueta="codigo"
+            codigos={CODIGOS_TIPO_MESA}
+            disabled
+            onChange={() => undefined}
             defaultValue={tipoPedido}
-            onChange={setTipoPedido}
             placeholder="Seleccione un tipo"
           />
         </div>
 
         <div>
           <Label>Mozo</Label>
-          <Select
-            options={mozoOptions}
-            defaultValue={idMozo}
-            onChange={setIdMozo}
-            placeholder="Seleccione un mozo"
-          />
+          <InputField value={nombreMozo} disabled placeholder="Sin sesión activa" />
+          {!idMozo && (
+            <p className="mt-1 text-xs text-error-500">
+              No se encontró el usuario de la sesión. Vuelve a iniciar sesión.
+            </p>
+          )}
         </div>
 
         <div>
@@ -124,9 +134,11 @@ export function AbrirPedidoModal({
         )}
 
         {error && (
-          <div className="rounded-xl border border-error-300 bg-error-50 p-3 text-sm text-error-700 dark:border-error-800 dark:bg-error-500/10 dark:text-error-400">
-            {error}
-          </div>
+          <Alert
+            variant="error"
+            title="No se pudo abrir el pedido"
+            message={error}
+          />
         )}
       </div>
     </FormModal>

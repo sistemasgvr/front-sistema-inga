@@ -121,10 +121,13 @@ export type ListPersonasResult = {
 export type PersonaBusquedaItem = {
   id: number;
   tipo_persona: number;
-  tipo_documento: number;
+  /** El documento es opcional (ej. clientes de delivery). */
+  tipo_documento: number | null;
   tipo_documento_nombre: string | null;
-  num_documento: string;
+  num_documento: string | null;
   nombre_completo: string | null;
+  telefono: string | null;
+  direccion: string | null;
   es_cliente: boolean;
   es_proveedor: boolean;
   id_convenio: number | null;

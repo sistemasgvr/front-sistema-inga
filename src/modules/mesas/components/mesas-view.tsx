@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
@@ -11,15 +11,18 @@ import { MesaCard } from "./mesa-card";
 import { PedidoPanel } from "./pedido-panel";
 import { AbrirPedidoModal } from "./abrir-pedido-modal";
 import { AgregarItemModal } from "./agregar-item-modal";
-import type { Mesa, AbrirPedidoValues, AgregarItemValues } from "../types/mesas.types";
-import * as api from "../services/mesas.service";
+import { NuevoPedidoExternoModal } from "./nuevo-pedido-externo-modal";
+import { PedidosExternosTable } from "./pedidos-externos-table";
+import type { AbrirPedidoValues, Mesa } from "../types/mesas.types";
 
 export function MesasView() {
   const m = useMesas();
   const [salonId, setSalonId] = useState<number>(0);
   const [showAbrirPedido, setShowAbrirPedido] = useState(false);
   const [showAgregarItem, setShowAgregarItem] = useState(false);
-  const [formError, setFormError] = useState<string | undefined>();
+  const [showNuevoExterno, setShowNuevoExterno] = useState(false);
+  // Modal con la carta y el resumen, justo después de abrir un delivery / para llevar.
+  const [showEditorExterno, setShowEditorExterno] = useState(false);
 
   const activeSalones = m.salones.filter((s) => s.estado === 1);
   const selectedSalon =
@@ -30,106 +33,63 @@ export function MesasView() {
       Number(mesa.id_salon) === Number(selectedSalon?.id) && mesa.estado === 1,
   );
 
-  useEffect(() => {
-    if (m.sucursalId) {
-      void m.loadProductos();
-      void m.loadMozos();
-      void m.loadTurnoActivo();
-    }
-  }, [m.sucursalId]);
-
-  useEffect(() => {
-    if (selectedSalon?.id) {
-      void m.loadMesasPorSalon(selectedSalon.id);
-    }
-  }, [selectedSalon?.id]);
-
   const handleSelectMesa = (mesa: Mesa) => {
-    setFormError(undefined);
     m.selectMesa(mesa);
 
     if (mesa.estado_mesa === 1) {
+      void m.loadTurnoActivo();
       setShowAbrirPedido(true);
+    } else if (mesa.id_pedido_activo) {
+      void m.loadPedido(Number(mesa.id_pedido_activo));
+    } else {
+      m.error(new Error(`La mesa ${mesa.codigo} está ocupada pero no tiene un pedido en curso.`));
     }
   };
 
-  const handleAbrirPedido = async (values: AbrirPedidoValues) => {
-    try {
-      const pedido = await api.abrirPedido(values);
-      await m.loadPedido(pedido.id);
-      if (selectedSalon?.id) {
-        await m.loadMesasPorSalon(selectedSalon.id);
-      }
-      return true;
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Error al abrir pedido");
-      return false;
-    }
+  // Un delivery / para llevar recién abierto sin productos guardados se descarta si no se continúa.
+  const pedidoSinProductos =
+    !!m.pedido &&
+    m.pedido.estado_pedido === 1 &&
+    !m.pedido.items.some((item) => item.tipo_linea !== 3);
+  const editorSinProductos = showEditorExterno && pedidoSinProductos;
+
+  useEffect(() => {
+    if (!editorSinProductos) return;
+    // Recargar o cerrar la pestaña dejaría el pedido vacío abierto: se pide confirmación.
+    const avisar = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [editorSinProductos]);
+
+  const cerrarEditorExterno = async () => {
+    if (pedidoSinProductos && !(await m.descartar())) return;
+    setShowEditorExterno(false);
+    m.clearError();
   };
 
-  const handleAgregarItem = async (values: AgregarItemValues) => {
-    if (!m.pedido) return false;
-    try {
-      await api.agregarItem(m.pedido.id, values);
-      await m.loadPedido(m.pedido.id);
-      return true;
-    } catch (e) {
-      setFormError(e instanceof Error ? e.message : "Error al agregar ítem");
-      return false;
+  const abrirPedidoExterno = async (values: AbrirPedidoValues) => {
+    const ok = await m.abrirPedido(values);
+    if (ok) {
+      setShowNuevoExterno(false);
+      setShowEditorExterno(true);
     }
-  };
-
-  const handleComandar = async () => {
-    if (!m.pedido) return;
-    try {
-      await api.comandarPedido(m.pedido.id);
-      await m.loadPedido(m.pedido.id);
-      if (selectedSalon?.id) {
-        await m.loadMesasPorSalon(selectedSalon.id);
-      }
-    } catch (e) {
-      m.error(e);
-    }
-  };
-
-  const handleCambiarEstado = async (estado: number) => {
-    if (!m.pedido) return;
-    try {
-      await api.cambiarEstadoPedido(m.pedido.id, { estado_pedido: estado });
-      await m.loadPedido(m.pedido.id);
-      if (selectedSalon?.id) {
-        await m.loadMesasPorSalon(selectedSalon.id);
-      }
-    } catch (e) {
-      m.error(e);
-    }
-  };
-
-  const handleAnular = async () => {
-    if (!m.pedido) return;
-    const raw =
-      localStorage.getItem("auth") ?? sessionStorage.getItem("auth") ?? "{}";
-    const user = JSON.parse(raw);
-    try {
-      await api.anularPedido(m.pedido.id, {
-        id_usuario_autoriza: user?.user?.id || 0,
-        motivo: "Anulado desde el panel de mesas",
-      });
-      m.clearPedido();
-      if (selectedSalon?.id) {
-        await m.loadMesasPorSalon(selectedSalon.id);
-      }
-    } catch (e) {
-      m.error(e);
-    }
+    return ok;
   };
 
   const handleGenerarComprobante = async (tipo: string, documento: string) => {
     if (!m.pedido) return;
     try {
       // TODO: Implementar llamada al backend para generar comprobante
-      console.log("Generando comprobante:", { tipo, documento, pedido: m.pedido.id });
-      m.error(new Error("Función de generación de comprobante aún no implementada en el backend"));
+      console.log("Generando comprobante:", {
+        tipo,
+        documento,
+        pedido: m.pedido.id,
+      });
+      m.error(
+        new Error(
+          "Función de generación de comprobante aún no implementada en el backend",
+        ),
+      );
     } catch (e) {
       m.error(e);
     }
@@ -160,7 +120,7 @@ export function MesasView() {
                 label: s.nombre,
               }))}
               defaultValue={String(m.sucursalId || "")}
-              disabled={m.loading}
+              disabled={m.loading || m.saving}
               onChange={(v) => {
                 setSalonId(0);
                 m.changeSucursal(Number(v));
@@ -172,35 +132,55 @@ export function MesasView() {
             <Select
               options={salonOptions}
               defaultValue={String(selectedSalon?.id || "")}
-              disabled={m.loading || !m.sucursalId}
-              onChange={(v) => setSalonId(Number(v))}
+              disabled={m.loading || m.saving || !m.sucursalId}
+              onChange={(v) => {
+                const id = Number(v);
+                setSalonId(id);
+                setShowAbrirPedido(false);
+                setShowAgregarItem(false);
+                void m.loadMesasPorSalon(id);
+              }}
             />
           </div>
           <Button
             size="sm"
             variant="outline"
-            disabled={m.loading}
+            disabled={m.loading || m.saving}
             onClick={() => void m.reload()}
             startIcon={<Icon name="mdi:refresh" size={18} />}
           >
             Actualizar
           </Button>
+          <Button
+            size="sm"
+            disabled={m.loading || m.saving || !m.sucursalId}
+            onClick={() => {
+              m.selectMesa(null);
+              void m.loadTurnoActivo();
+              setShowNuevoExterno(true);
+            }}
+            startIcon={<Icon name="mdi:moped-outline" size={18} />}
+          >
+            Nuevo delivery / para llevar
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 {selectedSalon?.nombre || "Seleccione un salón"}
               </h3>
               <span className="text-sm text-gray-500">
-                {mesasDelSalon.length} mesas
+                {m.loadingMesas
+                  ? "Actualizando..."
+                  : `${mesasDelSalon.length} mesas`}
               </span>
             </div>
 
-            {m.loading ? (
+            {m.loading || m.loadingMesas ? (
               <div
                 className="rounded-2xl border border-gray-200 p-20 text-center text-gray-500 dark:border-gray-800"
                 role="status"
@@ -225,24 +205,34 @@ export function MesasView() {
               </div>
             )}
           </div>
+
+          <PedidosExternosTable
+            pedidos={m.pedidosExternos}
+            loading={m.loadingExternos}
+            selectedId={m.selectedMesa ? null : (m.pedido?.id ?? null)}
+            disabled={m.saving}
+            onSelect={(p) => {
+              m.selectMesa(null);
+              void m.loadPedido(p.id);
+            }}
+          />
         </div>
 
         <div className="lg:col-span-1">
           <PedidoPanel
+            key={m.pedido?.id ?? "sin-pedido"}
             pedido={m.pedido}
-            loading={m.loading}
+            loading={m.loading || m.loadingPedido}
             saving={m.saving}
             feedback={m.feedback}
-            onComandar={handleComandar}
-            onCambiarEstado={handleCambiarEstado}
-            onAnular={handleAnular}
-            onCerrar={() => {
-              m.clearPedido();
-              m.selectMesa(null);
+            onComandar={() => void m.comandar()}
+            onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
+            onAnular={() => void m.anular()}
+            onAgregarItem={() => {
+              m.clearError();
+              setShowAgregarItem(true);
             }}
-            onAgregarItem={() => setShowAgregarItem(true)}
             onGenerarComprobante={handleGenerarComprobante}
-            comprobanteOptions={m.listaComprobanteTipo.selectOptions}
           />
         </div>
       </div>
@@ -251,29 +241,81 @@ export function MesasView() {
         <AbrirPedidoModal
           isOpen={showAbrirPedido}
           mesa={m.selectedMesa}
-          mozos={m.mozos}
           turnoActivo={m.turnoActivo}
           isSaving={m.saving}
-          error={formError}
+          error={
+            m.feedback?.variant === "error" ? m.feedback.message : undefined
+          }
           onClose={() => {
             setShowAbrirPedido(false);
-            setFormError(undefined);
+            m.clearError();
           }}
-          onSubmit={handleAbrirPedido}
+          onSubmit={m.abrirPedido}
         />
       )}
 
       <AgregarItemModal
+        key={m.pedido?.id ?? "consulta-carta"}
         isOpen={showAgregarItem}
-        productos={m.productos}
+        canAdd={!!m.pedido && [1, 2].includes(m.pedido.estado_pedido)}
         isSaving={m.saving}
-        error={formError}
+        error={m.feedback?.variant === "error" ? m.feedback.message : undefined}
         onClose={() => {
           setShowAgregarItem(false);
-          setFormError(undefined);
+          m.clearError();
         }}
-        onSubmit={handleAgregarItem}
+        onSubmit={m.agregarItems}
       />
+
+      <NuevoPedidoExternoModal
+        isOpen={showNuevoExterno}
+        idSucursal={m.sucursalId}
+        turnoActivo={m.turnoActivo}
+        isSaving={m.saving}
+        error={m.feedback?.variant === "error" ? m.feedback.message : undefined}
+        onClose={() => {
+          setShowNuevoExterno(false);
+          m.clearError();
+        }}
+        onSubmit={abrirPedidoExterno}
+      />
+
+      {m.pedido && (
+        <AgregarItemModal
+          key={`editor-${m.pedido.id}`}
+          isOpen={showEditorExterno}
+          title={`Pedido ${m.pedido.codigo}: añadir platos`}
+          canAdd={[1, 2].includes(m.pedido.estado_pedido)}
+          isSaving={m.saving}
+          error={m.feedback?.variant === "error" ? m.feedback.message : undefined}
+          closeOnSave={false}
+          closeConfirmMessage={
+            pedidoSinProductos
+              ? `El pedido ${m.pedido.codigo} no tiene productos guardados. Si sales, se cancelará. ¿Deseas salir?`
+              : undefined
+          }
+          onClose={() => void cerrarEditorExterno()}
+          onSubmit={m.agregarItems}
+          sidePanel={
+            <PedidoPanel
+              pedido={m.pedido}
+              loading={m.loadingPedido}
+              saving={m.saving}
+              feedback={null}
+              hideAgregar
+              onComandar={() => void m.comandar()}
+              onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
+              onAnular={() => {
+                void m.anular().then((ok) => {
+                  if (ok) setShowEditorExterno(false);
+                });
+              }}
+              onAgregarItem={() => undefined}
+              onGenerarComprobante={handleGenerarComprobante}
+            />
+          }
+        />
+      )}
     </div>
   );
 }
