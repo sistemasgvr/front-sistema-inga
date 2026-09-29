@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listRoles } from "@/modules/roles/services/roles.service";
-import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
@@ -14,7 +13,6 @@ import {
   updateUser,
 } from "../services/users.service";
 import type {
-  SucursalOption,
   User,
   UserFormValues,
   UserStatusFilter,
@@ -53,7 +51,6 @@ export function useUsers() {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   const [availableRoles, setAvailableRoles] = useState<RoleItem[]>([]);
-  const [availableSucursales, setAvailableSucursales] = useState<SucursalOption[]>([]);
 
   const [confirmUser, setConfirmUser] = useState<User | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -130,24 +127,6 @@ export function useUsers() {
       setAvailableRoles([]);
     }
 
-    try {
-      const res = await listSucursales({ pagina: 1, limite: 100, estado: "activos" });
-      const rawList = Array.isArray(res) 
-        ? res 
-        : Array.isArray((res as any)?.registros) 
-          ? (res as any).registros 
-          : Array.isArray((res as any)?.data) 
-            ? (res as any).data 
-            : [];
-
-      const sucursalesMapeadas = rawList.map((suc: any) => ({
-        id: suc.id,
-        nombre: suc.nombre,
-      }));
-      setAvailableSucursales(sucursalesMapeadas);
-    } catch {
-      setAvailableSucursales([]);
-    }
   }, []);
 
   const loadUsers = useCallback(async () => {
@@ -299,11 +278,13 @@ export function useUsers() {
         toast("success", "Usuario registrado", `@${values.username} fue creado exitosamente.`);
       }
 
-      closeFormModal();
+      setIsFormOpen(false);
+      setEditingUser(null);
       await loadUsers();
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo procesar la solicitud.";
       toast("error", "Atención", message);
+      throw error;
     } finally {
       setIsSaving(false);
     }
@@ -368,7 +349,6 @@ export function useUsers() {
     saveUser,
 
     availableRoles,
-    availableSucursales,
 
     confirmUser,
     isConfirmOpen,

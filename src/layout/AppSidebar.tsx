@@ -33,16 +33,28 @@ const navItems: NavItem[] = [
     path: "/dashboard",
   },
   {
-    icon: "mdi:account-group-outline",
-    name: "Usuarios",
-    path: "/users",
-    permission: PermisoBanderas.USUARIOS_LISTAR, 
-  },
-  {
-    icon: "mdi:shield-key-outline",
-    name: "Roles y Permisos",
-    path: "/roles",
-    permission: PermisoBanderas.ROLES_LISTAR, 
+    icon: "clarity:settings-solid",
+    name: "Configuración",
+    subItems: [
+      {
+        icon: "mdi:shield-key-outline",
+        name: "Roles y Permisos",
+        path: "/configuracion/roles",
+        permission: PermisoBanderas.ROLES_LISTAR, 
+      },
+      {
+        icon: "ri:file-paper-2-fill",
+        name: "Sunat",
+        path: "/configuracion/sunat",
+        permission: PermisoBanderas.SUNAT_LISTAR,
+      },
+      {
+        icon: "mdi:printer-settings",
+        name: "Estaciones",
+        path: "/estaciones",
+        permission: PermisoBanderas.ESTACIONES_LISTAR,
+      }
+    ]
   },
   {
     icon: "mdi:silverware-fork-knife",
@@ -118,19 +130,26 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: "mdi:account-cash-outline",
-    name: "Planilla",
-    permission: "planilla.pagos.listar",
+    icon: "mdi:account-group-outline",
+    name: "Planillas",
     subItems: [
+      {
+        name: "Trabajadores",
+        path: "/planilla/trabajadores",
+        permission: "trabajadores.listar",
+        icon: "mdi:account-hard-hat-outline",
+      },
+      {
+        name: "Usuarios",
+        path: "/users",
+        icon: "ci:users",
+        permission: PermisoBanderas.USUARIOS_LISTAR,
+      },
       {
         name: "Pagos de planilla",
         path: "/planilla",
+        permission: "planilla.pagos.listar",
         icon: "mdi:cash-clock",
-      },
-      {
-        name: "Personal",
-        path: "/planilla/trabajadores",
-        icon: "mdi:account-hard-hat-outline",
       },
     ],
   },
@@ -162,13 +181,6 @@ const navItems: NavItem[] = [
     path: "/almacenes",
     permission: PermisoBanderas.ALMACENES_LISTAR,
   },
-  {
-    icon: "mdi:printer-settings",
-    name: "Estaciones",
-    path: "/estaciones",
-    permission: PermisoBanderas.ESTACIONES_LISTAR,
-  },
-
   {
     icon: "mdi:floor-plan",
     name: "Ambientes",

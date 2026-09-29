@@ -56,7 +56,7 @@ export function TrabajadoresView() {
 
   return (
     <div>
-      <PageBreadcrumb pageTitle="Personal en planilla" />
+      <PageBreadcrumb pageTitle="Trabajadores" />
 
       <div className="mb-5 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
         <Icon
@@ -65,8 +65,7 @@ export function TrabajadoresView() {
           className="mt-0.5 shrink-0 text-brand-500"
         />
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Registro mínimo del personal, solo para poder pagarle la quincena y que
-          ese gasto entre al cuadre. Los pagos se registran en{" "}
+          Administra los datos personales y laborales de los trabajadores. Los pagos se registran en{" "}
           <span className="font-semibold text-gray-800 dark:text-gray-200">
             Pagos de planilla
           </span>
@@ -204,6 +203,9 @@ export function TrabajadoresView() {
                         <TableCell className="px-5 py-4 text-start">
                           <span className="block text-sm font-semibold text-gray-900 dark:text-white">
                             {item.nombre_completo}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                            {item.email || "Sin correo"} · {item.id_usuario ? "Con usuario" : "Sin usuario"}
                           </span>
                           {item.puesto && (
                             <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">

@@ -38,7 +38,6 @@ export function UsersView() {
     saveUser,
 
     availableRoles,
-    availableSucursales,
 
     confirmUser,
     isConfirmOpen,
@@ -178,7 +177,6 @@ export function UsersView() {
         onSubmit={saveUser}
         user={editingUser}
         availableRoles={availableRoles}
-        availableSucursales={availableSucursales}
         isSaving={isSaving}
       />
 

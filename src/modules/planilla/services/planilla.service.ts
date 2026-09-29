@@ -51,6 +51,8 @@ export async function createTrabajador(
   values: TrabajadorFormValues,
 ): Promise<TrabajadorItem> {
   return apiPost<TrabajadorItem>("/planilla/trabajadores", {
+    email: values.email.trim().toLowerCase(),
+    telefono: values.telefono.trim(),
     nombres: values.nombres.trim(),
     apellidos: values.apellidos.trim(),
     // Mando `undefined` y no cadena vacía: la base distingue "sin dato" (null)
@@ -67,6 +69,8 @@ export async function updateTrabajador(
   values: TrabajadorFormValues,
 ): Promise<TrabajadorItem> {
   return apiPatch<TrabajadorItem>(`/planilla/trabajadores/${id}`, {
+    email: values.email.trim().toLowerCase(),
+    telefono: values.telefono.trim(),
     nombres: values.nombres.trim(),
     apellidos: values.apellidos.trim(),
     num_documento: values.num_documento.trim() || undefined,

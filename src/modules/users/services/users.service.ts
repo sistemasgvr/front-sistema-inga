@@ -1,4 +1,5 @@
 import {
+  apiGet,
   apiGetPaginated,
   apiPost,
   apiPatch,
@@ -8,6 +9,7 @@ import type {
   ListUsersParams,
   ListUsersResult,
   User,
+  TrabajadorUsuarioOption,
   UserFormValues,
 } from "../types/user.types";
 
@@ -46,13 +48,9 @@ export async function listUsers(
 export async function createUser(values: UserFormValues): Promise<User> {
   return apiPost<User>("/auth/usuarios", {
     username: values.username.trim().toLowerCase(),
-    email: values.email.trim().toLowerCase(),
+    idTrabajador: values.idTrabajador,
     password: values.password,
     pin: values.pin?.trim() || undefined,
-    nombres: values.nombres.trim(),
-    apellidos: values.apellidos.trim(),
-    telefono: values.telefono?.trim() || null,
-    idSucursalDefault: values.idSucursalDefault ?? 1,
     rolesIds: values.rolesIds ?? [],
   });
 }
@@ -63,11 +61,6 @@ export async function updateUser(
 ): Promise<User> {
   const payload: Record<string, unknown> = {
     username: values.username.trim().toLowerCase(),
-    email: values.email.trim().toLowerCase(),
-    nombres: values.nombres.trim(),
-    apellidos: values.apellidos.trim(),
-    telefono: values.telefono?.trim() || null,
-    idSucursalDefault: values.idSucursalDefault ?? 1,
     rolesIds: values.rolesIds ?? [],
   };
 
@@ -87,4 +80,10 @@ export async function toggleUserStatus(user: User): Promise<User> {
     return apiDelete<User>(`/auth/usuarios/${user.id}`);
   }
   return apiPatch<User>(`/auth/usuarios/${user.id}/activar`);
+}
+export function listTrabajadoresDisponibles(): Promise<TrabajadorUsuarioOption[]> {
+  return apiGet<TrabajadorUsuarioOption[]>("/auth/usuarios/trabajadores-disponibles");
+}
+export function getTrabajadorDisponible(id: number): Promise<TrabajadorUsuarioOption> {
+  return apiGet<TrabajadorUsuarioOption>(`/auth/usuarios/trabajadores-disponibles/${id}`);
 }

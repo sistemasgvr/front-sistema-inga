@@ -23,6 +23,8 @@ type TrabajadorFormModalProps = {
 };
 
 const VALORES_INICIALES: TrabajadorFormValues = {
+  email: "",
+  telefono: "",
   nombres: "",
   apellidos: "",
   num_documento: "",
@@ -54,6 +56,8 @@ export function TrabajadorFormModal({
 
     if (trabajador) {
       setValues({
+        email: trabajador.email ?? "",
+        telefono: trabajador.telefono ?? "",
         nombres: trabajador.nombres,
         apellidos: trabajador.apellidos,
         num_documento: trabajador.num_documento ?? "",
@@ -111,13 +115,26 @@ export function TrabajadorFormModal({
       onClose={onClose}
       onSubmit={handleSubmit}
       title={trabajador ? "Editar trabajador" : "Nuevo trabajador"}
-      subtitle="Registro mínimo: solo lo necesario para pagarle la quincena."
+      subtitle="Datos personales y laborales. La cuenta de acceso es opcional y se vincula desde Personal → Usuarios."
       isSaving={isSaving}
     >
       {serverError && (
         <Alert variant="error" title="Error al guardar" message={serverError} />
       )}
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="trabajador-email">Correo electrónico</Label>
+          <Input id="trabajador-email" type="email" value={values.email} disabled={isSaving}
+            hint="Necesario si el trabajador tendrá una cuenta de usuario."
+            onChange={(e) => setValues(p => ({ ...p, email: e.target.value }))} />
+        </div>
+        <div>
+          <Label htmlFor="trabajador-telefono">Teléfono</Label>
+          <Input id="trabajador-telefono" value={values.telefono} disabled={isSaving}
+            onChange={(e) => setValues(p => ({ ...p, telefono: e.target.value }))} />
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="nombres">Nombres *</Label>

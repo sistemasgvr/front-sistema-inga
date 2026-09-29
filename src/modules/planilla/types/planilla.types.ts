@@ -46,6 +46,9 @@ export const MESES = [
 ] as const;
 
 export type TrabajadorItem = {
+  email: string | null;
+  telefono: string | null;
+  id_usuario: number | null;
   id: number;
   id_sucursal: number | null;
   nombre_sucursal: string | null;
@@ -71,6 +74,8 @@ export type TrabajadorItem = {
 };
 
 export type TrabajadorFormValues = {
+  email: string;
+  telefono: string;
   nombres: string;
   apellidos: string;
   num_documento: string;

@@ -8,6 +8,7 @@ export type SucursalOption = {
 };
 
 export type User = {
+  id_trabajador?: number;
   id: number;
   username: string;
   email: string;
@@ -34,16 +35,20 @@ export type User = {
 };
 
 export type UserFormValues = {
+  idTrabajador: number | null;
   username: string;
-  email: string;
   password?: string;
   pin?: string;
+  rolesIds: number[];
+};
+
+export type TrabajadorUsuarioOption = {
+  id: number;
   nombres: string;
   apellidos: string;
-  telefono?: string;
-  idSucursalDefault?: number | null;
-  rolesIds: number[];
-  estado?: UserStatus;
+  email: string;
+  telefono: string | null;
+  nombre_sucursal: string | null;
 };
 
 export type UserStatusFilter = "todos" | "activos" | "inactivos";
