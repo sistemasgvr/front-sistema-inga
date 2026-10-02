@@ -70,14 +70,14 @@ export type ProductoFormValues = {
   id_almacen_stock?: number | null;
   codigo_interno: string;
   nombre: string;
-  descripcion?: string;
+  descripcion?: string | null;
   tipo_producto: number;
   precio_venta: number;
   afecto_igv: boolean;
   controla_stock: boolean;
   disponible_venta: boolean;
-  tiempo_prep_min?: number;
-  imagen_url?: string;
+  tiempo_prep_min?: number | null;
+  imagen_url?: string | null;
 };
 
 export type ProductoStatusFilter = "todos" | "activos" | "inactivos";
