@@ -29,7 +29,7 @@ export function useRecetas(producto: ProductoItem | null) {
   const [isSearchingInsumos, setIsSearchingInsumos] = useState(false);
 
   const cargarRecetaProducto = useCallback(async () => {
-    if (!producto) return;
+    if (!producto?.id) return;
     setIsLoading(true);
     try {
       const versiones = await getHistorialRecetasProductoApi(producto.id);
@@ -52,9 +52,9 @@ export function useRecetas(producto: ProductoItem | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [producto, toast]);
+  }, [producto?.id, toast]);
 
-  async function buscarInsumos(termino: string) {
+  const buscarInsumos = useCallback(async (termino: string) => {
     setIsSearchingInsumos(true);
     try {
       const resultados = await getInsumosProcesadosApi(termino);
@@ -64,7 +64,7 @@ export function useRecetas(producto: ProductoItem | null) {
     } finally {
       setIsSearchingInsumos(false);
     }
-  }
+  }, []);
 
   async function crearNuevaVersionReceta(nombre?: string, rendimiento: number = 1, observacion?: string) {
     if (!producto) return null;
@@ -103,7 +103,7 @@ export function useRecetas(producto: ProductoItem | null) {
     setIsSaving(true);
     try {
       await guardarInsumoRecetaApi(recetaActiva.id, payload);
-      toast("success", "Insumo guardado", "El insumo se registró en la receta.");
+      toast("success", "Receta actualizada", "Se guardó el ingrediente en la receta.");
       
       const detalleActualizado = await getRecetaDetalleApi(recetaActiva.id);
       setRecetaActiva(detalleActualizado);
@@ -111,7 +111,7 @@ export function useRecetas(producto: ProductoItem | null) {
       toast(
         "error",
         "Error al guardar insumo",
-        error instanceof Error ? error.message : "No se pudo agregar el insumo."
+        error instanceof Error ? error.message : "No se pudo actualizar el insumo."
       );
     } finally {
       setIsSaving(false);
