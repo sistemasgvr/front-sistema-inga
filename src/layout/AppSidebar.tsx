@@ -33,30 +33,6 @@ const navItems: NavItem[] = [
     path: "/dashboard",
   },
   {
-    icon: "clarity:settings-solid",
-    name: "Configuración",
-    subItems: [
-      {
-        icon: "mdi:shield-key-outline",
-        name: "Roles y Permisos",
-        path: "/configuracion/roles",
-        permission: PermisoBanderas.ROLES_LISTAR, 
-      },
-      {
-        icon: "ri:file-paper-2-fill",
-        name: "Sunat",
-        path: "/configuracion/sunat",
-        permission: PermisoBanderas.SUNAT_LISTAR,
-      },
-      {
-        icon: "mdi:printer-settings",
-        name: "Estaciones",
-        path: "/estaciones",
-        permission: PermisoBanderas.ESTACIONES_LISTAR,
-      }
-    ]
-  },
-  {
     icon: "mdi:silverware-fork-knife",
     name: "Productos",
     subItems: [
@@ -82,11 +58,11 @@ const navItems: NavItem[] = [
   },
   {
     icon: "mdi:account-multiple-outline",
-    name: "Personas",
+    name: "Clientes",
     permission: "personas.listar",
     subItems: [
       {
-        name: "Clientes y proveedores",
+        name: "Listado general",
         path: "/personas",
         icon: "mdi:card-account-details-outline",
       },
@@ -126,30 +102,6 @@ const navItems: NavItem[] = [
         name: "Cajas físicas",
         path: "/caja/cajas",
         icon: "mdi:cash-register",
-      },
-    ],
-  },
-  {
-    icon: "mdi:account-group-outline",
-    name: "Planillas",
-    subItems: [
-      {
-        name: "Trabajadores",
-        path: "/planilla/trabajadores",
-        permission: "trabajadores.listar",
-        icon: "mdi:account-hard-hat-outline",
-      },
-      {
-        name: "Usuarios",
-        path: "/users",
-        icon: "ci:users",
-        permission: PermisoBanderas.USUARIOS_LISTAR,
-      },
-      {
-        name: "Pagos de planilla",
-        path: "/planilla",
-        permission: "planilla.pagos.listar",
-        icon: "mdi:cash-clock",
       },
     ],
   },
@@ -196,6 +148,54 @@ const navItems: NavItem[] = [
         path: "/ambientes/mesas",
         icon: "ic:round-table-restaurant",
       }
+    ],
+  },
+    {
+    icon: "clarity:settings-solid",
+    name: "Configuración",
+    subItems: [
+      {
+        icon: "mdi:shield-key-outline",
+        name: "Roles y Permisos",
+        path: "/configuracion/roles",
+        permission: PermisoBanderas.ROLES_LISTAR, 
+      },
+      {
+        icon: "ri:file-paper-2-fill",
+        name: "Sunat",  
+        path: "/configuracion/sunat",
+        permission: PermisoBanderas.SUNAT_LISTAR,
+      },
+      {
+        icon: "mdi:printer-settings",
+        name: "Estaciones",
+        path: "/estaciones",
+        permission: PermisoBanderas.ESTACIONES_LISTAR,
+      }
+    ]
+  },
+  {
+    icon: "clarity:employee-group-solid",
+    name: "Personal ",
+    subItems: [
+      {
+        name: "Trabajadores",
+        path: "/planilla/trabajadores",
+        permission: "trabajadores.listar",
+        icon: "mdi:account-hard-hat-outline",
+      },
+      {
+        name: "Usuarios",
+        path: "/users",
+        icon: "ci:users",
+        permission: PermisoBanderas.USUARIOS_LISTAR,
+      },
+      {
+        name: "Pagos de planilla",
+        path: "/planilla",
+        permission: "planilla.pagos.listar",
+        icon: "mdi:cash-clock",
+      },
     ],
   },
 ];

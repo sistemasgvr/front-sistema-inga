@@ -16,6 +16,8 @@ type FormModalProps = {
   children: ReactNode;
   submitText?: string;
   cancelText?: string;
+  /** En escritorio, el contenido administra el scroll de sus paneles. */
+  panelScroll?: boolean;
 };
 
 export function FormModal({
@@ -30,10 +32,11 @@ export function FormModal({
   children,
   submitText = "Guardar",
   cancelText = "Cancelar",
+  panelScroll = false,
 }: FormModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className={`${maxWidth} p-0 overflow-hidden flex flex-col`}>
-      <form onSubmit={onSubmit} className="flex flex-col max-h-[85vh]">
+      <form onSubmit={onSubmit} className={`flex flex-col max-h-[85vh] ${panelScroll ? "lg:h-[85vh]" : ""}`}>
         {/* Cabecera fija */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -48,7 +51,7 @@ export function FormModal({
 
         {/* Cuerpo scrolleable con el hover arreglado exclusivamente para el thumb */}
         <div 
-          className="px-6 lg:px-8 py-6 overflow-y-auto space-y-4 flex-1 
+          className={`px-6 lg:px-8 py-6 overflow-y-auto space-y-4 flex-1 min-h-0 ${panelScroll ? "lg:overflow-hidden" : ""}
           [&::-webkit-scrollbar]:w-3 
           [&::-webkit-scrollbar-track]:bg-gray-50 dark:[&::-webkit-scrollbar-track]:bg-gray-950/50 
           [&::-webkit-scrollbar-track]:my-1
@@ -59,7 +62,7 @@ export function FormModal({
           [&::-webkit-scrollbar-thumb]:border-transparent 
           [&::-webkit-scrollbar-thumb]:bg-clip-padding
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-600
-          [&::-webkit-scrollbar-thumb:active]:bg-gray-500 dark:[&::-webkit-scrollbar-thumb:active]:bg-gray-500"
+          [&::-webkit-scrollbar-thumb:active]:bg-gray-500 dark:[&::-webkit-scrollbar-thumb:active]:bg-gray-500`}
         >
           {children}
         </div>

@@ -270,10 +270,10 @@ export function UsersTable({
                             <AvatarText name={`${targetUser.nombres} ${targetUser.apellidos}`} />
                             <div>
                               <span className="block text-sm font-bold text-gray-900 dark:text-white">
-                                {targetUser.nombres} {targetUser.apellidos} {isSelf && "(Tú)"}
+                                @{targetUser.username}
                               </span>
                               <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                @{targetUser.username}
+                                {targetUser.nombres} {targetUser.apellidos} {isSelf && "(Tú)"}
                               </span>
                             </div>
                           </div>

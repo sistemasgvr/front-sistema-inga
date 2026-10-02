@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMe } from "@/modules/auth/services/auth.service";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Alert from "@/components/ui/alert/Alert";
@@ -77,6 +79,17 @@ export function PedidoPanel({
   const [showAnularConfirm, setShowAnularConfirm] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
+  const [tienePermisoAnular, setTienePermisoAnular] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getMe().then((usuario) => {
+      if (active) setTienePermisoAnular(Boolean(
+        usuario?.es_super_admin || usuario?.permisos?.includes(PermisoBanderas.PEDIDOS_ANULAR),
+      ));
+    });
+    return () => { active = false; };
+  }, []);
 
   const estado = pedido
     ? (ESTADO_PEDIDO_STYLES[pedido.estado_pedido] ?? ESTADO_PEDIDO_STYLES[1])
@@ -98,7 +111,7 @@ export function PedidoPanel({
     pedido?.estado_pedido === 2 && itemsPendientes.length === 0;
   const puedePagar = pedido?.estado_pedido === 3;
   const puedeAnular =
-    pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
+    tienePermisoAnular && !!pedido && [1, 2, 3].includes(pedido.estado_pedido);
   const puedeAgregarItems =
     pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
 
@@ -125,7 +138,7 @@ export function PedidoPanel({
           </div>
           <p className="mt-1 text-sm text-gray-500">
             {pedido
-              ? [pedido.codigo_mesa ? `Mesa ${pedido.codigo_mesa}` : TIPO_PEDIDO_LABEL[pedido.tipo_pedido], pedido.nombre_cliente && `Cliente: ${pedido.nombre_cliente}${pedido.telefono_cliente ? ` (${pedido.telefono_cliente})` : ""}`, pedido.nombre_mozo && `Mozo: ${pedido.nombre_mozo}`].filter(Boolean).join(" · ")
+              ? [pedido.codigo_mesa ? `Mesa ${pedido.codigo_mesa}` :  TIPO_PEDIDO_LABEL[pedido.tipo_pedido], pedido.nombre_cliente && `Cliente: ${pedido.nombre_cliente}${pedido.telefono_cliente ? ` (${pedido.telefono_cliente})` : ""}`, pedido.nombre_mozo && `Mozo: ${pedido.nombre_mozo}`].filter(Boolean).join(" · ")
               : "Selecciona una mesa para comenzar"}
           </p>
         </div>
@@ -304,11 +317,11 @@ export function PedidoPanel({
       </div>
 
       <ConfirmDialog
-        isOpen={showAnularConfirm}
+        isOpen={showAnularConfirm && puedeAnular}
         onClose={() => setShowAnularConfirm(false)}
         onConfirm={onAnular}
         title="Cancelar pedido"
-        description="¿Estás seguro de cancelar este pedido? Esta acción devolverá el inventario y liberará la mesa."
+        description="¿Estás seguro de cancelar este pedido? Se validarán las entregas, reservas y pagos antes de anularlo y liberar la mesa."
         confirmText="Cancelar"
         variant="danger"
         isLoading={saving}

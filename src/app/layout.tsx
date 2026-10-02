@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "flatpickr/dist/flatpickr.css";
 import "./globals.css";
-
 const outfit = Outfit({
   subsets: ["latin"],
 });
