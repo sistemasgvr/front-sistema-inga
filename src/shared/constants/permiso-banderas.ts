@@ -66,6 +66,13 @@ export const PermisoBanderas = {
   SUNAT_EDITAR: 'sunat.editar',
   SUNAT_ELIMINAR: 'sunat.eliminar',
   SUNAT_ACTIVAR: 'sunat.activar',
+
+  INVENTARIO_VER: 'inventario.ver',
+  INVENTARIO_GESTIONAR: 'inventario.gestionar',
+
+  PRODUCCION_PREPARAR: 'produccion.preparar',
+
+  PEDIDOS_ENTREGAR: 'pedidos.entregar',
 } as const;
 
 export type PermisoBandera =

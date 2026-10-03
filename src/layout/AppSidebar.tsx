@@ -53,7 +53,13 @@ const navItems: NavItem[] = [
         path: "/productos/subcategorias",
         icon: "mdi:file-tree-outline",
         permission: PermisoBanderas.SUBCATEGORIAS_LISTAR,
-      }
+      },
+      {
+        name: "Stock",
+        path: "/productos/stock",
+        icon: "at-icons:cube",
+        permission: PermisoBanderas.INVENTARIO_VER,
+      },
     ],
   },
   {

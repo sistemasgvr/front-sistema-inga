@@ -1,5 +1,10 @@
-import { AmbientesView } from "@/modules/ambientes";
+import { RoleGuard } from "@/modules/auth/guards/RoleGuard";
+import  WorkingInProgress  from "@/components/common/WorkInProgress";
 
-export default function StockPage() {
-    return <AmbientesView/>;
+export default function SunatPage() {
+  return (
+    <RoleGuard requiredPermission="sunat.listar">
+        <WorkingInProgress />
+    </RoleGuard>
+    );
 }
