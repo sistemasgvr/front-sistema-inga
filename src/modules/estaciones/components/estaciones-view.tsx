@@ -10,6 +10,7 @@ import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import { useEstaciones } from "../hooks/use-estaciones";
 import { EstacionesTable } from "./estaciones-table";
 import { EstacionFormModal } from "./estacion-form-modal";
+import { PanelImpresion } from "@/modules/impresion";
 
 export function EstacionesView() {
   const {
@@ -78,6 +79,7 @@ export function EstacionesView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Gestión de Estaciones" />
+      {(isSuper || userPermisos.includes("pedidos.comandar")) && <PanelImpresion />}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button

@@ -15,3 +15,11 @@ Regla explícita del usuario para implementaciones futuras:
 - Mantener la carga de opciones remotas al abrir el selector. Esto no sustituye la petición de los datos dependientes al cambiar la selección.
 - Implementar las peticiones en servicios/hooks reutilizables; el componente comunica el cambio de selección.
 - Cancelar o ignorar respuestas anteriores cuando se cambia rápidamente de opción. Mostrar carga/error y limpiar las selecciones dependientes para no presentar datos del contexto anterior.
+
+## Arquitectura modular
+
+- Seguir el patrón de los módulos existentes: `components/`, `hooks/`, `services/`, `types/` y `utils/`, con `index.ts` como entrada pública del módulo.
+- Ubicar los contextos compartidos del módulo en `context/` cuando sean necesarios.
+- Los componentes presentan la interfaz; los hooks gestionan estado y operaciones; los servicios encapsulan las peticiones HTTP y las integraciones externas.
+- No acumular componentes, servicios, tipos y utilidades como archivos sueltos en la raíz del módulo.
+- Al mover archivos, corregir imports de pantallas, referencias entre módulos y rutas utilizadas por las pruebas. Verificar compilación y pruebas correspondientes.

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:impresion": "node --test test/impresion/*.test.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -25,12 +26,14 @@
     "axios": "^1.19.0",
     "flatpickr": "^4.6.13",
     "next": "16.3.0",
+    "qz-tray": "^2.3.0",
     "react": "19.2.8",
     "react-apexcharts": "^2.1.1",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "19.2.8",
     "react-rnd": "^10.5.3",
+    "socket.io-client": "^4.8.4",
     "swiper": "^14.1.0",
     "tailwind-merge": "^3.6.0"
   },

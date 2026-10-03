@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import type { EstacionItem } from "../types/estaciones.types";
 import type { User } from "@/modules/users/types/user.types";
+import { EstacionImpresion } from "@/modules/impresion";
 
 type EstacionesTableProps = {
   estaciones: EstacionItem[];
@@ -92,6 +93,7 @@ export function EstacionesTable({
                 <p className="text-xs text-gray-500 font-mono">
                   <span className="font-semibold font-sans">IP:</span> {item.impresora_ip || "IP no asignada"}
                 </p>
+                {(isSuperAdmin || userPermisos.includes("pedidos.comandar")) && <EstacionImpresion estacion={item} />}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 my-2.5">
@@ -187,6 +189,7 @@ export function EstacionesTable({
                         <span className="block text-xs text-gray-500 font-mono mt-0.5">
                           {item.impresora_ip || "IP no asignada"}
                         </span>
+                        {(isSuperAdmin || userPermisos.includes("pedidos.comandar")) && <EstacionImpresion estacion={item} />}
                       </TableCell>
 
                       <TableCell className="px-5 py-4 text-center">

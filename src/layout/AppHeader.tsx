@@ -6,6 +6,7 @@ import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
+import { IndicadorImpresion } from "@/modules/impresion";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -93,6 +94,7 @@ const AppHeader: React.FC = () => {
           } shadow-theme-md w-full items-center justify-between gap-4 px-5 py-4 lg:flex lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
+            <IndicadorImpresion />
             <ThemeToggleButton />
             <NotificationDropdown />
           </div>
