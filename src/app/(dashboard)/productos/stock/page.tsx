@@ -1,10 +1,11 @@
 import { RoleGuard } from "@/modules/auth/guards/RoleGuard";
-import  WorkingInProgress  from "@/components/common/WorkInProgress";
+import { InventarioView } from "@/modules/inventario/components/inventario-view";
 
-export default function SunatPage() {
+export default function StockPage() {
   return (
-    <RoleGuard requiredPermission="sunat.listar">
-        <WorkingInProgress />
+    <RoleGuard requiredPermission="inventario.listar">
+        <InventarioView />
     </RoleGuard>
     );
 }
+
