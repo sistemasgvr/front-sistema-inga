@@ -5,6 +5,7 @@ import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Checkbox from "@/components/form/input/Checkbox";
 import TextArea from "@/components/form/input/TextArea";
+import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { Modal } from "@/components/ui/modal";
 import { Icon } from "@/components/ui/icon";
@@ -78,29 +79,22 @@ export function ProductoFormModal({
   });
 
   const [costoReceta, setCostoReceta] = useState<number>(0);
-  const [errors, setErrors] = useState<Partial<Record<keyof ProductoFormValues, string>>>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof ProductoFormValues, boolean>>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const tipo = Number(values.tipo_producto);
   const esCrudo = tipo === 1;
   const esProcesado = tipo === 2;
-  const esPlatoCarta = tipo === 3;
-  const esPlatoMenu = tipo === 4;
-  const esTrago = tipo === 5;
-  const esBebidaUnitaria = tipo === 6;
-  const esAdicional = tipo === 7;
-
   const esPlatoOTrago = [3, 4, 5].includes(tipo);
   const esInsumo = esCrudo || esProcesado;
   const requiereEstacion = [3, 4, 5, 6].includes(tipo);
-  const requiereAlmacen = esInsumo || esBebidaUnitaria || values.controla_stock;
+  const requiereAlmacen = esInsumo || tipo === 6 || values.controla_stock;
 
   useEffect(() => {
     if (!isOpen) return;
 
     setSelectedFile(null);
     setShowConfirmRemoveImage(false);
+    setServerError(null);
 
     if (producto) {
       const sub = subcategorias.find((s) => s.id === producto.id_subcategoria);
@@ -154,10 +148,6 @@ export function ProductoFormModal({
       setCostoReceta(0);
       setImagePreview(null);
     }
-
-    setErrors({});
-    setTouched({});
-    setIsSubmitted(false);
   }, [isOpen, producto]);
 
   const filteredSubcategorias = selectedCategoriaId
@@ -178,7 +168,6 @@ export function ProductoFormModal({
       id_estacion: [3, 4, 5, 6].includes(numTipo) ? p.id_estacion || (estaciones[0]?.id ?? null) : null,
       id_almacen_stock: isIns || numTipo === 6 ? p.id_almacen_stock || (almacenes[0]?.id ?? null) : null,
     }));
-    handleBlur("tipo_producto");
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -186,7 +175,7 @@ export function ProductoFormModal({
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast("error", "Formato no permitido", "Solo se admiten imágenes JPG, PNG o WEBP.");
+      toast("error", "Formato inválido", "Solo se admiten imágenes JPG, PNG o WEBP.");
       e.target.value = "";
       return;
     }
@@ -206,39 +195,7 @@ export function ProductoFormModal({
     setImagePreview(null);
     setValues((prev) => ({ ...prev, imagen_url: "" }));
     setShowConfirmRemoveImage(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }
-
-  function handleBlur(field: keyof ProductoFormValues) {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-  }
-
-  function validate(currentValues: ProductoFormValues = values): boolean {
-    const next: Partial<Record<keyof ProductoFormValues, string>> = {};
-    const t = Number(currentValues.tipo_producto);
-
-    if (!currentValues.codigo_interno.trim()) next.codigo_interno = "El código es obligatorio.";
-    if (!currentValues.nombre.trim()) next.nombre = "El nombre es obligatorio.";
-    if (!currentValues.id_subcategoria) next.id_subcategoria = "La subcategoría es obligatoria.";
-    if (!currentValues.id_unidad_medida) next.id_unidad_medida = "La unidad es obligatoria.";
-    if (!currentValues.tipo_producto) next.tipo_producto = "El tipo de producto es obligatorio.";
-
-    if ([3, 4, 5, 6].includes(t) && !currentValues.id_estacion) {
-      next.id_estacion = "Debes asignar una estación de impresión para este tipo.";
-    }
-
-    if ((currentValues.controla_stock || [1, 2, 6].includes(t)) && !currentValues.id_almacen_stock) {
-      next.id_almacen_stock = "Debes asignar un almacén de stock.";
-    }
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  function showError(field: keyof ProductoFormValues): string | undefined {
-    return isSubmitted || touched[field] ? errors[field] : undefined;
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function sanearPayloadPorTipo(raw: ProductoFormValues): ProductoFormValues {
@@ -246,20 +203,9 @@ export function ProductoFormModal({
 
     switch (t) {
       case 1:
-        return {
-          ...raw,
-          tipo_producto: 1,
-          precio_venta: 0,
-          controla_stock: true,
-          disponible_venta: false,
-          id_estacion: null,
-          tiempo_prep_min: undefined,
-        };
-
       case 2:
         return {
           ...raw,
-          tipo_producto: 2,
           precio_venta: 0,
           controla_stock: true,
           disponible_venta: false,
@@ -272,7 +218,6 @@ export function ProductoFormModal({
       case 5:
         return {
           ...raw,
-          tipo_producto: t,
           precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
           controla_stock: false,
           disponible_venta: Boolean(raw.disponible_venta),
@@ -284,7 +229,6 @@ export function ProductoFormModal({
       case 6:
         return {
           ...raw,
-          tipo_producto: 6,
           precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
           controla_stock: true,
           disponible_venta: Boolean(raw.disponible_venta),
@@ -297,7 +241,6 @@ export function ProductoFormModal({
       default:
         return {
           ...raw,
-          tipo_producto: t || 7,
           precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
           controla_stock: false,
           disponible_venta: Boolean(raw.disponible_venta),
@@ -311,9 +254,32 @@ export function ProductoFormModal({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving || uploadingImage) return;
-    setIsSubmitted(true);
+    setServerError(null);
 
-    if (!validate()) return;
+    if (!values.codigo_interno.trim()) {
+      setServerError("El código interno es obligatorio.");
+      return;
+    }
+    if (!values.nombre.trim()) {
+      setServerError("El nombre del producto es obligatorio.");
+      return;
+    }
+    if (!values.id_subcategoria) {
+      setServerError("Selecciona una subcategoría.");
+      return;
+    }
+    if (!values.id_unidad_medida) {
+      setServerError("Selecciona una unidad de medida base.");
+      return;
+    }
+    if (requiereEstacion && !values.id_estacion) {
+      setServerError("Debes asignar una estación de comandas/impresión.");
+      return;
+    }
+    if (requiereAlmacen && !values.id_almacen_stock) {
+      setServerError("Debes asignar un almacén de stock compatible.");
+      return;
+    }
 
     try {
       let finalImageUrl = values.imagen_url;
@@ -323,45 +289,20 @@ export function ProductoFormModal({
         finalImageUrl = await uploadProductoImagenApi(selectedFile);
       }
 
-      const payloadSaneado = sanearPayloadPorTipo({
+      const payload = sanearPayloadPorTipo({
         ...values,
         imagen_url: finalImageUrl,
       });
 
-      await onSubmit(payloadSaneado);
+      await onSubmit(payload);
     } catch (error) {
-      toast(
-        "error",
-        "Error al guardar",
+      setServerError(
         error instanceof Error ? error.message : "Ocurrió un error al procesar el registro."
       );
     } finally {
       setUploadingImage(false);
     }
   }
-
-  // Placeholders dinámicos por Tipo de Producto
-  const getNombrePlaceholder = () => {
-    if (esCrudo) return "Ej. Pato Entero / Saco de Arroz 50kg";
-    if (esProcesado) return "Ej. Presa de Pato Limpia / Pote Salsa Culantro";
-    if (esPlatoCarta) return "Ej. Arroz con Pato Arequipeño / Lomo Saltado";
-    if (esPlatoMenu) return "Ej. Seco de Pollo con Frijoles / Menú Ejecutivo";
-    if (esTrago) return "Ej. Pisco Sour Catedral / Chilcano de Kion";
-    if (esBebidaUnitaria) return "Ej. Cerveza Cusqueña Dorada 330ml / Agua San Luis";
-    if (esAdicional) return "Ej. Crema Huancaína Extra / Porción de Arroz";
-    return "Ej. Nombre del producto";
-  };
-
-  const getCodigoPlaceholder = () => {
-    if (esCrudo) return "Ej. CRU-001";
-    if (esProcesado) return "Ej. PROC-001";
-    if (esPlatoCarta) return "Ej. PLT-001";
-    if (esPlatoMenu) return "Ej. MNU-001";
-    if (esTrago) return "Ej. TRG-001";
-    if (esBebidaUnitaria) return "Ej. BEB-001";
-    if (esAdicional) return "Ej. ADC-001";
-    return "Ej. PROD-001";
-  };
 
   const categoriaOptions = categorias.map((cat) => ({ value: String(cat.id), label: cat.nombre }));
   const subcategoriaOptions = filteredSubcategorias.map((sub) => ({ value: String(sub.id), label: sub.nombre }));
@@ -376,7 +317,7 @@ export function ProductoFormModal({
   const almacenesFiltrados = almacenes.filter((a) => {
     if (esCrudo) return a.tipo_almacen === 1;
     if (esProcesado) return [2, 3].includes(a.tipo_almacen || 0);
-    if (esBebidaUnitaria) return [1, 3].includes(a.tipo_almacen || 0);
+    if (tipo === 6) return [1, 3].includes(a.tipo_almacen || 0);
     return true;
   });
 
@@ -385,311 +326,274 @@ export function ProductoFormModal({
     ...almacenesFiltrados.map((alm) => ({ value: String(alm.id), label: alm.nombre })),
   ];
 
-  const sinAlmacenesDisponibles = requiereAlmacen && almacenesFiltrados.length === 0;
-
   return (
     <>
       <FormModal
         isOpen={isOpen}
         onClose={onClose}
         onSubmit={handleSubmit}
-        title={producto ? `Editar: ${producto.nombre}` : "Nuevo Registro en Catálogo"}
-        subtitle="Los parámetros se ajustan dinámicamente según el tipo seleccionado."
+        title={producto ? `Editar: ${producto.nombre}` : "Nuevo Producto"}
+        subtitle="Configura los datos del catálogo y sus parámetros operativos."
         isSaving={isSaving || uploadingImage}
-        maxWidth="max-w-[720px]"
       >
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-gray-200/80 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-900/30 space-y-4">
-            <div className="flex items-center gap-2 border-b border-gray-200/60 pb-2.5 dark:border-gray-800">
-              <Icon name="mdi:tag-outline" size={18} className="text-brand-600 dark:text-brand-400" />
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                1. Clasificación del Producto
-              </h4>
+        {serverError && (
+          <Alert
+            variant="error"
+            title="No se pudo guardar"
+            message={serverError}
+          />
+        )}
+
+        <div>
+          <Label>Imagen del Producto</Label>
+          <div className="mt-1.5 flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] p-4 text-center transition-colors">
+            {imagePreview ? (
+              <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                <div
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer group shadow-xs"
+                  title="Clic para ver ampliada"
+                >
+                  <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <Icon name="mdi:magnify-plus-outline" size={22} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-start gap-1">
+                  <span className="text-xs font-semibold text-gray-900 dark:text-white truncate max-w-[220px]">
+                    {selectedFile ? selectedFile.name : "Imagen del producto"}
+                  </span>
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Imagen vinculada a la carta digital.
+                  </span>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isSaving || uploadingImage}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 cursor-pointer"
+                    >
+                      <Icon name="mdi:image-refresh" size={16} />
+                      <span>Cambiar</span>
+                    </button>
+                    <span className="text-gray-300 dark:text-gray-700">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmRemoveImage(true)}
+                      disabled={isSaving || uploadingImage}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 cursor-pointer"
+                    >
+                      <Icon name="mdi:trash-can-outline" size={16} />
+                      <span>Quitar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center justify-center py-3 cursor-pointer group w-full"
+              >
+                <div className="rounded-full bg-brand-50 dark:bg-brand-500/10 p-3 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
+                  <Icon name="mdi:cloud-upload-outline" size={26} />
+                </div>
+                <span className="mt-2 text-xs font-semibold text-gray-800 dark:text-gray-200">
+                  Haz clic para subir una foto
+                </span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  Formatos admitidos: JPG, PNG o WEBP (Máx. 5 MB)
+                </span>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Tipo de Producto *</Label>
+            <Select
+              options={tipoProductoOptions}
+              defaultValue={values.tipo_producto ? String(values.tipo_producto) : ""}
+              placeholder={isLoadingTipos ? "Cargando..." : "Seleccione tipo..."}
+              disabled={isSaving}
+              onChange={handleTipoProductoChange}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="codigo_interno">Código Interno *</Label>
+            <Input
+              id="codigo_interno"
+              value={values.codigo_interno}
+              onChange={(e) => setValues((p) => ({ ...p, codigo_interno: e.target.value.toUpperCase() }))}
+              placeholder="PROD-001"
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="nombre">Nombre del Producto *</Label>
+          <Input
+            id="nombre"
+            value={values.nombre}
+            onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
+            placeholder="Ej. Arroz con Pato Arequipeño / Gaseosa 500ml"
+            disabled={isSaving}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Categoría *</Label>
+            <Select
+              options={categoriaOptions}
+              defaultValue={selectedCategoriaId ? String(selectedCategoriaId) : ""}
+              placeholder="-- Seleccione Categoría --"
+              disabled={isSaving}
+              onChange={(val) => {
+                const catId = val ? Number(val) : null;
+                const subFilt = catId ? subcategorias.filter((s) => s.id_categoria === catId) : [];
+                setSelectedCategoriaId(catId);
+                setValues((p) => ({ ...p, id_subcategoria: subFilt[0]?.id ?? 0 }));
+              }}
+            />
+          </div>
+
+          <div>
+            <Label>Subcategoría *</Label>
+            <Select
+              options={subcategoriaOptions}
+              defaultValue={values.id_subcategoria ? String(values.id_subcategoria) : ""}
+              placeholder={!selectedCategoriaId ? "Seleccione categoría primero" : "-- Seleccione Subcategoría --"}
+              disabled={isSaving || !selectedCategoriaId}
+              onChange={(val) => setValues((p) => ({ ...p, id_subcategoria: Number(val) }))}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Unidad de Medida Base *</Label>
+          <Select
+            options={unidadOptions}
+            defaultValue={values.id_unidad_medida ? String(values.id_unidad_medida) : ""}
+            placeholder="Seleccione unidad..."
+            disabled={isSaving}
+            onChange={(val) => setValues((p) => ({ ...p, id_unidad_medida: Number(val) }))}
+          />
+        </div>
+
+        {!esInsumo && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="precio_venta">Precio de Venta (S/) *</Label>
+              <Input
+                id="precio_venta"
+                type="number"
+                step={0.01}
+                value={values.precio_venta}
+                onChange={(e) => setValues((p) => ({ ...p, precio_venta: Number(e.target.value) }))}
+                placeholder="0.00"
+                disabled={isSaving}
+              />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <Label>Tipo de Producto *</Label>
-                <Select
-                  options={tipoProductoOptions}
-                  defaultValue={values.tipo_producto ? String(values.tipo_producto) : ""}
-                  placeholder={isLoadingTipos ? "Cargando..." : "Seleccione tipo..."}
-                  disabled={isSaving || isLoadingTipos}
-                  error={Boolean(showError("tipo_producto"))}
-                  hint={showError("tipo_producto")}
-                  onChange={handleTipoProductoChange}
-                />
-              </div>
+            <div>
+              <Label htmlFor="costo_receta">Costo Receta Calculado (S/)</Label>
+              <Input
+                id="costo_receta"
+                type="number"
+                value={costoReceta.toFixed(2)}
+                disabled={true}
+              />
+            </div>
+          </div>
+        )}
 
+        {requiereAlmacen && (
+          <div>
+            <Label>Almacén de Stock *</Label>
+            <Select
+              options={almacenOptions}
+              defaultValue={values.id_almacen_stock ? String(values.id_almacen_stock) : ""}
+              placeholder="Seleccione almacén..."
+              disabled={isSaving}
+              onChange={(val) => setValues((p) => ({ ...p, id_almacen_stock: val ? Number(val) : null }))}
+            />
+          </div>
+        )}
+
+        {requiereEstacion && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Estación de Comanda / KDS *</Label>
+              <Select
+                options={estacionOptions}
+                defaultValue={values.id_estacion ? String(values.id_estacion) : ""}
+                placeholder="Seleccione estación..."
+                disabled={isSaving}
+                onChange={(val) => setValues((p) => ({ ...p, id_estacion: val ? Number(val) : null }))}
+              />
+            </div>
+
+            {esPlatoOTrago && (
               <div>
-                <Label htmlFor="codigo_interno">Código Interno *</Label>
+                <Label htmlFor="tiempo_prep_min">Prep. Estimada (Minutos)</Label>
                 <Input
-                  id="codigo_interno"
-                  value={values.codigo_interno}
-                  onChange={(e) => setValues((p) => ({ ...p, codigo_interno: e.target.value.toUpperCase() }))}
-                  onBlur={() => handleBlur("codigo_interno")}
-                  placeholder={getCodigoPlaceholder()}
-                  error={Boolean(showError("codigo_interno"))}
-                  hint={showError("codigo_interno")}
+                  id="tiempo_prep_min"
+                  type="number"
+                  value={values.tiempo_prep_min ?? 15}
+                  onChange={(e) => setValues((p) => ({ ...p, tiempo_prep_min: Number(e.target.value) }))}
                   disabled={isSaving}
                 />
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 items-start">
-              <div className="flex-1 w-full space-y-4">
-                <div>
-                  <Label htmlFor="nombre">Nombre *</Label>
-                  <Input
-                    id="nombre"
-                    value={values.nombre}
-                    onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
-                    onBlur={() => handleBlur("nombre")}
-                    placeholder={getNombrePlaceholder()}
-                    error={Boolean(showError("nombre"))}
-                    hint={showError("nombre")}
-                    disabled={isSaving}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label>Categoría *</Label>
-                    <Select
-                      options={categoriaOptions}
-                      defaultValue={selectedCategoriaId ? String(selectedCategoriaId) : ""}
-                      placeholder="-- Seleccione Categoría --"
-                      disabled={isSaving}
-                      onChange={(val) => {
-                        const catId = val ? Number(val) : null;
-                        const subFilt = catId ? subcategorias.filter((s) => s.id_categoria === catId) : [];
-                        setSelectedCategoriaId(catId);
-                        setValues((p) => ({ ...p, id_subcategoria: subFilt[0]?.id ?? 0 }));
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Subcategoría *</Label>
-                    <Select
-                      options={subcategoriaOptions}
-                      defaultValue={values.id_subcategoria ? String(values.id_subcategoria) : ""}
-                      placeholder={!selectedCategoriaId ? "Seleccione categoría primero" : "-- Seleccione Subcategoría --"}
-                      disabled={isSaving || !selectedCategoriaId}
-                      error={Boolean(showError("id_subcategoria"))}
-                      hint={showError("id_subcategoria")}
-                      onChange={(val) => {
-                        setValues((p) => ({ ...p, id_subcategoria: Number(val) }));
-                        handleBlur("id_subcategoria");
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full sm:w-36 shrink-0">
-                <Label>Imagen</Label>
-                <div className="mt-1.5 flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-2 text-center dark:border-gray-700 dark:bg-gray-900">
-                  {imagePreview ? (
-                    <div className="flex flex-col items-center gap-2 w-full">
-                      <div
-                        onClick={() => setIsLightboxOpen(true)}
-                        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer group"
-                        title="Clic para ver en tamaño grande"
-                      >
-                        <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                          <Icon name="mdi:magnify-plus-outline" size={18} />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isSaving || uploadingImage}
-                          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 cursor-pointer"
-                        >
-                          Cambiar
-                        </button>
-                        <span className="text-gray-300 dark:text-gray-700">|</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmRemoveImage(true)}
-                          disabled={isSaving || uploadingImage}
-                          className="font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 cursor-pointer"
-                        >
-                          Quitar
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label htmlFor="imagen_file" className="cursor-pointer flex flex-col items-center py-2 w-full">
-                      <Icon name="mdi:image-plus" size={26} className="text-gray-400" />
-                      <span className="mt-1 text-[10px] font-semibold text-brand-600 dark:text-brand-400">
-                        Subir Foto
-                      </span>
-                    </label>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    id="imagen_file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleFileChange}
-                    disabled={isSaving || uploadingImage}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Label>Unidad de Medida Base * (Filtro con buscador)</Label>
-              <Select
-                options={unidadOptions}
-                defaultValue={values.id_unidad_medida ? String(values.id_unidad_medida) : ""}
-                placeholder="Seleccione unidad base..."
-                searchPlaceholder="Filtrar unidad (ej. kg, oz, presa, pote)..."
-                disabled={isSaving}
-                error={Boolean(showError("id_unidad_medida"))}
-                hint={showError("id_unidad_medida")}
-                onChange={(val) => {
-                  setValues((p) => ({ ...p, id_unidad_medida: Number(val) }));
-                  handleBlur("id_unidad_medida");
-                }}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="descripcion">Descripción / Observación (Opcional)</Label>
-              <TextArea
-                value={values.descripcion || ""}
-                onChange={(val) => setValues((p) => ({ ...p, descripcion: val }))}
-                placeholder="Detalles adicionales del producto..."
-                disabled={isSaving}
-                rows={2}
-              />
-            </div>
+            )}
           </div>
+        )}
 
-          <div className="rounded-2xl border border-gray-200/80 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-900/30 space-y-4">
-            <div className="flex items-center gap-2 border-b border-gray-200/60 pb-2.5 dark:border-gray-800">
-              <Icon name="mdi:cog-outline" size={18} className="text-brand-600 dark:text-brand-400" />
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
-                2. Parámetros Operativos
-              </h4>
-            </div>
+        <div>
+          <Label htmlFor="descripcion">Descripción / Notas (Opcional)</Label>
+          <TextArea
+            value={values.descripcion || ""}
+            onChange={(val) => setValues((p) => ({ ...p, descripcion: val }))}
+            placeholder="Detalles o notas sobre el producto..."
+            disabled={isSaving}
+            rows={2}
+          />
+        </div>
 
-            {requiereAlmacen && (
-              <div>
-                <Label>Almacén de Stock *</Label>
-                <Select
-                  options={almacenOptions}
-                  defaultValue={values.id_almacen_stock ? String(values.id_almacen_stock) : ""}
-                  placeholder={sinAlmacenesDisponibles ? "Sin almacenes compatibles" : "Seleccione almacén..."}
-                  disabled={isSaving || sinAlmacenesDisponibles}
-                  error={Boolean(showError("id_almacen_stock"))}
-                  hint={
-                    showError("id_almacen_stock") ||
-                    (sinAlmacenesDisponibles
-                      ? "⚠️ No hay un almacén compatible creado para este tipo. Ve a Módulo Almacenes y registra uno."
-                      : esCrudo
-                      ? "Insumos crudos corresponden al Almacén Crudo."
-                      : esProcesado
-                      ? "Insumos procesados corresponden a Producción Cocina/Barra."
-                      : "Bebidas unitarias descuentan stock directo del Almacén de Barra.")
-                  }
-                  onChange={(val) => setValues((p) => ({ ...p, id_almacen_stock: val ? Number(val) : null }))}
-                />
-              </div>
-            )}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-2">
+          <Checkbox
+            id="controla_stock"
+            label="Controla Stock"
+            checked={values.controla_stock}
+            onChange={(checked) => setValues((p) => ({ ...p, controla_stock: checked }))}
+            disabled={true}
+          />
 
-            {!esInsumo && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="precio_venta">Precio de Venta (S/)</Label>
-                  <Input
-                    id="precio_venta"
-                    type="number"
-                    step={0.01}
-                    value={values.precio_venta}
-                    onChange={(e) => setValues((p) => ({ ...p, precio_venta: Number(e.target.value) }))}
-                    placeholder="0.00"
-                    disabled={isSaving}
-                  />
-                </div>
+          <Checkbox
+            id="disponible_venta"
+            label="Disponible en Carta"
+            checked={values.disponible_venta}
+            onChange={(checked) => setValues((p) => ({ ...p, disponible_venta: checked }))}
+            disabled={isSaving || esInsumo}
+          />
 
-                <div>
-                  <Label htmlFor="costo_receta">Costo Receta Calculado (S/)</Label>
-                  <Input
-                    id="costo_receta"
-                    type="number"
-                    value={costoReceta.toFixed(2)}
-                    disabled
-                    hint="Calculado automáticamente por la receta"
-                  />
-                </div>
-              </div>
-            )}
-
-            {requiereEstacion && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Estación de Comanda / KDS *</Label>
-                  <Select
-                    options={estacionOptions}
-                    defaultValue={values.id_estacion ? String(values.id_estacion) : ""}
-                    placeholder="Seleccione estación..."
-                    disabled={isSaving}
-                    error={Boolean(showError("id_estacion"))}
-                    hint={showError("id_estacion") || "Define la impresora o pantalla KDS de destino."}
-                    onChange={(val) => setValues((p) => ({ ...p, id_estacion: val ? Number(val) : null }))}
-                  />
-                </div>
-
-                {esPlatoOTrago && (
-                  <div>
-                    <Label htmlFor="tiempo_prep_min">Tiempo Prep. Estimado (Min.)</Label>
-                    <Input
-                      id="tiempo_prep_min"
-                      type="number"
-                      value={values.tiempo_prep_min ?? 15}
-                      onChange={(e) => setValues((p) => ({ ...p, tiempo_prep_min: Number(e.target.value) }))}
-                      placeholder="15"
-                      disabled={isSaving}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-2">
-              <Checkbox
-                id="controla_stock"
-                label="Controla Stock"
-                checked={values.controla_stock}
-                onChange={(checked) => setValues((p) => ({ ...p, controla_stock: checked }))}
-                disabled={true}
-              />
-
-              <Checkbox
-                id="disponible_venta"
-                label="Disponible en Carta"
-                checked={values.disponible_venta}
-                onChange={(checked) => setValues((p) => ({ ...p, disponible_venta: checked }))}
-                disabled={isSaving || esInsumo}
-              />
-
-              <Checkbox
-                id="afecto_igv"
-                label="Afecto a IGV"
-                checked={values.afecto_igv}
-                onChange={(checked) => setValues((p) => ({ ...p, afecto_igv: checked }))}
-                disabled={isSaving}
-              />
-            </div>
-          </div>
+          <Checkbox
+            id="afecto_igv"
+            label="Afecto a IGV"
+            checked={values.afecto_igv}
+            onChange={(checked) => setValues((p) => ({ ...p, afecto_igv: checked }))}
+            disabled={isSaving}
+          />
         </div>
       </FormModal>
 
@@ -697,18 +601,18 @@ export function ProductoFormModal({
         <Modal
           isOpen={isLightboxOpen}
           onClose={() => setIsLightboxOpen(false)}
-          className="max-w-[500px] p-4 text-center"
+          className="max-w-[450px] p-4 text-center"
           showCloseButton={true}
         >
           <div className="space-y-3">
             <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-              {values.nombre || "Previsualización de Imagen"}
+              {values.nombre || "Previsualización"}
             </h4>
-            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-black/5 dark:bg-black/40 p-1">
+            <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-black/5 p-1">
               <img
                 src={imagePreview}
-                alt="Vista ampliada"
-                className="max-h-[380px] w-full object-contain rounded-lg mx-auto"
+                alt="Ampliada"
+                className="max-h-[350px] w-full object-contain rounded-lg mx-auto"
               />
             </div>
           </div>
@@ -719,35 +623,35 @@ export function ProductoFormModal({
         <Modal
           isOpen={showConfirmRemoveImage}
           onClose={() => setShowConfirmRemoveImage(false)}
-          className="max-w-[420px] p-6 text-center"
+          className="max-w-[380px] p-5 text-center"
           showCloseButton={false}
         >
-          <div className="space-y-4">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">
-              <Icon name="mdi:alert-circle-outline" size={28} />
+          <div className="space-y-3">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30">
+              <Icon name="mdi:alert-circle-outline" size={24} />
             </div>
             <div>
-              <h4 className="text-base font-bold text-gray-900 dark:text-white">
-                ¿Quitar la foto seleccionada?
+              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                ¿Quitar la foto?
               </h4>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Esta acción removerá la vista previa de la imagen. Los cambios se aplicarán al guardar el producto.
+                Se quitará la foto previa. Aplica al guardar el producto.
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setShowConfirmRemoveImage(false)}
-                className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                className="rounded-xl border border-gray-300 px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={confirmRemoveImage}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700 transition-colors cursor-pointer"
+                className="rounded-xl bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 cursor-pointer"
               >
-                Sí, Quitar Foto
+                Sí, Quitar
               </button>
             </div>
           </div>
