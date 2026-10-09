@@ -12,6 +12,7 @@ import {
   toggleDisponibilidadProducto,
   toggleProductoStatus,
   getUnidadesMedida,
+  getProductoById,
 } from "../services/productos.service";
 import { listCategorias } from "../categorias/services/categorias.service";
 import { listSubCategorias } from "../subcategorias/services/subcategorias.service";
@@ -42,6 +43,34 @@ export function useProductos() {
 
   const [estadoFiltro, setEstadoFiltro] = useState<ProductoStatusFilter>("activos");
   const [tipoFiltro, setTipoFiltro] = useState<number | undefined>(undefined);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<number | undefined>(undefined);
+  const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<number | undefined>(undefined);
+
+  /**
+   * Cambiar de categoría vuelve a pedir al backend y limpia la subcategoría:
+   * conservarla mostraría filas del contexto anterior.
+   */
+  function handleFilterCategoria(id: number | undefined) {
+    setCategoriaFiltro(id);
+    setSubcategoriaFiltro(undefined);
+    setPagina(1);
+  }
+
+  function handleFilterSubcategoria(id: number | undefined) {
+    setSubcategoriaFiltro(id);
+    setPagina(1);
+  }
+
+  function handleFilterTipo(id: number | undefined) {
+    setTipoFiltro(id);
+    setPagina(1);
+  }
+
+  function limpiarFiltrosCatalogo() {
+    setCategoriaFiltro(undefined);
+    setSubcategoriaFiltro(undefined);
+    setPagina(1);
+  }
 
   const [resumen, setResumen] = useState<ProductosResumen>({
     total: 0,
@@ -189,6 +218,8 @@ export function useProductos() {
         limite: pageSize,
         estado: estadoFiltro,
         tipo_producto: tipoFiltro,
+        id_categoria: categoriaFiltro,
+        id_subcategoria: subcategoriaFiltro,
       });
       setRegistros(result.registros ?? []);
       setTotal(result.total ?? 0);
@@ -198,7 +229,7 @@ export function useProductos() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, tipoFiltro, hasLoadedSession, currentUser, toast]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, tipoFiltro, categoriaFiltro, subcategoriaFiltro, hasLoadedSession, currentUser, toast]);
 
   useEffect(() => {
     void loadProductos();
@@ -267,15 +298,29 @@ export function useProductos() {
     if (isFormOpen || loadingProductoId !== null) return;
     setLoadingProductoId(producto.id);
 
-    const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_EDITAR);
-    if (!isValid) {
-      setLoadingProductoId(null);
-      return;
-    }
+    try {
+      const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_EDITAR);
+      if (!isValid) return;
 
-    setEditingProducto(producto);
-    setIsFormOpen(true);
-    setLoadingProductoId(null);
+      // Se pide el producto al backend en lugar de reutilizar la fila del
+      // listado: `afecto_igv`, `descripcion` y `tiempo_prep_min` pueden haber
+      // cambiado, y abrir con datos desactualizados los sobrescribe al guardar.
+      const fresco = await getProductoById(producto.id);
+      setEditingProducto(fresco);
+      setIsFormOpen(true);
+    } catch (error) {
+      // Ante un fallo no se abre el modal con la fila de la tabla: eso
+      // reintroduciría exactamente la pérdida de datos que se evita aquí.
+      toast(
+        "error",
+        "No se pudo cargar el producto",
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al obtener los datos. Inténtalo de nuevo.",
+      );
+    } finally {
+      setLoadingProductoId(null);
+    }
   }
 
   function closeFormModal() {
@@ -399,6 +444,12 @@ export function useProductos() {
     handleFilterStatus,
     tipoFiltro,
     setTipoFiltro,
+    handleFilterTipo,
+    categoriaFiltro,
+    subcategoriaFiltro,
+    handleFilterCategoria,
+    handleFilterSubcategoria,
+    limpiarFiltrosCatalogo,
     resumen,
     unidades,
     conversiones,

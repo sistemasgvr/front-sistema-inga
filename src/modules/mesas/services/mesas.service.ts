@@ -1,3 +1,4 @@
+import { notificarComandaConfirmada } from "@/shared/services/comandas-events";
 import {
   apiGet,
   apiGetPaginated,
@@ -75,7 +76,7 @@ export const listPedidosEnCurso = async (
   }
 };
 
-export const obtenerPedido = (id: number) => apiGet<Pedido>(`/pedidos/${id}`);
+export const obtenerPedido = (id: number, signal?: AbortSignal) => apiGet<Pedido>(`/pedidos/${id}`, { signal });
 
 export const abrirPedido = (values: AbrirPedidoValues) =>
   apiPost<Pedido>("/pedidos", values);
@@ -96,8 +97,16 @@ export const anularItem = (
 ) =>
   apiDelete<Pedido>(`/pedidos/${idPedido}/items/${idItem}`, { data: values });
 
-export const comandarPedido = (idPedido: number) =>
-  apiPost<Pedido>(`/pedidos/${idPedido}/comandar`);
+export const comandarPedido = async (idPedido: number) => {
+  const pedido = await apiPost<Pedido>(`/pedidos/${idPedido}/comandar`);
+  notificarComandaConfirmada();
+  return pedido;
+};
+
+export const entregarItemPedido = (idPedido: number, idItem: number, cantidadEntregada: number) =>
+  apiPost<Pedido>(`/pedidos/${idPedido}/items/${idItem}/entregar`, {
+    cantidad_entregada: cantidadEntregada,
+  });
 
 export const cambiarEstadoPedido = (
   idPedido: number,

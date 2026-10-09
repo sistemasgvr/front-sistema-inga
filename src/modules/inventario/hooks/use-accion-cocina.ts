@@ -12,7 +12,7 @@ export function useAccionCocina(item:CocinaItem,tipo:CocinaAccion,onSaved:()=>vo
   const [saving,setSaving]=useState(false),[error,setError]=useState("");
   const reparto=repartoCancelacion(item,cantidad);
   async function guardar(){
-    if(saving)return;
+    if(saving||!valido)return;
     setSaving(true);setError("");
     try{
       if(tipo==="entregar")await entregarItem(item,Number(item.cantidad_entregada)+cantidad);
@@ -25,7 +25,8 @@ export function useAccionCocina(item:CocinaItem,tipo:CocinaAccion,onSaved:()=>vo
       onSaved();
     }catch(e){setError(e instanceof Error?e.message:"No se pudo guardar.");}finally{setSaving(false);}
   }
-  return {cantidad,setCantidad,motivo,setMotivo,destino,setDestino,destinoInsumos,setDestinoInsumos,reparto,saving,error,guardar,
-    valido:cantidad>0&&cantidad<=Number(item.cantidad_pendiente)&&(tipo==="entregar"||!!motivo.trim()
-      &&(!reparto.pideDestinoPreparado||!!destino)&&(!reparto.pideDestinoInsumos||!!destinoInsumos))};
+  const valido=Number.isFinite(cantidad)&&cantidad>0&&cantidad<=Number(item.cantidad_pendiente)&&(tipo==="entregar"
+    ?cantidad<=Number(item.cantidad_reservada)
+    :!!motivo.trim()&&(!reparto.pideDestinoPreparado||!!destino)&&(!reparto.pideDestinoInsumos||!!destinoInsumos));
+  return {cantidad,setCantidad,motivo,setMotivo,destino,setDestino,destinoInsumos,setDestinoInsumos,reparto,saving,error,guardar,valido};
 }

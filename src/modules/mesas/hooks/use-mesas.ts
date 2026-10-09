@@ -191,6 +191,37 @@ export function useMesas() {
     [error],
   );
 
+  // Mantiene visible el avance de cocina sin vaciar ni bloquear el resumen.
+  useEffect(() => {
+    if (!pedido?.id || pedido.estado_pedido !== 2) return;
+    const id = pedido.id;
+    const controller = new AbortController();
+    let consultando = false;
+    async function refrescar() {
+      if (consultando || pending.current || document.visibilityState !== "visible") return;
+      consultando = true;
+      const revision = pedidoRequest.current;
+      try {
+        const actualizado = await api.obtenerPedido(id, controller.signal);
+        if (!controller.signal.aborted && !pending.current && revision === pedidoRequest.current) {
+          setPedido(actual => actual?.id === id ? actualizado : actual);
+        }
+      } catch {
+        // Un fallo temporal se reintenta sin interrumpir las acciones del usuario.
+      } finally { consultando = false; }
+    }
+    const timer = window.setInterval(() => void refrescar(), 3000);
+    const alVolver = () => void refrescar();
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
+  }, [pedido?.id, pedido?.estado_pedido]);
+
   const loadTurnoActivo = useCallback(async () => {
     setTurnoActivo(null);
     const user = getStoredUser();
@@ -240,6 +271,8 @@ export function useMesas() {
   ): Promise<boolean> {
     if (pending.current) return false;
     pending.current = true;
+    pedidoRequest.current++;
+    setLoadingPedido(false);
     setSaving(true);
     setFeedback(null);
     try {
@@ -289,6 +322,17 @@ export function useMesas() {
       if (!pedido) throw new Error("Seleccione un pedido.");
       setPedido(await api.comandarPedido(pedido.id));
     });
+  const entregarItem = (idItem: number) =>
+    mutate(async () => {
+      const item = pedido?.items.find(i => i.id === idItem);
+      if (!pedido || pedido.estado_pedido !== 2 || !item || item.estado !== 1 ||
+          item.tipo_linea === 3 || item.estado_preparacion !== 4)
+        throw new Error("Solo se pueden entregar platos listos.");
+      const objetivo = Number(item.cantidad) - Number(item.cantidad_cancelada);
+      if (objetivo <= Number(item.cantidad_entregada))
+        throw new Error("Este plato ya fue entregado.");
+      setPedido(await api.entregarItemPedido(pedido.id, item.id, objetivo));
+    }, "Plato entregado al cliente.");
   const cambiarEstado = (estado_pedido: number) =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
@@ -348,6 +392,7 @@ export function useMesas() {
     agregarItem,
     agregarItems,
     comandar,
+    entregarItem,
     cambiarEstado,
     anular,
     descartar,

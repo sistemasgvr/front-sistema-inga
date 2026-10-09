@@ -105,7 +105,7 @@ export function StockTable({
                     Costo prom: {formatMoney(item.costo_promedio)}
                   </span>
 
-                  {canManageStock ? (
+                  {canManageStock && !item.tiene_receta ? (
                     <button
                       type="button"
                       onClick={() => onAdjust(item)}
@@ -115,7 +115,7 @@ export function StockTable({
                       <Icon name="mdi:tune-vertical" size={20} />
                     </button>
                   ) : (
-                    <span className="text-xs italic text-gray-400">Protegido</span>
+                    <span className="text-xs italic text-gray-400">{item.tiene_receta ? "Gestionado por cocina" : "Protegido"}</span>
                   )}
                 </div>
               </div>
@@ -223,7 +223,7 @@ export function StockTable({
 
                         <TableCell className="px-5 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            {canManageStock ? (
+                            {canManageStock && !item.tiene_receta ? (
                               <button
                                 type="button"
                                 onClick={() => onAdjust(item)}
@@ -233,7 +233,7 @@ export function StockTable({
                                 <Icon name="mdi:tune-vertical" size={19} />
                               </button>
                             ) : (
-                              <span className="text-xs italic text-gray-400">Protegido</span>
+                              <span className="text-xs italic text-gray-400">{item.tiene_receta ? "Gestionado por cocina" : "Protegido"}</span>
                             )}
                           </div>
                         </TableCell>

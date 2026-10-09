@@ -20,6 +20,7 @@ interface PedidoPanelProps {
   saving: boolean;
   feedback: Feedback | null;
   onComandar: () => void;
+  onEntregarItem: (idItem: number) => void;
   onCambiarEstado: (estado: number) => void;
   onAnular: (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) => void;
   onActualizar?: () => void;
@@ -74,6 +75,7 @@ export function PedidoPanel({
   saving,
   feedback,
   onComandar,
+  onEntregarItem,
   onCambiarEstado,
   onAnular,
   onActualizar,
@@ -88,14 +90,18 @@ export function PedidoPanel({
   const [tipoComprobante, setTipoComprobante] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [tienePermisoAnular, setTienePermisoAnular] = useState(false);
+  const [tienePermisoEntregar, setTienePermisoEntregar] = useState(false);
 
   useEffect(() => {
     let active = true;
     void getMe().then((usuario) => {
+      if (active) setTienePermisoEntregar(Boolean(
+        usuario?.es_super_admin || usuario?.permisos?.includes(PermisoBanderas.PEDIDOS_ENTREGAR),
+      ));
       if (active) setTienePermisoAnular(Boolean(
         usuario?.es_super_admin || usuario?.permisos?.includes(PermisoBanderas.PEDIDOS_ANULAR),
       ));
-    });
+    }).catch(() => {});
     return () => { active = false; };
   }, []);
 
@@ -194,7 +200,12 @@ export function PedidoPanel({
         ) : (
           <div className="space-y-3">
             {pedido.items.map((item) => (
-              <PedidoItemRow key={item.id} item={item} />
+              <PedidoItemRow key={item.id} item={item}
+                entregando={saving || loading}
+                onEntregar={tienePermisoEntregar && pedido.estado_pedido === 2 &&
+                  item.estado === 1 && item.tipo_linea !== 3 && item.estado_preparacion === 4 &&
+                  Number(item.cantidad) > Number(item.cantidad_entregada) + Number(item.cantidad_cancelada)
+                  ? () => onEntregarItem(item.id) : undefined} />
             ))}
           </div>
         )}
@@ -346,7 +357,9 @@ export function PedidoPanel({
   );
 }
 
-function PedidoItemRow({ item }: { item: PedidoItem }) {
+function PedidoItemRow({ item, onEntregar, entregando }: {
+  item: PedidoItem; onEntregar?: () => void; entregando: boolean;
+}) {
   const esAnulado = item.tipo_linea === 3 || item.estado_preparacion === 6;
 
   return (
@@ -398,6 +411,13 @@ function PedidoItemRow({ item }: { item: PedidoItem }) {
           </p>
         </div>
       </div>
+      {onEntregar && <div className="mt-2 flex justify-end border-t border-gray-100 pt-2 dark:border-gray-700">
+        <button type="button" title="Entregar al cliente" aria-label={`Entregar ${item.nombre_producto} al cliente`}
+          disabled={entregando} onClick={onEntregar}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+          <Icon name="mdi:hand-extended" size={20} />
+        </button>
+      </div>}
     </div>
   );
 }

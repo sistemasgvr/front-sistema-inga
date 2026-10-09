@@ -3,6 +3,8 @@
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import { Combobox } from "@/components/form/Combobox";
+import Select from "@/components/form/Select";
+import Alert from "@/components/ui/alert/Alert";
 import { Modal } from "@/components/ui/modal";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
@@ -37,6 +39,19 @@ export function RecetaFormModal({
     crearNuevaVersionReceta,
     agregarInsumoAEnlace,
     quitarInsumoDeReceta,
+    tiposProducto,
+    categorias,
+    subcategorias,
+    isLoadingFiltros,
+    filtrosError,
+    cargarFiltros,
+    filtroTipo,
+    filtroCategoria,
+    filtroSubcategoria,
+    aplicarFiltroTipo,
+    aplicarFiltroCategoria,
+    aplicarFiltroSubcategoria,
+    limpiarFiltros,
   } = useRecetas(producto);
 
   const [selectedInsumoId, setSelectedInsumoId] = useState<number | null>(null);
@@ -55,8 +70,32 @@ export function RecetaFormModal({
     if (isOpen && producto?.id) {
       void cargarRecetaProducto();
       void buscarInsumos("");
+    } else if (!isOpen) {
+      // Al reabrir, los filtros de la sesión anterior no deben persistir.
+      limpiarFiltros();
+      setSelectedInsumoId(null);
+      setUnidadSimbolo("");
     }
-  }, [isOpen, producto?.id, cargarRecetaProducto, buscarInsumos]);
+  }, [isOpen, producto?.id, cargarRecetaProducto, buscarInsumos, limpiarFiltros]);
+
+  // Sub-plato elegido en el selector. Un insumo crudo nunca tiene receta, así que
+// este estado solo existe cuando el usuario compone platos con platos.
+  const insumoSeleccionado = insumosBusqueda.find((i) => i.id === selectedInsumoId);
+
+  const hayFiltrosActivos = Boolean(
+    filtroTipo || filtroCategoria || filtroSubcategoria
+  );
+
+  /**
+   * prod_preparar rechaza la producción anticipada si la receta tiene grupos de
+   * sustitución: el sub-plato solo podrá producirse cuando llegue el pedido.
+   * Se avisa al seleccionar, no al guardar, para que la decisión sea informada.
+   */
+  const avisoSustitucion = insumoSeleccionado?.tiene_grupos_sustitucion
+    ? `"${insumoSeleccionado.nombre}" tiene insumos con grupo de sustitución. ` +
+      `No podrá anticiparse en el almacén: solo se prepara al momento del pedido, ` +
+      `eligiendo una de sus alternativas.`
+    : null;
 
   const handleSelectInsumo = (valueStr: string) => {
     const id = Number(valueStr);
@@ -129,10 +168,18 @@ export function RecetaFormModal({
     (i) => !ingredientesExistentesIds.has(i.id)
   );
 
+  // El recetario es multi-nivel: un sub-plato se marca para que el usuario no lo
+// confunda con un insumo crudo. Su costo y su desglose están en otro nivel.
   const comboboxOptions = insumosDisponibles.map((i) => ({
     value: String(i.id),
-    label: i.nombre,
-    sublabel: `Código: ${i.codigo_interno || "N/A"} | Porción UM: ${i.simbolo_unidad || "und"}`,
+    label: i.tiene_receta ? `${i.nombre}  ·  sub-plato` : i.nombre,
+    sublabel: [
+      `Código: ${i.codigo_interno || "N/A"}`,
+      i.simbolo_unidad ? `Porción UM: ${i.simbolo_unidad}` : null,
+      i.nombre_tipo_producto ? `Tipo: ${i.nombre_tipo_producto}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | "),
   }));
 
   const isAddDisabled = isSaving || !selectedInsumoId || cantidadInput <= 0;
@@ -204,15 +251,93 @@ export function RecetaFormModal({
                 <Badge size="sm" color="success">Vigente</Badge>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 items-end">
-                <div className="sm:col-span-5">
-                  <Label>Insumo Procesado *</Label>
+              {/* Filtros del recetario, en fila propia de ancho completo: el selector
+                      admite insumos crudos y sub-platos, así que tipo, categoría
+                      y subcategoría acotan el universo igual que en el catálogo.
+                      Cada uno ocupa la misma columna para que ninguno quede
+                      apretado dentro del campo del selector. */}
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <Label>Tipo</Label>
+                    <Select
+                      options={[
+                        { value: "", label: "Todos" },
+                        ...tiposProducto.map((t) => ({
+                          value: String(t.id),
+                          label: t.nombre,
+                        })),
+                      ]}
+                      defaultValue={filtroTipo ? String(filtroTipo) : ""}
+                      onChange={(v) => void aplicarFiltroTipo(v ? Number(v) : null)}
+                      onOpen={() => void cargarFiltros()}
+                      isLoading={isLoadingFiltros}
+                      loadError={filtrosError}
+                    />
+                  </div>
+                  <div>
+                    <Label>Categoría</Label>
+                    <Select
+                      options={[
+                        { value: "", label: "Todas" },
+                        ...categorias.map((c) => ({
+                          value: String(c.id),
+                          label: c.nombre,
+                        })),
+                      ]}
+                      defaultValue={filtroCategoria ? String(filtroCategoria) : ""}
+                      onChange={(v) =>
+                        void aplicarFiltroCategoria(v ? Number(v) : null)
+                      }
+                      onOpen={() => void cargarFiltros()}
+                      isLoading={isLoadingFiltros}
+                      loadError={filtrosError}
+                    />
+                  </div>
+                  <div>
+                    <Label>Subcategoría</Label>
+                    <Select
+                      options={[
+                        { value: "", label: "Todas" },
+                        ...subcategorias.map((s) => ({
+                          value: String(s.id),
+                          label: s.nombre,
+                        })),
+                      ]}
+                      defaultValue={
+                        filtroSubcategoria ? String(filtroSubcategoria) : ""
+                      }
+                      onChange={(v) =>
+                        void aplicarFiltroSubcategoria(v ? Number(v) : null)
+                      }
+                      onOpen={() => void cargarFiltros()}
+                      isLoading={isLoadingFiltros}
+                      loadError={filtrosError}
+                      // Sin categoría no hay subcategorías que ofrecer.
+                      disabled={!filtroCategoria}
+                    />
+                  </div>
+                </div>
+
+                {hayFiltrosActivos && (
+                  <button
+                    type="button"
+                    onClick={limpiarFiltros}
+                    className="mb-3 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
+                  >
+                    <Icon name="mdi:filter-remove-outline" size={14} />
+                    Limpiar filtros
+                  </button>
+                )}
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 items-end">
+                  <div className="sm:col-span-5">
+                  <Label>Insumo o sub-plato *</Label>
                   <Combobox
                     options={comboboxOptions}
                     placeholder={
                       comboboxOptions.length === 0 && insumosBusqueda.length > 0
                         ? "Sin insumos disponibles"
-                        : "Buscar ingrediente..."
+                        : "Buscar insumo o plato..."
                     }
                     searchPlaceholder="Buscar por código o nombre..."
                     onChange={handleSelectInsumo}
@@ -221,6 +346,18 @@ export function RecetaFormModal({
                     isLoading={isSearchingInsumos}
                     disabled={isSaving || comboboxOptions.length === 0}
                   />
+
+                  {/* Aviso de producción anticipada: se muestra al seleccionar,
+                      para que la restricción se conozca antes de guardar. */}
+                  {avisoSustitucion && (
+                    <div className="mt-2">
+                      <Alert
+                        variant="warning"
+                        title="Preparación solo por pedido"
+                        message={avisoSustitucion}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="sm:col-span-3">
@@ -272,6 +409,7 @@ export function RecetaFormModal({
                       <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Cantidad</TableCell>
                       <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Unidad</TableCell>
                       <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo Est.</TableCell>
+                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subtotal</TableCell>
                       <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">% Merma</TableCell>
                       <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Acciones</TableCell>
                     </TableRow>
@@ -279,7 +417,7 @@ export function RecetaFormModal({
                   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                     {(!recetaActiva.insumos || recetaActiva.insumos.length === 0) ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="px-4 py-6 text-center text-xs text-gray-400">
+                        <TableCell colSpan={7} className="px-4 py-6 text-center text-xs text-gray-400">
                           No hay ingredientes registrados en esta versión.
                         </TableCell>
                       </TableRow>
@@ -324,6 +462,10 @@ export function RecetaFormModal({
                                   <Icon name="mdi:alert-circle-outline" size={15} />
                                 </div>
                               )}
+                            </TableCell>
+
+                            <TableCell className="px-4 py-3 text-end text-xs font-semibold text-gray-700 dark:text-gray-300">
+                              S/ {Number(item.monto_subtotal ?? 0).toFixed(2)}
                             </TableCell>
 
                             <TableCell className="px-4 py-3 text-center text-xs text-gray-600 dark:text-gray-400">

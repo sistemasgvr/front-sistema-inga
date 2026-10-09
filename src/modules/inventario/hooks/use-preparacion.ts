@@ -7,6 +7,7 @@ import type { CocinaItem, Disponibilidad, PreparacionValues } from "../types/coc
 export function usePreparacion(sucursal:number,item:CocinaItem|null,onSaved:()=>void) {
   const productos=useLazyOptions(useCallback((signal:AbortSignal)=>listarPreparables(sucursal,signal),[sucursal]));
   const [producto,setProducto]=useState("");
+  const [insumosConfirmados,setInsumosConfirmados]=useState(false);
   const [cantidad,setCantidad]=useState(item ? Math.max(0,Number(item.cantidad_pendiente)-Number(item.cantidad_reservada)):1);
   const [disponibilidad,setDisponibilidad]=useState<Disponibilidad|null>(null);
   const [loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState("");
@@ -18,7 +19,7 @@ export function usePreparacion(sucursal:number,item:CocinaItem|null,onSaved:()=>
   useEffect(()=>{void productos.load();},[productos.load]);
   useEffect(()=>{
     const controller=new AbortController();
-    setDisponibilidad(null);setError("");setLoading(false);
+    setDisponibilidad(null);setError("");setLoading(false);setInsumosConfirmados(false);
     if(receta && almacen && cantidad>0){
       setLoading(true);
       void disponibilidadPreparacion({codigo:"",id_receta:receta,id_almacen_destino:almacen,cantidad,id_pedido_detalle:item?.id},controller.signal)
@@ -29,7 +30,7 @@ export function usePreparacion(sucursal:number,item:CocinaItem|null,onSaved:()=>
     return ()=>controller.abort();
   },[receta,almacen,cantidad,item?.id,revision]);
   async function guardar(){
-    if(saving||!disponibilidad||loading)return;
+    if(saving||!puedeGuardar)return;
     setSaving(true);setError("");
     const data={id_receta:receta,id_almacen_destino:almacen,cantidad,id_pedido_detalle:item?.id};
     const key=JSON.stringify(data);
@@ -38,7 +39,10 @@ export function usePreparacion(sucursal:number,item:CocinaItem|null,onSaved:()=>
     catch(e){setError(e instanceof Error?e.message:"No se pudo registrar la preparación.");}
     finally{setSaving(false);}
   }
-  return {productos,producto,cambiarProducto:(id:string)=>{setProducto(id);setRevision(v=>v+1);},cantidad,setCantidad,
+  const puedeGuardar=!!disponibilidad&&!loading&&Number.isFinite(cantidad)&&cantidad>0&&
+    (!item||(insumosConfirmados&&cantidad<=Number(item.cantidad_pendiente)-Number(item.cantidad_reservada)))&&
+    disponibilidad.ingredientes.every(i=>Number(i.faltante)===0);
+  return {insumosConfirmados,setInsumosConfirmados,productos,producto,cambiarProducto:(id:string)=>{setProducto(id);setRevision(v=>v+1);},cantidad,setCantidad,
     disponibilidad,loading,saving,error,guardar,almacen:elegido?.almacen,
-    puedeGuardar:!!disponibilidad&&!loading&&cantidad>0&&disponibilidad.ingredientes.every(i=>Number(i.faltante)===0)};
+    puedeGuardar};
 }

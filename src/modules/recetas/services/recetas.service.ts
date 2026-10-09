@@ -6,16 +6,26 @@ import type {
   GuardarInsumoPayload,
   RecetaInsumoItem,
   InsumoProcesadoBusquedaItem,
+  FiltroInsumosReceta,
 } from "../types/recetas.types";
 
 /**
- * Filtra insumos procesados (tipo 2) para el buscador del modal de recetas.
+ * Busca insumos para el recetario.
+ *
+ * El recetario es multi-nivel, así que devuelve tanto insumos crudos como
+ * platos que ya tienen receta propia. Todos exigen `controla_stock`, que es
+ * lo que el motor necesita para apartarlos al comandar.
  */
 export async function getInsumosProcesadosApi(
-  busqueda: string = ""
+  filtros: FiltroInsumosReceta = {}
 ): Promise<InsumoProcesadoBusquedaItem[]> {
   const response = await apiGet<any>("/productos/insumos-procesados", {
-    params: { busqueda },
+    params: {
+      busqueda: filtros.busqueda || undefined,
+      id_tipo_producto: filtros.id_tipo_producto || undefined,
+      id_categoria: filtros.id_categoria || undefined,
+      id_subcategoria: filtros.id_subcategoria || undefined,
+    },
   });
   if (Array.isArray(response)) return response;
   if (Array.isArray(response?.registros)) return response.registros;

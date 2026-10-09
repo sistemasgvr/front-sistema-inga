@@ -18,7 +18,7 @@ export async function buscarCarta(filtros: FiltrosCarta, signal: AbortSignal) {
     id_subcategoria: filtros.id_subcategoria || undefined,
   }, signal);
   // Los insumos de almacén no forman parte de la carta para atención.
-  return items.filter(p => p.disponible_venta && [3, 4, 5, 6, 7].includes(Number(p.tipo_producto)));
+  return items.filter(p => p.disponible_venta && p.permite_venta);
 }
 
 type CategoriaCarta = { id: number; nombre: string };

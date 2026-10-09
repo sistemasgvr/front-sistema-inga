@@ -226,6 +226,7 @@ export function MesasView() {
             saving={m.saving}
             feedback={m.feedback}
             onComandar={() => void m.comandar()}
+            onEntregarItem={(id) => void m.entregarItem(id)}
             onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
             onAnular={(values) => void m.anular(values)}
             onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
@@ -305,6 +306,7 @@ export function MesasView() {
               feedback={null}
               hideAgregar
               onComandar={() => void m.comandar()}
+              onEntregarItem={(id) => void m.entregarItem(id)}
               onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
               onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
               onAnular={(values) => {

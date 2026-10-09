@@ -1,13 +1,14 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { useState } from "react";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
-import { useCatalogo } from "@/shared/hooks/useCatalogo";
+import { useTiposProducto, TipoProductoFormModal } from "@/modules/tipos-producto";
 import { useProductos } from "../hooks/use-productos";
 import { ProductosTable } from "./productos-table";
 import { ProductoFormModal } from "./producto-form-modal";
@@ -27,7 +28,11 @@ export function ProductosView() {
     estadoFiltro,
     handleFilterStatus,
     tipoFiltro,
-    setTipoFiltro,
+    handleFilterTipo,
+    categoriaFiltro,
+    subcategoriaFiltro,
+    handleFilterCategoria,
+    handleFilterSubcategoria,
     resumen,
     unidades,
     categorias,
@@ -36,6 +41,7 @@ export function ProductosView() {
     estaciones,
     isLoading,
     isSaving,
+    loadingProductoId,
     editingProducto,
     isFormOpen,
     openCreateModal, loadCatalogosAuxiliares,
@@ -55,15 +61,33 @@ export function ProductosView() {
     confirmToggleStatus,
   } = useProductos();
 
-  const { opciones: tiposProductoBD } = useCatalogo("PRODUCTO_TIPO");
+  const tipos = useTiposProducto();
+  const tiposProductoBD = tipos.options;
   const isDesactivar = confirmProducto?.estado === 1;
 
   const tipoSelectOptions = [
     { value: "", label: "Todos los tipos" },
     ...tiposProductoBD.map((t) => ({
-      value: String(t.valor_entero),
+      value: String(t.id),
       label: t.nombre,
     })),
+  ];
+
+  // Alta de un tipo de producto nuevo desde el "+" del filtro de tipo.
+  const [isTipoModalOpen, setIsTipoModalOpen] = useState(false);
+
+  const categoriaSelectOptions = [
+    { value: "", label: "Todas las categorías" },
+    ...categorias.map((c) => ({ value: String(c.id), label: c.nombre })),
+  ];
+
+  // Solo las subcategorías de la categoría elegida: el backend filtra igual,
+  // pero mostrar todas dejaría elegir una que la consulta va a descartar.
+  const subcategoriaSelectOptions = [
+    { value: "", label: "Todas las subcategorías" },
+    ...subcategorias
+      .filter((s) => !categoriaFiltro || s.id_categoria === categoriaFiltro)
+      .map((s) => ({ value: String(s.id), label: s.nombre })),
   ];
 
   return (
@@ -113,8 +137,8 @@ export function ProductosView() {
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:max-w-xl">
-          <div className="w-full">
+<div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:max-w-4xl">
+          <div>
             <Input
               type="search"
               placeholder="Buscar por código o nombre..."
@@ -123,15 +147,46 @@ export function ProductosView() {
             />
           </div>
 
-          <div className="w-full sm:w-56">
+          {/* Tipo: el "+" crea un tipo de producto nuevo sin salir de la vista. */}
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Select
+                options={tipoSelectOptions}
+                onOpen={() => void tipos.load()} isLoading={tipos.isLoading} loadError={tipos.error}
+                defaultValue={tipoFiltro ? String(tipoFiltro) : ""}
+                placeholder="Tipo producto..."
+                onChange={(val) => handleFilterTipo(val ? Number(val) : undefined)}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTipoModalOpen(true)}
+              title="Crear un tipo de producto"
+              className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:text-brand-500"
+            >
+              <Icon name="mdi:plus" size={20} />
+            </button>
+          </div>
+
+          <div>
             <Select
-              options={tipoSelectOptions}
-              defaultValue={tipoFiltro ? String(tipoFiltro) : ""}
-              placeholder="Tipo producto..."
-              onChange={(val) => {
-                setTipoFiltro(val ? Number(val) : undefined);
-                setPagina(1);
-              }}
+              options={categoriaSelectOptions}
+              onOpen={() => void loadCatalogosAuxiliares()}
+              defaultValue={categoriaFiltro ? String(categoriaFiltro) : ""}
+              placeholder="Categoría..."
+              onChange={(val) => handleFilterCategoria(val ? Number(val) : undefined)}
+            />
+          </div>
+
+          {/* Sin categoría no hay subcategorías que ofrecer. */}
+          <div>
+            <Select
+              options={subcategoriaSelectOptions}
+              onOpen={() => void loadCatalogosAuxiliares()}
+              defaultValue={subcategoriaFiltro ? String(subcategoriaFiltro) : ""}
+              placeholder="Subcategoría..."
+              disabled={!categoriaFiltro}
+              onChange={(val) => handleFilterSubcategoria(val ? Number(val) : undefined)}
             />
           </div>
         </div>
@@ -144,6 +199,7 @@ export function ProductosView() {
       <ProductosTable
         productos={registros}
         isLoading={isLoading}
+        loadingProductoId={loadingProductoId}
         onEdit={openEditModal}
         onToggleDisponibilidad={handleToggleDisponibilidad}
         onToggleStatus={openConfirmModal}
@@ -174,6 +230,19 @@ export function ProductosView() {
         unidades={unidades}
         onRecetaUpdated={() => setPagina((p) => p)}
       />
+
+      {/* Se recarga el catálogo de tipos para que el nuevo quede disponible
+          en el filtro, y se deja seleccionado. */}
+      {isTipoModalOpen && (
+        <TipoProductoFormModal
+          onClose={() => setIsTipoModalOpen(false)}
+          onCreated={(nuevo) => {
+            setIsTipoModalOpen(false);
+            void tipos.load();
+            handleFilterTipo(nuevo.id);
+          }}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={isConfirmOpen}

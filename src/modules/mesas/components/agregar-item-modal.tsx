@@ -17,7 +17,7 @@ import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { NavTabs } from "@/components/ui/table/NavTabs";
-import { LISTA_IDS, useLista } from "@/modules/listas";
+import { useTiposProducto } from "@/modules/tipos-producto";
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 import { useCarta, useAdicionalesCarta } from "../hooks/use-carta";
 import {
@@ -93,7 +93,7 @@ function CartaContent({
   closeConfirmMessage,
 }: AgregarItemModalProps) {
   const carta = useCarta();
-  const tipos = useLista(LISTA_IDS.PRODUCTO_TIPO);
+  const tipos = useTiposProducto(isOpen);
   const categorias = useLazyOptions(listarCategoriasCarta);
   const [seleccionado, setSeleccionado] = useState<ProductoOption | null>(null);
   const [revision, setRevision] = useState(0);
@@ -110,19 +110,7 @@ function CartaContent({
     Number(cantidad) <= 999;
   const tabs = [
     { id: "", label: "Toda la carta" },
-    ...tipos.opciones
-      .filter(
-        (t) =>
-          t.valor_entero !== null &&
-          [
-            "PLATO_CARTA",
-            "PLATO_MENU",
-            "TRAGO",
-            "BEBIDA_UNITARIA",
-            "ADICIONAL",
-          ].includes(t.codigo),
-      )
-      .map((t) => ({ id: String(t.valor_entero), label: t.nombre })),
+    ...tipos.options.filter(t => t.permite_venta).map(t => ({ id: String(t.id), label: t.nombre })),
   ];
 
   const cambiarFiltro = (cambio: Partial<FiltrosCarta>) => {
@@ -327,7 +315,7 @@ function CartaContent({
             {tipos.error && (
               <div className="flex items-center gap-3 text-sm text-error-500">
                 <span>{tipos.error}</span>
-                <Button size="sm" variant="outline" onClick={tipos.recargar}>
+                <Button size="sm" variant="outline" onClick={tipos.load}>
                   Reintentar tipos
                 </Button>
               </div>

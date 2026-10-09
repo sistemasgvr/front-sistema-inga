@@ -96,6 +96,7 @@ export type ProductoOption = {
   nombre_categoria: string;
   disponible_venta: boolean;
   tipo_producto: number;
+  permite_venta: boolean;
   id_subcategoria: number;
   nombre_subcategoria: string;
   controla_stock: boolean;

@@ -61,4 +61,26 @@ export type InsumoProcesadoBusquedaItem = {
   simbolo_unidad: string;
   nombre_unidad: string;
   costo_promedio?: number;
+  tipo_producto?: number | null;
+  nombre_tipo_producto?: string | null;
+  id_categoria?: number | null;
+  id_subcategoria?: number | null;
+  /**
+   * Indica que el producto tiene su propia receta, es decir, es un sub-plato.
+   * La UI lo distingue del insumo crudo porque arrastra su propio desglose.
+   */
+  tiene_receta?: boolean;
+  /**
+   * El sub-plato tiene insumos con grupo de sustitución. Prod_preparar rechaza
+   * la producción anticipada en ese caso: solo podrá preparedse por pedido.
+   */
+  tiene_grupos_sustitucion?: boolean;
+  costo_receta_calculado?: number;
+};
+
+export type FiltroInsumosReceta = {
+  busqueda?: string;
+  id_tipo_producto?: number | null;
+  id_categoria?: number | null;
+  id_subcategoria?: number | null;
 };

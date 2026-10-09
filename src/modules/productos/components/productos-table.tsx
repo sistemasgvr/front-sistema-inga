@@ -10,25 +10,19 @@ import type { ProductoItem } from "../types/productos.types";
 type ProductosTableProps = {
   productos: ProductoItem[];
   isLoading: boolean;
+  /** Id del producto cuyas acciones están en curso, si hay alguna. */
+  loadingProductoId: number | null;
   onEdit: (prod: ProductoItem) => void;
   onToggleDisponibilidad: (id: number) => void;
   onToggleStatus: (prod: ProductoItem) => void;
   onManageReceta: (prod: ProductoItem) => void;
 };
 
-const TIPO_PRODUCTO_MAP: Record<number, { label: string; color: string }> = {
-  1: { label: "Insumo Crudo", color: "warning" },
-  2: { label: "Insumo Procesado", color: "info" },
-  3: { label: "Plato Carta", color: "success" },
-  4: { label: "Plato Menú", color: "success" },
-  5: { label: "Trago", color: "primary" },
-  6: { label: "Bebida U.", color: "primary" },
-  7: { label: "Adicional", color: "light" },
-};
 
 export function ProductosTable({
   productos,
   isLoading,
+  loadingProductoId,
   onEdit,
   onToggleDisponibilidad,
   onToggleStatus,
@@ -48,7 +42,7 @@ export function ProductosTable({
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Ítem / Código</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subcategoría</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Tipo</TableCell>
-                  <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo Receta</TableCell>
+                  <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Precio Venta</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Disponible</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Estado</TableCell>
@@ -67,9 +61,11 @@ export function ProductosTable({
                 ) : (
                   safeProductos.map((prod) => {
                     const isActivo = prod.estado === 1;
-                    const tipoInfo = TIPO_PRODUCTO_MAP[prod.tipo_producto] || { label: "General", color: "light" };
-                    const aceptaReceta = [3, 4, 5].includes(prod.tipo_producto);
-                    const costoReceta = Number(prod.costo_receta_calculado || 0);
+                    const tipoInfo = { label: prod.nombre_tipo_producto || "Sin tipo", color: "light" };
+                    const aceptaReceta = Boolean(prod.requiere_receta);
+                    const costo = aceptaReceta
+                      ? prod.costo_receta_calculado
+                      : prod.costo_unitario;
 
                     return (
                       <TableRow key={prod.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
@@ -112,9 +108,12 @@ export function ProductosTable({
                         </TableCell>
 
                         <TableCell className="px-5 py-4 text-end">
-                          {aceptaReceta ? (
-                            <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                              S/ {costoReceta.toFixed(2)}
+                          {costo != null ? (
+                            <span
+                              className="text-sm font-semibold text-amber-600 dark:text-amber-400"
+                              title={aceptaReceta ? "Costo de receta" : "Costo unitario"}
+                            >
+                              S/ {Number(costo).toFixed(2)}
                             </span>
                           ) : (
                             <span className="text-xs text-gray-400">—</span>
@@ -128,6 +127,7 @@ export function ProductosTable({
                         <TableCell className="px-5 py-4 text-center">
                           <button
                             type="button"
+                            disabled={!prod.permite_venta}
                             onClick={() => onToggleDisponibilidad(prod.id)}
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
                               prod.disponible_venta
@@ -137,7 +137,7 @@ export function ProductosTable({
                             title="Cambiar disponibilidad en carta"
                           >
                             <Icon name={prod.disponible_venta ? "mdi:check" : "mdi:close"} size={14} />
-                            {prod.disponible_venta ? "En Carta" : "Agotado"}
+                            {!prod.permite_venta ? "No aplica" : prod.disponible_venta ? "En Carta" : "Agotado"}
                           </button>
                         </TableCell>
 
@@ -161,10 +161,22 @@ export function ProductosTable({
                               <button
                                 type="button"
                                 onClick={() => onEdit(prod)}
-                                className="text-gray-500 hover:text-brand-600 transition-colors cursor-pointer"
-                                title="Editar producto"
+                                disabled={loadingProductoId !== null}
+                                className="text-gray-500 hover:text-brand-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={
+                                  loadingProductoId === prod.id
+                                    ? "Cargando producto..."
+                                    : "Editar producto"
+                                }
                               >
-                                <Icon name="mdi:pencil-outline" size={19} />
+                                <Icon
+                                  name={
+                                    loadingProductoId === prod.id
+                                      ? "mdi:loading"
+                                      : "mdi:pencil-outline"
+                                  }
+                                  size={19}
+                                />
                               </button>
                             )}
                             <button
@@ -192,12 +204,18 @@ export function ProductosTable({
           isOpen={Boolean(selectedImage)}
           onClose={() => setSelectedImage(null)}
           className="max-w-[500px] p-4 text-center"
-          showCloseButton={true}
+          showCloseButton={false}
         >
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-              {selectedImage.nombre}
-            </h4>
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+              <h4 className="col-start-2 break-words text-sm font-bold text-gray-900 dark:text-white">
+                {selectedImage.nombre}
+              </h4>
+              <button type="button" aria-label="Cerrar imagen" onClick={() => setSelectedImage(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
+                <Icon name="mdi:close" size={24} />
+              </button>
+            </div>
             <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-black/5 dark:bg-black/40 p-1">
               <img
                 src={selectedImage.url}

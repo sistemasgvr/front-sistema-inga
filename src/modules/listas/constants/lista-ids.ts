@@ -1,7 +1,6 @@
 export const LISTA_IDS = {
-  // Pendientes: reemplazar 0 con los IDs reales de gen_lista al configurar la BD.
-  ALM_TIPO_MOVIMIENTO: 0 as number,
-  ALM_MOTIVO_MOVIMIENTO: 0 as number,
+  ALM_TIPO_MOVIMIENTO: 41,
+  ALM_MOTIVO_MOVIMIENTO: 42,
   ALMACEN_TIPO: 1,
   ESTACION_TIPO: 2,
   PRODUCTO_TIPO: 3,

@@ -17,8 +17,14 @@ export type ProductoItem = {
   nombre: string;
   descripcion?: string | null;
   tipo_producto: number;
+  nombre_tipo_producto?: string;
+  permite_venta?: boolean;
+  requiere_receta?: boolean;
+  requiere_estacion?: boolean;
+  permite_stock_inicial?: boolean;
   precio_venta: number;
   costo_receta_calculado?: number;
+  costo_unitario?: number;
   afecto_igv: boolean;
   controla_stock: boolean;
   disponible_venta: boolean;

@@ -9,7 +9,12 @@ import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { Modal } from "@/components/ui/modal";
 import { Icon } from "@/components/ui/icon";
-import { ListaSelect, LISTA_IDS } from "@/modules/listas";
+import {
+  useTiposProducto,
+  TipoProductoFormModal,
+  type TipoProducto,
+} from "@/modules/tipos-producto";
+import { aplicarReglasTipo } from "../utils/producto-reglas";
 import { useProductoCatalogos } from "../hooks/use-producto-catalogos";
 import { useToast } from "@/components/ui/toast/ToastContext";
 import { uploadProductoImagenApi } from "../services/productos.service";
@@ -47,13 +52,17 @@ export function ProductoFormModal({
 }: ProductoFormModalProps) {
   const { toast } = useToast();
 
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null);
-  const cat = useProductoCatalogos(isOpen,selectedCategoriaId);
-  const unidades=cat.unidades.options,categorias=cat.categorias.options,subcategorias=cat.subcategorias.options,
-    almacenes=cat.almacenes.options,estaciones=cat.estaciones.options;
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(
+    null,
+  );
+  const cat = useProductoCatalogos(isOpen, selectedCategoriaId);
+  const unidades = cat.unidades.options,
+    categorias = cat.categorias.options,
+    subcategorias = cat.subcategorias.options,
+    almacenes = cat.almacenes.options,
+    estaciones = cat.estaciones.options;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -80,17 +89,21 @@ export function ProductoFormModal({
   const [costoReceta, setCostoReceta] = useState<number>(0);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const tipo = Number(values.tipo_producto);
-  const esCrudo = tipo === 1;
-  const esProcesado = tipo === 2;
-  const esPlatoOTrago = [3, 4, 5].includes(tipo);
-  const esInsumo = esCrudo || esProcesado;
-  const requiereEstacion = [3, 4, 5, 6].includes(tipo);
-  const requiereAlmacen = esInsumo || esPlatoOTrago || tipo === 6 || values.controla_stock;
+  const tipos = useTiposProducto(isOpen);
+  const [isTipoOpen, setIsTipoOpen] = useState(false);
+  const tipoSeleccionado = tipos.options.find(
+    (t) => Number(t.id) === Number(values.tipo_producto),
+  );
+  const permiteVenta = tipoSeleccionado?.permite_venta ?? false;
+  const requiereReceta = tipoSeleccionado?.requiere_receta ?? false;
+  const permiteStockInicial = tipoSeleccionado?.permite_stock_inicial ?? false;
+  const requiereEstacion = tipoSeleccionado?.requiere_estacion ?? false;
+  const requiereAlmacen = values.controla_stock;
 
   useEffect(() => {
     if (!isOpen) return;
 
+    setIsTipoOpen(false);
     setSelectedFile(null);
     setShowConfirmRemoveImage(false);
     setServerError(null);
@@ -126,7 +139,7 @@ export function ProductoFormModal({
         ? subcategorias.filter((s) => s.id_categoria === firstCatId)
         : subcategorias;
 
-      const defaultTipo = 3;
+      const defaultTipo = 0;
 
       setValues({
         id_subcategoria: subFilt[0]?.id ?? subcategorias[0]?.id ?? 0,
@@ -140,7 +153,7 @@ export function ProductoFormModal({
         precio_venta: 0,
         afecto_igv: true,
         controla_stock: true,
-        disponible_venta: [3, 4, 5, 6, 7].includes(defaultTipo),
+        disponible_venta: false,
         tiempo_prep_min: 15,
         imagen_url: "",
       });
@@ -153,21 +166,23 @@ export function ProductoFormModal({
     ? subcategorias.filter((s) => s.id_categoria === selectedCategoriaId)
     : subcategorias;
 
-  function handleTipoProductoChange(val: string) {
-    const numTipo = Number(val);
-    const isIns = [1, 2].includes(numTipo);
-    const isVend = [3, 4, 5, 6, 7].includes(numTipo);
+  function seleccionarTipo(tipo: TipoProducto) {
+    setValues((previous) =>
+      aplicarReglasTipo(
+        {
+          ...previous,
+          disponible_venta: tipo.permite_venta,
+          stock_inicial: 0,
+          costo_inicial: 0,
+        },
+        tipo,
+      ),
+    );
+  }
 
-    setValues((p) => ({
-      ...p,
-      tipo_producto: numTipo,
-      controla_stock: numTipo >= 1 && numTipo <= 6,
-      disponible_venta: isIns ? false : isVend,
-      precio_venta: isIns ? 0 : p.precio_venta,
-      id_estacion: [3, 4, 5, 6].includes(numTipo) ? p.id_estacion || (estaciones[0]?.id ?? null) : null,
-      id_almacen_stock: numTipo<=6 ? p.id_almacen_stock : null,
-      stock_inicial:0,
-    }));
+  function handleTipoProductoChange(val: string) {
+    const tipo = tipos.options.find((item) => Number(item.id) === Number(val));
+    if (tipo) seleccionarTipo(tipo);
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -175,7 +190,11 @@ export function ProductoFormModal({
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast("error", "Formato inválido", "Solo se admiten imágenes JPG, PNG o WEBP.");
+      toast(
+        "error",
+        "Formato inválido",
+        "Solo se admiten imágenes JPG, PNG o WEBP.",
+      );
       e.target.value = "";
       return;
     }
@@ -198,65 +217,17 @@ export function ProductoFormModal({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function sanearPayloadPorTipo(raw: ProductoFormValues): ProductoFormValues {
-    const t = Number(raw.tipo_producto);
-
-    switch (t) {
-      case 1:
-      case 2:
-        return {
-          ...raw,
-          precio_venta: 0,
-          controla_stock: true,
-          disponible_venta: false,
-          id_estacion: null,
-          tiempo_prep_min: undefined,
-        };
-
-      case 3:
-      case 4:
-      case 5:
-        return {
-          ...raw,
-          precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
-          controla_stock: true,
-          stock_inicial: 0,
-          disponible_venta: Boolean(raw.disponible_venta),
-          id_almacen_stock: raw.id_almacen_stock,
-          id_estacion: raw.id_estacion ? Number(raw.id_estacion) : null,
-          tiempo_prep_min: raw.tiempo_prep_min ? Number(raw.tiempo_prep_min) : 15,
-        };
-
-      case 6:
-        return {
-          ...raw,
-          precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
-          controla_stock: true,
-          disponible_venta: Boolean(raw.disponible_venta),
-          id_almacen_stock: raw.id_almacen_stock ? Number(raw.id_almacen_stock) : null,
-          id_estacion: raw.id_estacion ? Number(raw.id_estacion) : null,
-          tiempo_prep_min: undefined,
-        };
-
-      case 7:
-      default:
-        return {
-          ...raw,
-          precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
-          controla_stock: false,
-          disponible_venta: Boolean(raw.disponible_venta),
-          id_almacen_stock: null,
-          id_estacion: null,
-          tiempo_prep_min: undefined,
-        };
-    }
-  }
-
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving || uploadingImage) return;
     setServerError(null);
 
+    if (!tipoSeleccionado || tipos.isLoading || tipos.error) {
+      setServerError(
+        "Selecciona un tipo de producto válido y espera a que cargue el catálogo.",
+      );
+      return;
+    }
     if (!values.codigo_interno.trim()) {
       setServerError("El código interno es obligatorio.");
       return;
@@ -290,25 +261,39 @@ export function ProductoFormModal({
         finalImageUrl = await uploadProductoImagenApi(selectedFile);
       }
 
-      const payload = sanearPayloadPorTipo({
-        ...values,
-        imagen_url: finalImageUrl,
-      });
+      const payload = aplicarReglasTipo(
+        {
+          ...values,
+          imagen_url: finalImageUrl,
+        },
+        tipoSeleccionado,
+      );
 
       await onSubmit(payload);
     } catch (error) {
       setServerError(
-        error instanceof Error ? error.message : "Ocurrió un error al procesar el registro."
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al procesar el registro.",
       );
     } finally {
       setUploadingImage(false);
     }
   }
 
-  const categoriaOptions = categorias.map((cat) => ({ value: String(cat.id), label: cat.nombre }));
-  const subcategoriaOptions = filteredSubcategorias.map((sub) => ({ value: String(sub.id), label: sub.nombre }));
+  const categoriaOptions = categorias.map((cat) => ({
+    value: String(cat.id),
+    label: cat.nombre,
+  }));
+  const subcategoriaOptions = filteredSubcategorias.map((sub) => ({
+    value: String(sub.id),
+    label: sub.nombre,
+  }));
 
-  const unidadOptions = unidades.map((u) => ({ value: String(u.id), label: `${u.nombre} (${u.simbolo})` }));
+  const unidadOptions = unidades.map((u) => ({
+    value: String(u.id),
+    label: `${u.nombre} (${u.simbolo})`,
+  }));
 
   const estacionOptions = [
     { value: "", label: "-- Seleccione Estación --" },
@@ -319,17 +304,25 @@ export function ProductoFormModal({
 
   const almacenOptions = [
     { value: "", label: "-- Seleccione Almacén --" },
-    ...almacenesFiltrados.map((alm) => ({ value: String(alm.id), label: alm.nombre })),
+    ...almacenesFiltrados.map((alm) => ({
+      value: String(alm.id),
+      label: alm.nombre,
+    })),
   ];
 
   return (
     <>
       <FormModal
-        isOpen={isOpen}
-        onClose={onClose}
+        isOpen={isOpen && !isTipoOpen}
+        onClose={() => {
+          if (!isTipoOpen && !isSaving && !uploadingImage) onClose();
+        }}
         onSubmit={handleSubmit}
         title={producto ? `Editar: ${producto.nombre}` : "Nuevo Producto"}
         subtitle="Configura los datos del catálogo y sus parámetros operativos."
+        submitDisabled={
+          isTipoOpen || tipos.isLoading || !!tipos.error || !tipoSeleccionado
+        }
         isSaving={isSaving || uploadingImage}
       >
         {serverError && (
@@ -350,7 +343,11 @@ export function ProductoFormModal({
                   className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer group shadow-xs"
                   title="Clic para ver ampliada"
                 >
-                  <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                     <Icon name="mdi:magnify-plus-outline" size={22} />
                   </div>
@@ -415,13 +412,35 @@ export function ProductoFormModal({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label>Tipo de Producto *</Label>
-            <ListaSelect
-              idLista={LISTA_IDS.PRODUCTO_TIPO}
-              defaultValue={values.tipo_producto ? String(values.tipo_producto) : ""}
-              placeholder="Seleccione tipo..."
-              disabled={isSaving}
-              onChange={handleTipoProductoChange}
-            />
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <Select
+                  options={tipos.options.map((t) => ({
+                    value: String(t.id),
+                    label: t.nombre,
+                  }))}
+                  onOpen={() => void tipos.load()}
+                  isLoading={tipos.isLoading}
+                  loadError={tipos.error}
+                  defaultValue={
+                    values.tipo_producto ? String(values.tipo_producto) : ""
+                  }
+                  placeholder="Seleccione tipo..."
+                  disabled={isSaving || isTipoOpen}
+                  onChange={handleTipoProductoChange}
+                />
+              </div>
+              <button
+                type="button"
+                aria-label="Añadir tipo de producto"
+                title="Añadir tipo de producto"
+                disabled={isSaving || uploadingImage || isTipoOpen}
+                onClick={() => setIsTipoOpen(true)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-500/10"
+              >
+                <Icon name="mdi:plus" size={22} />
+              </button>
+            </div>
           </div>
 
           <div>
@@ -429,7 +448,12 @@ export function ProductoFormModal({
             <Input
               id="codigo_interno"
               value={values.codigo_interno}
-              onChange={(e) => setValues((p) => ({ ...p, codigo_interno: e.target.value.toUpperCase() }))}
+              onChange={(e) =>
+                setValues((p) => ({
+                  ...p,
+                  codigo_interno: e.target.value.toUpperCase(),
+                }))
+              }
               placeholder="PROD-001"
               disabled={isSaving}
             />
@@ -441,7 +465,9 @@ export function ProductoFormModal({
           <Input
             id="nombre"
             value={values.nombre}
-            onChange={(e) => setValues((p) => ({ ...p, nombre: e.target.value }))}
+            onChange={(e) =>
+              setValues((p) => ({ ...p, nombre: e.target.value }))
+            }
             placeholder="Ej. Arroz con Pato Arequipeño / Gaseosa 500ml"
             disabled={isSaving}
           />
@@ -451,13 +477,18 @@ export function ProductoFormModal({
           <div>
             <Label>Categoría *</Label>
             <Select
-              options={categoriaOptions} onOpen={()=>void cat.categorias.load()} isLoading={cat.categorias.isLoading} loadError={cat.categorias.error}
-              defaultValue={selectedCategoriaId ? String(selectedCategoriaId) : ""}
+              options={categoriaOptions}
+              onOpen={() => void cat.categorias.load()}
+              isLoading={cat.categorias.isLoading}
+              loadError={cat.categorias.error}
+              defaultValue={
+                selectedCategoriaId ? String(selectedCategoriaId) : ""
+              }
               placeholder="-- Seleccione Categoría --"
               disabled={isSaving}
               onChange={(val) => {
                 const catId = val ? Number(val) : null;
-                
+
                 setSelectedCategoriaId(catId);
                 setValues((p) => ({ ...p, id_subcategoria: 0 }));
               }}
@@ -467,11 +498,22 @@ export function ProductoFormModal({
           <div>
             <Label>Subcategoría *</Label>
             <Select
-              options={subcategoriaOptions} onOpen={()=>void cat.subcategorias.load()} isLoading={cat.subcategorias.isLoading} loadError={cat.subcategorias.error}
-              defaultValue={values.id_subcategoria ? String(values.id_subcategoria) : ""}
-              placeholder={!selectedCategoriaId ? "Seleccione categoría primero" : "-- Seleccione Subcategoría --"}
+              options={subcategoriaOptions}
+              onOpen={() => void cat.subcategorias.load()}
+              isLoading={cat.subcategorias.isLoading}
+              loadError={cat.subcategorias.error}
+              defaultValue={
+                values.id_subcategoria ? String(values.id_subcategoria) : ""
+              }
+              placeholder={
+                !selectedCategoriaId
+                  ? "Seleccione categoría primero"
+                  : "-- Seleccione Subcategoría --"
+              }
               disabled={isSaving || !selectedCategoriaId}
-              onChange={(val) => setValues((p) => ({ ...p, id_subcategoria: Number(val) }))}
+              onChange={(val) =>
+                setValues((p) => ({ ...p, id_subcategoria: Number(val) }))
+              }
             />
           </div>
         </div>
@@ -479,38 +521,56 @@ export function ProductoFormModal({
         <div>
           <Label>Unidad de Medida Base *</Label>
           <Select
-            options={unidadOptions} onOpen={()=>void cat.unidades.load()} isLoading={cat.unidades.isLoading} loadError={cat.unidades.error}
-            defaultValue={values.id_unidad_medida ? String(values.id_unidad_medida) : ""}
+            options={unidadOptions}
+            onOpen={() => void cat.unidades.load()}
+            isLoading={cat.unidades.isLoading}
+            loadError={cat.unidades.error}
+            defaultValue={
+              values.id_unidad_medida ? String(values.id_unidad_medida) : ""
+            }
             placeholder="Seleccione unidad..."
             disabled={isSaving}
-            onChange={(val) => setValues((p) => ({ ...p, id_unidad_medida: Number(val) }))}
+            onChange={(val) =>
+              setValues((p) => ({ ...p, id_unidad_medida: Number(val) }))
+            }
           />
         </div>
 
-        {!esInsumo && (
+        {(permiteVenta || requiereReceta) && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="precio_venta">Precio de Venta (S/) *</Label>
-              <Input
-                id="precio_venta"
-                type="number"
-                step={0.01}
-                value={values.precio_venta}
-                onChange={(e) => setValues((p) => ({ ...p, precio_venta: Number(e.target.value) }))}
-                placeholder="0.00"
-                disabled={isSaving}
-              />
-            </div>
+            {permiteVenta && (
+              <div>
+                <Label htmlFor="precio_venta">Precio de Venta (S/) *</Label>
+                <Input
+                  id="precio_venta"
+                  type="number"
+                  step={0.01}
+                  value={values.precio_venta}
+                  onChange={(e) =>
+                    setValues((p) => ({
+                      ...p,
+                      precio_venta: Number(e.target.value),
+                    }))
+                  }
+                  placeholder="0.00"
+                  disabled={isSaving}
+                />
+              </div>
+            )}
 
-            <div>
-              <Label htmlFor="costo_receta">Costo Receta Calculado (S/)</Label>
-              <Input
-                id="costo_receta"
-                type="number"
-                value={costoReceta.toFixed(2)}
-                disabled={true}
-              />
-            </div>
+            {requiereReceta && (
+              <div>
+                <Label htmlFor="costo_receta">
+                  Costo Receta Calculado (S/)
+                </Label>
+                <Input
+                  id="costo_receta"
+                  type="number"
+                  value={costoReceta.toFixed(2)}
+                  disabled={true}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -518,49 +578,133 @@ export function ProductoFormModal({
           <div>
             <Label>Almacén de Stock *</Label>
             <Select
-              options={almacenOptions} onOpen={()=>void cat.almacenes.load()} isLoading={cat.almacenes.isLoading} loadError={cat.almacenes.error}
-              defaultValue={values.id_almacen_stock ? String(values.id_almacen_stock) : ""}
+              options={almacenOptions}
+              onOpen={() => void cat.almacenes.load()}
+              isLoading={cat.almacenes.isLoading}
+              loadError={cat.almacenes.error}
+              defaultValue={
+                values.id_almacen_stock ? String(values.id_almacen_stock) : ""
+              }
               placeholder="Seleccione almacén..."
               disabled={isSaving}
-              onChange={(val) => setValues((p) => ({ ...p, id_almacen_stock: val ? Number(val) : null }))}
+              onChange={(val) =>
+                setValues((p) => ({
+                  ...p,
+                  id_almacen_stock: val ? Number(val) : null,
+                }))
+              }
             />
           </div>
         )}
 
         {!producto && values.controla_stock && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div><Label>Stock mínimo</Label><Input type="number" min="0" step={0.0001} value={values.stock_minimo??0}
-              onChange={e=>setValues(p=>({...p,stock_minimo:Number(e.target.value)}))}/></div>
-            {!esPlatoOTrago && <>
-              <div><Label>Stock inicial</Label><Input type="number" min="0" step={0.0001} value={values.stock_inicial??0}
-                onChange={e=>setValues(p=>({...p,stock_inicial:Number(e.target.value)}))}/></div>
-              <div><Label>Costo por unidad (S/)</Label><Input type="number" min="0" step={0.0001} value={values.costo_inicial??0}
-                onChange={e=>setValues(p=>({...p,costo_inicial:Number(e.target.value)}))}/></div>
-            </>}
-            {esPlatoOTrago && <p className="text-sm text-gray-500 sm:col-span-2">Registra las porciones desde Preparaciones para descontar sus ingredientes.</p>}
-          </div>
-        )}
-        {requiereEstacion && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Estación de Comanda / KDS *</Label>
-              <Select
-                options={estacionOptions} onOpen={()=>void cat.estaciones.load()} isLoading={cat.estaciones.isLoading} loadError={cat.estaciones.error}
-                defaultValue={values.id_estacion ? String(values.id_estacion) : ""}
-                placeholder="Seleccione estación..."
-                disabled={isSaving}
-                onChange={(val) => setValues((p) => ({ ...p, id_estacion: val ? Number(val) : null }))}
-              />
+          <div className="mt-4 space-y-2">
+            <div
+              className={`grid gap-4 ${!permiteStockInicial ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3"}`}
+            >
+              <div>
+                <Label>Stock mínimo</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step={0.0001}
+                  value={values.stock_minimo ?? 0}
+                  onChange={(e) =>
+                    setValues((p) => ({
+                      ...p,
+                      stock_minimo: Number(e.target.value),
+                    }))
+                  }
+                  disabled={isSaving}
+                />
+              </div>
+
+              {permiteStockInicial && (
+                <>
+                  <div>
+                    <Label>Stock inicial</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step={0.0001}
+                      value={values.stock_inicial ?? 0}
+                      onChange={(e) =>
+                        setValues((p) => ({
+                          ...p,
+                          stock_inicial: Number(e.target.value),
+                        }))
+                      }
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label>Costo por unidad (S/)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step={0.0001}
+                      value={values.costo_inicial ?? 0}
+                      onChange={(e) =>
+                        setValues((p) => ({
+                          ...p,
+                          costo_inicial: Number(e.target.value),
+                        }))
+                      }
+                      disabled={isSaving}
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
-            {esPlatoOTrago && (
+            {requiereReceta && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Las porciones se descuentan según la receta configurada en
+                Preparaciones.
+              </p>
+            )}
+          </div>
+        )}
+        {(requiereEstacion || requiereReceta) && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {requiereEstacion && (
               <div>
-                <Label htmlFor="tiempo_prep_min">Prep. Estimada (Minutos)</Label>
+                <Label>Estación de Comanda / KDS *</Label>
+                <Select
+                  options={estacionOptions}
+                  onOpen={() => void cat.estaciones.load()}
+                  isLoading={cat.estaciones.isLoading}
+                  loadError={cat.estaciones.error}
+                  defaultValue={
+                    values.id_estacion ? String(values.id_estacion) : ""
+                  }
+                  placeholder="Seleccione estación..."
+                  disabled={isSaving}
+                  onChange={(val) =>
+                    setValues((p) => ({
+                      ...p,
+                      id_estacion: val ? Number(val) : null,
+                    }))
+                  }
+                />
+              </div>
+            )}
+
+            {requiereReceta && (
+              <div>
+                <Label htmlFor="tiempo_prep_min">
+                  Prep. Estimada (Minutos)
+                </Label>
                 <Input
                   id="tiempo_prep_min"
                   type="number"
                   value={values.tiempo_prep_min ?? 15}
-                  onChange={(e) => setValues((p) => ({ ...p, tiempo_prep_min: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setValues((p) => ({
+                      ...p,
+                      tiempo_prep_min: Number(e.target.value),
+                    }))
+                  }
                   disabled={isSaving}
                 />
               </div>
@@ -584,39 +728,73 @@ export function ProductoFormModal({
             id="controla_stock"
             label="Controla Stock"
             checked={values.controla_stock}
-            onChange={(checked) => setValues((p) => ({ ...p, controla_stock: checked }))}
-            disabled={true}
+            onChange={(checked) =>
+              setValues((p) => ({
+                ...p,
+                controla_stock: checked,
+                ...(checked
+                  ? {}
+                  : {
+                      id_almacen_stock: null,
+                      stock_inicial: 0,
+                      stock_minimo: 0,
+                      costo_inicial: 0,
+                    }),
+              }))
+            }
+            disabled={isSaving}
           />
 
           <Checkbox
             id="disponible_venta"
             label="Disponible en Carta"
             checked={values.disponible_venta}
-            onChange={(checked) => setValues((p) => ({ ...p, disponible_venta: checked }))}
-            disabled={isSaving || esInsumo}
+            onChange={(checked) =>
+              setValues((p) => ({ ...p, disponible_venta: checked }))
+            }
+            disabled={isSaving || !permiteVenta}
           />
 
           <Checkbox
             id="afecto_igv"
             label="Afecto a IGV"
             checked={values.afecto_igv}
-            onChange={(checked) => setValues((p) => ({ ...p, afecto_igv: checked }))}
+            onChange={(checked) =>
+              setValues((p) => ({ ...p, afecto_igv: checked }))
+            }
             disabled={isSaving}
           />
         </div>
       </FormModal>
+
+      {isOpen && isTipoOpen && (
+        <TipoProductoFormModal
+          onClose={() => setIsTipoOpen(false)}
+          onCreated={(tipo) => {
+            seleccionarTipo(tipo);
+            setIsTipoOpen(false);
+            void tipos.load();
+          }}
+        />
+      )}
 
       {isLightboxOpen && imagePreview && (
         <Modal
           isOpen={isLightboxOpen}
           onClose={() => setIsLightboxOpen(false)}
           className="max-w-[450px] p-4 text-center"
-          showCloseButton={true}
+          showCloseButton={false}
         >
           <div className="space-y-3">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-              {values.nombre || "Previsualización"}
-            </h4>
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+              <h4 className="col-start-2 break-words text-sm font-bold text-gray-900 dark:text-white">
+                {values.nombre || "Previsualización"}
+              </h4>
+              <button type="button" aria-label="Cerrar imagen" onClick={() => setIsLightboxOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
+                <Icon name="mdi:close" size={24} />
+              </button>
+            </div>
             <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-black/5 p-1">
               <img
                 src={imagePreview}

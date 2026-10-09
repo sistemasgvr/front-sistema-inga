@@ -7,10 +7,11 @@ export function useAjusteStock(open: boolean) {
  const [motivo,setMotivo]=useState("");
  const [signo,setSigno]=useState<1|-1>(1);
  const [cantidad,setCantidad]=useState(1);
+  const [costoUnitario,setCostoUnitario]=useState<string>("");
  const [observacion,setObservacion]=useState("");
  const [error,setError]=useState<string|null>(null);
  const {load}=tipos;
- useEffect(()=>{if(open){void load();setMotivo("");setSigno(1);setCantidad(1);setObservacion("");setError(null);}},[open,load]);
+ useEffect(()=>{if(open){void load();setMotivo("");setSigno(1);setCantidad(1);setCostoUnitario("");setObservacion("");setError(null);}},[open,load]);
  return {tipo:tipos.options.find(t=>t.codigo==='AJUSTE'),cargando:tipos.isLoading,error:error??tipos.error,setError,
- motivo,setMotivo,signo,setSigno,cantidad,setCantidad,observacion,setObservacion};
+ motivo,setMotivo,signo,setSigno,cantidad,setCantidad,costoUnitario,setCostoUnitario,observacion,setObservacion};
 }

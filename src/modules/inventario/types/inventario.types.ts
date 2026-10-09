@@ -3,6 +3,7 @@ export type StockItem = {
   id_almacen: number;
   almacen_nombre?: string;
   id_producto: number;
+  tiene_receta?: boolean;
   id_unidad_medida: number;
   producto_codigo?: string;
   producto_nombre?: string;

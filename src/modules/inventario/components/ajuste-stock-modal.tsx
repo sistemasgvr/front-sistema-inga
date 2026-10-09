@@ -14,10 +14,15 @@ export function AjusteStockModal({isOpen,onClose,onSubmit,stockItem,isSaving}:Pr
  return <FormModal isOpen={isOpen} onClose={onClose} title="Ajuste de inventario" subtitle={stockItem.producto_nombre}
  isSaving={isSaving} submitDisabled={!f.tipo||!f.motivo||f.cargando} onSubmit={async e=>{
  e.preventDefault();if(isSaving||!f.tipo||!f.motivo)return;
+ if(stockItem.tiene_receta){f.setError('Los productos con receta no permiten ajustes manuales de stock.');return;}
  if(!Number.isFinite(f.cantidad)||f.cantidad<=0){f.setError('La cantidad debe ser mayor a cero.');return;}
+  // En un ingreso el costo unitario es el precio real de compra. Si no se escribe,
+  // el backend promedia contra el valor anterior y el costo promedio no se mueve.
+  const costoIngresado=f.costoUnitario.trim()===''?undefined:Number(f.costoUnitario);
+  if(f.signo===1&&(costoIngresado===undefined||!Number.isFinite(costoIngresado)||costoIngresado<=0)){f.setError('Ingresa el costo unitario de compra para actualizar el costo promedio.');return;}
  try{await onSubmit({codigo:'AJ-'+crypto.randomUUID(),id_tipo_movimiento:f.tipo.id,id_motivo_movimiento:Number(f.motivo),
  id_almacen:stockItem.id_almacen,id_producto:stockItem.id_producto,id_unidad_medida:stockItem.id_unidad_medida,
- cantidad:f.cantidad,signo:f.signo,costo_unitario:Number(stockItem.costo_promedio),observacion:f.observacion,confirmar:true});}
+ cantidad:f.cantidad,signo:f.signo,costo_unitario:f.signo===1?costoIngresado:Number(stockItem.costo_promedio),observacion:f.observacion,confirmar:true});}
  catch(e){f.setError(e instanceof Error?e.message:'No se pudo registrar el ajuste');}
  }}>
  {f.error&&<Alert variant="error" title="Error" message={f.error}/>}
@@ -26,6 +31,7 @@ export function AjusteStockModal({isOpen,onClose,onSubmit,stockItem,isSaving}:Pr
  <Label>Efecto sobre el stock</Label><Select options={[{value:'1',label:'Aumentar (+)'},{value:'-1',label:'Disminuir (-)'}]}
  defaultValue={String(f.signo)} onChange={v=>f.setSigno(Number(v) as 1|-1)} disabled={isSaving}/>
  <Label>Cantidad ({stockItem.simbolo_unidad})</Label><Input type="number" min="0.0001" step={0.0001} value={f.cantidad} onChange={e=>f.setCantidad(Number(e.target.value))}/>
+  {f.signo===1&&<><Label>Costo unitario de compra</Label><Input type="number" min="0.0001" step={0.0001} value={f.costoUnitario} onChange={e=>f.setCostoUnitario(e.target.value)} placeholder={stockItem.costo_promedio>0?String(stockItem.costo_promedio):'Costo por unidad'}/><p className="text-xs text-gray-500 dark:text-gray-400">Costo promedio actual: {stockItem.costo_promedio>0?stockItem.costo_promedio.toFixed(4):'sin costo'}</p></>}
  <Label>Observación</Label><Input value={f.observacion} onChange={e=>f.setObservacion(e.target.value)}/>
  </FormModal>;
 }
