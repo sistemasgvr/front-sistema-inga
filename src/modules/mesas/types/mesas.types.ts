@@ -35,6 +35,11 @@ export type SucursalOption = {
 };
 
 export type PedidoItem = {
+  id_receta: number | null;
+  estado_preparacion: number;
+  cantidad_entregada: number;
+  cantidad_cancelada: number;
+  cantidad_reservada: number;
   id: number;
   id_pedido: number;
   id_producto: number;
@@ -132,6 +137,9 @@ export type AgregarItemValues = {
 };
 
 export type AnularValues = {
+  cantidad_cancelada?: number;
+  destino_preparado?: "DISPONIBLE" | "MERMA";
+  destino_insumos?: "LIBERAR" | "MERMA";
   id_usuario_autoriza: number;
   motivo: string;
 };

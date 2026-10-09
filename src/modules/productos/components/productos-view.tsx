@@ -38,7 +38,7 @@ export function ProductosView() {
     isSaving,
     editingProducto,
     isFormOpen,
-    openCreateModal,
+    openCreateModal, loadCatalogosAuxiliares,
     openEditModal,
     closeFormModal,
     saveProducto,

@@ -2,35 +2,33 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** Carga al abrir un selector, conserva el resultado durante su montaje y permite reintentar. */
+/** Cada apertura consulta de nuevo y descarta respuestas de aperturas anteriores. */
 export function useLazyOptions<T>(
   loader: (signal: AbortSignal) => Promise<T[]>,
 ) {
   const [options, setOptions] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const loaded = useRef(false);
   const request = useRef<AbortController | null>(null);
 
   useEffect(
     () => () => {
       request.current?.abort();
     },
-    [],
+    [loader],
   );
 
   const load = useCallback(async () => {
-    if (loaded.current || (request.current && !request.current.signal.aborted))
-      return;
+    request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
     setIsLoading(true);
+    setOptions([]);
     setError(null);
     try {
       const result = await loader(controller.signal);
       if (!controller.signal.aborted) {
         setOptions(result);
-        loaded.current = true;
       }
     } catch (cause) {
       if (!controller.signal.aborted)

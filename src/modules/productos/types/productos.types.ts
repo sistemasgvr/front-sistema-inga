@@ -64,6 +64,9 @@ export type UnidadesResponse = {
 };
 
 export type ProductoFormValues = {
+  stock_inicial?: number;
+  stock_minimo?: number;
+  costo_inicial?: number;
   id_subcategoria: number;
   id_unidad_medida: number;
   id_estacion?: number | null;

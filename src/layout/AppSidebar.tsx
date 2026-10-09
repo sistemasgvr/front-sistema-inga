@@ -55,6 +55,12 @@ const navItems: NavItem[] = [
         permission: PermisoBanderas.SUBCATEGORIAS_LISTAR,
       },
       {
+        name: "Cocina y preparaciones",
+        path: "/productos/cocina",
+        icon: "mdi:chef-hat",
+        permission: PermisoBanderas.PRODUCCION_PREPARAR,
+      },
+      {
         name: "Stock",
         path: "/productos/stock",
         icon: "at-icons:cube",
@@ -182,7 +188,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: "clarity:employee-group-solid",
-    name: "Personal ",
+    name: "Esclavos ",
     subItems: [
       {
         name: "Trabajadores",

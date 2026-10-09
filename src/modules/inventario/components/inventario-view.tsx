@@ -29,7 +29,7 @@ export function InventarioView() {
     isLoading,
     isSaving,
     currentUser,
-    availableAlmacenes,
+    availableAlmacenes, loadAlmacenes, loadingAlmacenes, errorAlmacenes,
 
     adjustingStockItem,
     isAjusteModalOpen,
@@ -164,7 +164,7 @@ export function InventarioView() {
 
           <div className="w-full sm:w-56">
             <Select
-              options={almacenesOptions}
+              options={almacenesOptions} onOpen={()=>void loadAlmacenes()} isLoading={loadingAlmacenes} loadError={errorAlmacenes}
               defaultValue={selectedAlmacenId ? String(selectedAlmacenId) : ""}
               onChange={(val) => setSelectedAlmacenId(val ? Number(val) : undefined)}
               placeholder="Todos los almacenes..."

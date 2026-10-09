@@ -3,7 +3,7 @@ import { InventarioView } from "@/modules/inventario/components/inventario-view"
 
 export default function StockPage() {
   return (
-    <RoleGuard requiredPermission="inventario.listar">
+    <RoleGuard requiredPermission="inventario.ver">
         <InventarioView />
     </RoleGuard>
     );

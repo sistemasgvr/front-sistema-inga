@@ -9,7 +9,8 @@ import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { Modal } from "@/components/ui/modal";
 import { Icon } from "@/components/ui/icon";
-import { useCatalogo } from "@/shared/hooks/useCatalogo";
+import { ListaSelect, LISTA_IDS } from "@/modules/listas";
+import { useProductoCatalogos } from "../hooks/use-producto-catalogos";
 import { useToast } from "@/components/ui/toast/ToastContext";
 import { uploadProductoImagenApi } from "../services/productos.service";
 import { FormEvent, useEffect, useState, ChangeEvent, useRef } from "react";
@@ -42,19 +43,17 @@ export function ProductoFormModal({
   onClose,
   onSubmit,
   producto,
-  unidades = [],
-  categorias = [],
-  subcategorias = [],
-  almacenes = [],
-  estaciones = [],
   isSaving,
 }: ProductoFormModalProps) {
   const { toast } = useToast();
-  const { opciones: tiposProductoBD, isLoading: isLoadingTipos } = useCatalogo("PRODUCTO_TIPO");
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null);
+  const cat = useProductoCatalogos(isOpen,selectedCategoriaId);
+  const unidades=cat.unidades.options,categorias=cat.categorias.options,subcategorias=cat.subcategorias.options,
+    almacenes=cat.almacenes.options,estaciones=cat.estaciones.options;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -87,7 +86,7 @@ export function ProductoFormModal({
   const esPlatoOTrago = [3, 4, 5].includes(tipo);
   const esInsumo = esCrudo || esProcesado;
   const requiereEstacion = [3, 4, 5, 6].includes(tipo);
-  const requiereAlmacen = esInsumo || tipo === 6 || values.controla_stock;
+  const requiereAlmacen = esInsumo || esPlatoOTrago || tipo === 6 || values.controla_stock;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -127,7 +126,7 @@ export function ProductoFormModal({
         ? subcategorias.filter((s) => s.id_categoria === firstCatId)
         : subcategorias;
 
-      const defaultTipo = tiposProductoBD[0]?.valor_entero ?? 3;
+      const defaultTipo = 3;
 
       setValues({
         id_subcategoria: subFilt[0]?.id ?? subcategorias[0]?.id ?? 0,
@@ -140,7 +139,7 @@ export function ProductoFormModal({
         tipo_producto: defaultTipo,
         precio_venta: 0,
         afecto_igv: true,
-        controla_stock: [1, 2, 6].includes(defaultTipo),
+        controla_stock: true,
         disponible_venta: [3, 4, 5, 6, 7].includes(defaultTipo),
         tiempo_prep_min: 15,
         imagen_url: "",
@@ -162,11 +161,12 @@ export function ProductoFormModal({
     setValues((p) => ({
       ...p,
       tipo_producto: numTipo,
-      controla_stock: isIns || numTipo === 6,
+      controla_stock: numTipo >= 1 && numTipo <= 6,
       disponible_venta: isIns ? false : isVend,
       precio_venta: isIns ? 0 : p.precio_venta,
       id_estacion: [3, 4, 5, 6].includes(numTipo) ? p.id_estacion || (estaciones[0]?.id ?? null) : null,
-      id_almacen_stock: isIns || numTipo === 6 ? p.id_almacen_stock || (almacenes[0]?.id ?? null) : null,
+      id_almacen_stock: numTipo<=6 ? p.id_almacen_stock : null,
+      stock_inicial:0,
     }));
   }
 
@@ -219,9 +219,10 @@ export function ProductoFormModal({
         return {
           ...raw,
           precio_venta: Math.max(0, Number(raw.precio_venta) || 0),
-          controla_stock: false,
+          controla_stock: true,
+          stock_inicial: 0,
           disponible_venta: Boolean(raw.disponible_venta),
-          id_almacen_stock: null,
+          id_almacen_stock: raw.id_almacen_stock,
           id_estacion: raw.id_estacion ? Number(raw.id_estacion) : null,
           tiempo_prep_min: raw.tiempo_prep_min ? Number(raw.tiempo_prep_min) : 15,
         };
@@ -306,7 +307,7 @@ export function ProductoFormModal({
 
   const categoriaOptions = categorias.map((cat) => ({ value: String(cat.id), label: cat.nombre }));
   const subcategoriaOptions = filteredSubcategorias.map((sub) => ({ value: String(sub.id), label: sub.nombre }));
-  const tipoProductoOptions = tiposProductoBD.map((t) => ({ value: String(t.valor_entero), label: t.nombre }));
+
   const unidadOptions = unidades.map((u) => ({ value: String(u.id), label: `${u.nombre} (${u.simbolo})` }));
 
   const estacionOptions = [
@@ -314,12 +315,7 @@ export function ProductoFormModal({
     ...estaciones.map((est) => ({ value: String(est.id), label: est.nombre })),
   ];
 
-  const almacenesFiltrados = almacenes.filter((a) => {
-    if (esCrudo) return a.tipo_almacen === 1;
-    if (esProcesado) return [2, 3].includes(a.tipo_almacen || 0);
-    if (tipo === 6) return [1, 3].includes(a.tipo_almacen || 0);
-    return true;
-  });
+  const almacenesFiltrados = almacenes;
 
   const almacenOptions = [
     { value: "", label: "-- Seleccione Almacén --" },
@@ -419,10 +415,10 @@ export function ProductoFormModal({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label>Tipo de Producto *</Label>
-            <Select
-              options={tipoProductoOptions}
+            <ListaSelect
+              idLista={LISTA_IDS.PRODUCTO_TIPO}
               defaultValue={values.tipo_producto ? String(values.tipo_producto) : ""}
-              placeholder={isLoadingTipos ? "Cargando..." : "Seleccione tipo..."}
+              placeholder="Seleccione tipo..."
               disabled={isSaving}
               onChange={handleTipoProductoChange}
             />
@@ -455,15 +451,15 @@ export function ProductoFormModal({
           <div>
             <Label>Categoría *</Label>
             <Select
-              options={categoriaOptions}
+              options={categoriaOptions} onOpen={()=>void cat.categorias.load()} isLoading={cat.categorias.isLoading} loadError={cat.categorias.error}
               defaultValue={selectedCategoriaId ? String(selectedCategoriaId) : ""}
               placeholder="-- Seleccione Categoría --"
               disabled={isSaving}
               onChange={(val) => {
                 const catId = val ? Number(val) : null;
-                const subFilt = catId ? subcategorias.filter((s) => s.id_categoria === catId) : [];
+                
                 setSelectedCategoriaId(catId);
-                setValues((p) => ({ ...p, id_subcategoria: subFilt[0]?.id ?? 0 }));
+                setValues((p) => ({ ...p, id_subcategoria: 0 }));
               }}
             />
           </div>
@@ -471,7 +467,7 @@ export function ProductoFormModal({
           <div>
             <Label>Subcategoría *</Label>
             <Select
-              options={subcategoriaOptions}
+              options={subcategoriaOptions} onOpen={()=>void cat.subcategorias.load()} isLoading={cat.subcategorias.isLoading} loadError={cat.subcategorias.error}
               defaultValue={values.id_subcategoria ? String(values.id_subcategoria) : ""}
               placeholder={!selectedCategoriaId ? "Seleccione categoría primero" : "-- Seleccione Subcategoría --"}
               disabled={isSaving || !selectedCategoriaId}
@@ -483,7 +479,7 @@ export function ProductoFormModal({
         <div>
           <Label>Unidad de Medida Base *</Label>
           <Select
-            options={unidadOptions}
+            options={unidadOptions} onOpen={()=>void cat.unidades.load()} isLoading={cat.unidades.isLoading} loadError={cat.unidades.error}
             defaultValue={values.id_unidad_medida ? String(values.id_unidad_medida) : ""}
             placeholder="Seleccione unidad..."
             disabled={isSaving}
@@ -522,7 +518,7 @@ export function ProductoFormModal({
           <div>
             <Label>Almacén de Stock *</Label>
             <Select
-              options={almacenOptions}
+              options={almacenOptions} onOpen={()=>void cat.almacenes.load()} isLoading={cat.almacenes.isLoading} loadError={cat.almacenes.error}
               defaultValue={values.id_almacen_stock ? String(values.id_almacen_stock) : ""}
               placeholder="Seleccione almacén..."
               disabled={isSaving}
@@ -531,12 +527,25 @@ export function ProductoFormModal({
           </div>
         )}
 
+        {!producto && values.controla_stock && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div><Label>Stock mínimo</Label><Input type="number" min="0" step={0.0001} value={values.stock_minimo??0}
+              onChange={e=>setValues(p=>({...p,stock_minimo:Number(e.target.value)}))}/></div>
+            {!esPlatoOTrago && <>
+              <div><Label>Stock inicial</Label><Input type="number" min="0" step={0.0001} value={values.stock_inicial??0}
+                onChange={e=>setValues(p=>({...p,stock_inicial:Number(e.target.value)}))}/></div>
+              <div><Label>Costo por unidad (S/)</Label><Input type="number" min="0" step={0.0001} value={values.costo_inicial??0}
+                onChange={e=>setValues(p=>({...p,costo_inicial:Number(e.target.value)}))}/></div>
+            </>}
+            {esPlatoOTrago && <p className="text-sm text-gray-500 sm:col-span-2">Registra las porciones desde Preparaciones para descontar sus ingredientes.</p>}
+          </div>
+        )}
         {requiereEstacion && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label>Estación de Comanda / KDS *</Label>
               <Select
-                options={estacionOptions}
+                options={estacionOptions} onOpen={()=>void cat.estaciones.load()} isLoading={cat.estaciones.isLoading} loadError={cat.estaciones.error}
                 defaultValue={values.id_estacion ? String(values.id_estacion) : ""}
                 placeholder="Seleccione estación..."
                 disabled={isSaving}

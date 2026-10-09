@@ -1,6 +1,7 @@
 "use client";
+import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listAlmacenes } from "@/modules/almacenes/services/almacenes.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -13,7 +14,6 @@ import type {
   StockResumen,
   RegistrarMovimientoValues,
 } from "../types/inventario.types";
-import type { AlmacenItem } from "@/modules/almacenes/types/almacenes.types";
 import type { User } from "@/modules/users/types/user.types";
 
 const PAGE_SIZE = 10;
@@ -38,7 +38,9 @@ export function useStock() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [availableAlmacenes, setAvailableAlmacenes] = useState<AlmacenItem[]>([]);
+  const almacenes=useLazyOptions(useCallback(async()=> (await listAlmacenes({pagina:1,limite:100,estado:'activos'})).registros??[],[]));
+  const request=useRef<AbortController|null>(null);
+  const [revision,setRevision]=useState(0);
 
   const [adjustingStockItem, setAdjustingStockItem] = useState<StockItem | null>(null);
   const [isAjusteModalOpen, setIsAjusteModalOpen] = useState(false);
@@ -92,19 +94,11 @@ export function useStock() {
     void syncSessionUser();
   }, []);
 
-  useEffect(() => {
-    async function loadFormCatalogs() {
-      try {
-        const res = await listAlmacenes({ pagina: 1, limite: 100, estado: "activos" });
-        setAvailableAlmacenes(res.registros ?? []);
-      } catch {
-        setAvailableAlmacenes([]);
-      }
-    }
-    void loadFormCatalogs();
-  }, []);
 
   const loadStockData = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
     setIsLoading(true);
     try {
       const response = await listStock({
@@ -113,20 +107,23 @@ export function useStock() {
         limite: pageSize,
         estado: estadoFiltro,
         id_almacen: selectedAlmacenId,
-      });
+      }, controller.signal);
+      if(controller.signal.aborted)return;
 
       setRegistros(response.registros ?? []);
       setTotal(response.total ?? 0);
       if (response.resumen) setResumen(response.resumen);
     } catch (error) {
+      if(controller.signal.aborted)return;
       toast("error", "Error de carga", error instanceof Error ? error.message : "Error al obtener stock.");
     } finally {
-      setIsLoading(false);
+      if(!controller.signal.aborted)setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, selectedAlmacenId, toast]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, selectedAlmacenId, toast, revision]);
 
   useEffect(() => {
     void loadStockData();
+    return ()=>request.current?.abort();
   }, [loadStockData]);
 
   useEffect(() => {
@@ -159,7 +156,8 @@ export function useStock() {
     try {
       await registrarAjusteStock(values);
       toast("success", "Ajuste registrado", "El movimiento de inventario fue guardado exitosamente.");
-      closeAjusteModal();
+      setIsAjusteModalOpen(false);
+      setAdjustingStockItem(null);
       await loadStockData();
     } catch (error) {
       toast("error", "Error al guardar", error instanceof Error ? error.message : "No se pudo registrar el ajuste.");
@@ -179,14 +177,17 @@ export function useStock() {
     searchInput,
     setSearchInput,
     estadoFiltro,
-    handleFilterStatus: (status: StockStatusFilter) => { setEstadoFiltro(status); setPagina(1); },
+    handleFilterStatus: (status: StockStatusFilter) => { setEstadoFiltro(status); setPagina(1); setRevision(r=>r+1); },
     selectedAlmacenId,
-    setSelectedAlmacenId,
+    setSelectedAlmacenId: (id: number|undefined)=>{setSelectedAlmacenId(id);setPagina(1);setRevision(r=>r+1);},
     resumen,
     isLoading,
     isSaving,
     currentUser,
-    availableAlmacenes,
+    availableAlmacenes: almacenes.options,
+    loadAlmacenes: almacenes.load,
+    loadingAlmacenes: almacenes.isLoading,
+    errorAlmacenes: almacenes.error,
 
     adjustingStockItem,
     isAjusteModalOpen,

@@ -11,6 +11,7 @@ import type {
   SucursalOption,
   AbrirPedidoValues,
   AgregarItemValues,
+  AnularValues,
 } from "../types/mesas.types";
 
 /** Pedidos sin mesa que se gestionan desde la vista de mesas: para llevar (2) y delivery (3). */
@@ -299,14 +300,14 @@ export function useMesas() {
       await api.descartarPedido(pedido.id);
       setPedido(null);
     }, `El pedido ${pedido?.codigo ?? ""} se canceló porque no se agregaron productos.`);
-  const anular = () =>
+  const anular = (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) =>
     mutate(async () => {
       const usuario = getStoredUser();
       if (!pedido || !usuario)
         throw new Error("Seleccione un pedido e inicie sesión.");
       await api.anularPedido(pedido.id, {
         id_usuario_autoriza: usuario.id,
-        motivo: "Anulado desde el panel de mesas",
+        ...values,
       });
       setPedido(null);
     });

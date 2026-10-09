@@ -142,7 +142,7 @@ export function useProductos() {
     }
 
     void syncSessionUser();
-    void loadCatalogosAuxiliares();
+
 
     return () => {
       isMounted = false;
@@ -260,7 +260,6 @@ export function useProductos() {
     if (!isValid) return;
 
     setEditingProducto(null);
-    await loadCatalogosAuxiliares();
     setIsFormOpen(true);
   }
 
@@ -275,7 +274,6 @@ export function useProductos() {
     }
 
     setEditingProducto(producto);
-    await loadCatalogosAuxiliares();
     setIsFormOpen(true);
     setLoadingProductoId(null);
   }
@@ -372,6 +370,7 @@ export function useProductos() {
   }
 
   async function openRecetasModal(producto: ProductoItem) {
+    await loadCatalogosAuxiliares();
     const isValid = await verifyActionAccess(PermisoBanderas.PRODUCTOS_VER);
     if (!isValid) return;
 
@@ -417,6 +416,7 @@ export function useProductos() {
     editingProducto,
     isFormOpen,
     openCreateModal,
+    loadCatalogosAuxiliares,
     openEditModal,
     closeFormModal,
     saveProducto,

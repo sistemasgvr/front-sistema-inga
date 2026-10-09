@@ -32,6 +32,13 @@ export function obtenerLista(
 export async function obtenerOpcionesLista(
   referencia: ListaReferencia,
   signal?: AbortSignal,
+  tipoMovimiento?: number,
 ) {
+  if (!referencia) return [];
+  if (tipoMovimiento !== undefined) {
+    return (await apiGet<ListaConOpciones>(`/general/listas/${referencia}/opciones`, {
+      signal, params: { tipo_movimiento: tipoMovimiento },
+    })).opciones;
+  }
   return (await obtenerLista(referencia, signal)).opciones;
 }

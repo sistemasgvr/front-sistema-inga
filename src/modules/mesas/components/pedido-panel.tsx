@@ -5,10 +5,13 @@ import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Alert from "@/components/ui/alert/Alert";
-import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
+import { FormModal } from "@/components/ui/modal/FormModal";
+import Select from "@/components/form/Select";
+import { ESTADOS_PREPARACION } from "@/modules/inventario/utils/cocina.utils";
 import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
-import type { Pedido, PedidoItem, Feedback } from "../types/mesas.types";
+import type { AnularValues, Pedido, PedidoItem, Feedback } from "../types/mesas.types";
+import { unidadesSinPreparar } from "../utils/cancelacion.utils";
 import { ListaSelect, LISTA_IDS } from "@/modules/listas";
 
 interface PedidoPanelProps {
@@ -18,7 +21,8 @@ interface PedidoPanelProps {
   feedback: Feedback | null;
   onComandar: () => void;
   onCambiarEstado: (estado: number) => void;
-  onAnular: () => void;
+  onAnular: (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) => void;
+  onActualizar?: () => void;
   onAgregarItem: () => void;
   onGenerarComprobante: (tipo: string, documento: string) => void;
   /** Oculta el botón "Añadir platos" (cuando el panel ya está junto a la carta). */
@@ -72,11 +76,15 @@ export function PedidoPanel({
   onComandar,
   onCambiarEstado,
   onAnular,
+  onActualizar,
   onAgregarItem,
   onGenerarComprobante,
   hideAgregar = false,
 }: PedidoPanelProps) {
   const [showAnularConfirm, setShowAnularConfirm] = useState(false);
+  const [motivoAnular,setMotivoAnular] = useState("");
+  const [destinoAnular,setDestinoAnular] = useState("");
+  const [destinoInsumosAnular,setDestinoInsumosAnular] = useState("");
   const [tipoComprobante, setTipoComprobante] = useState("");
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [tienePermisoAnular, setTienePermisoAnular] = useState(false);
@@ -108,10 +116,14 @@ export function PedidoPanel({
     (pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2) &&
     itemsPendientes.length > 0;
   const puedePorCobrar =
-    pedido?.estado_pedido === 2 && itemsPendientes.length === 0;
+    pedido?.estado_pedido === 2 && itemsPendientes.length === 0 && pedido.items.every(i=>i.tipo_linea===3 || Number(i.cantidad_entregada)+Number(i.cantidad_cancelada)>=Number(i.cantidad));
   const puedePagar = pedido?.estado_pedido === 3;
   const puedeAnular =
-    tienePermisoAnular && !!pedido && [1, 2, 3].includes(pedido.estado_pedido);
+    tienePermisoAnular && !!pedido && [1, 2, 3].includes(pedido.estado_pedido) && pedido.items.every(i=>!Number(i.cantidad_entregada));
+  // Al anular se cancela todo lo pendiente: se pregunta por platos listos y por ingredientes en preparación.
+  const lineasActivas = pedido?.items.filter(i=>i.tipo_linea!==3) ?? [];
+  const hayPreparados = lineasActivas.some(i=>Number(i.cantidad_reservada)>0);
+  const hayEnPreparacion = lineasActivas.some(i=>i.estado_preparacion===3 && unidadesSinPreparar(i)>0);
   const puedeAgregarItems =
     pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
 
@@ -142,6 +154,7 @@ export function PedidoPanel({
               : "Selecciona una mesa para comenzar"}
           </p>
         </div>
+        {onActualizar && pedido && <Button size="sm" variant="outline" onClick={onActualizar} disabled={loading || saving}>Actualizar</Button>}
         {!hideAgregar && (!pedido || puedeAgregarItems) && <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onAgregarItem} disabled={saving} startIcon={<Icon name="mdi:plus" size={18} />}>Añadir platos</Button>}
       </div>
 
@@ -304,7 +317,7 @@ export function PedidoPanel({
 
           {puedeAnular && (
             <Button
-              onClick={() => setShowAnularConfirm(true)}
+              onClick={() => {setMotivoAnular("");setDestinoAnular("");setDestinoInsumosAnular("");setShowAnularConfirm(true);}}
               disabled={saving}
               variant="outline"
               className="w-full text-error-600 hover:bg-error-50 dark:text-error-400 dark:hover:bg-error-500/10"
@@ -316,22 +329,25 @@ export function PedidoPanel({
         </div>
       </div>
 
-      <ConfirmDialog
-        isOpen={showAnularConfirm && puedeAnular}
-        onClose={() => setShowAnularConfirm(false)}
-        onConfirm={onAnular}
-        title="Cancelar pedido"
-        description="¿Estás seguro de cancelar este pedido? Se validarán las entregas, reservas y pagos antes de anularlo y liberar la mesa."
-        confirmText="Cancelar"
-        variant="danger"
-        isLoading={saving}
-      />
+      <FormModal isOpen={showAnularConfirm && puedeAnular} onClose={()=>{if(!saving)setShowAnularConfirm(false);}}
+        title="Cancelar pedido" isSaving={saving} submitText="Confirmar cancelación"
+        submitDisabled={!motivoAnular.trim() || (hayPreparados && !destinoAnular) || (hayEnPreparacion && !destinoInsumosAnular)}
+        onSubmit={e=>{e.preventDefault();onAnular({motivo:motivoAnular,
+          destino_preparado:hayPreparados&&destinoAnular?(destinoAnular as "DISPONIBLE"|"MERMA"):undefined,
+          destino_insumos:hayEnPreparacion&&destinoInsumosAnular?(destinoInsumosAnular as "LIBERAR"|"MERMA"):undefined});}}>
+        <Label>Motivo</Label><InputField value={motivoAnular} disabled={saving} onChange={e=>setMotivoAnular(e.target.value)}/>
+        {hayEnPreparacion&&<><Label>Ingredientes de los platos en preparación</Label>
+          <Select defaultValue={destinoInsumosAnular} onChange={setDestinoInsumosAnular} disabled={saving} options={[{value:"LIBERAR",label:"No se usaron: devolver al almacén"},{value:"MERMA",label:"Ya se usaron: registrar merma"}]}/></>}
+        {hayPreparados&&<><Label>Destino de las porciones preparadas</Label>
+          <Select defaultValue={destinoAnular} onChange={setDestinoAnular} disabled={saving} options={[{value:"DISPONIBLE",label:"Guardar en inventario para revender"},{value:"MERMA",label:"Descartar como merma"}]}/>
+          <p className="text-sm text-gray-500">Los ingredientes de los platos ya preparados no se devuelven al almacén.</p></>}
+      </FormModal>
     </div>
   );
 }
 
 function PedidoItemRow({ item }: { item: PedidoItem }) {
-  const esAnulado = item.tipo_linea === 3;
+  const esAnulado = item.tipo_linea === 3 || item.estado_preparacion === 6;
 
   return (
     <div
@@ -352,6 +368,7 @@ function PedidoItemRow({ item }: { item: PedidoItem }) {
           >
             {item.nombre_producto}
           </p>
+          <p className="mt-1 text-xs text-gray-500">{ESTADOS_PREPARACION[item.estado_preparacion] ?? "Pendiente"} · Entregados: {item.cantidad_entregada ?? 0} · Cancelados: {item.cantidad_cancelada ?? 0}</p>
           {item.observacion && (
             <p className="mt-0.5 text-xs text-gray-500">{item.observacion}</p>
           )}

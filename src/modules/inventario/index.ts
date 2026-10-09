@@ -10,3 +10,4 @@ export type {
   ListStockParams,
   RegistrarMovimientoValues,
 } from "./types/inventario.types";
+export { CocinaView } from "./components/cocina-view";

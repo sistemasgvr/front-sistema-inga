@@ -75,8 +75,10 @@ export async function updateProducto(
   id: number,
   values: ProductoFormValues,
 ): Promise<ProductoItem> {
+  const { stock_inicial, stock_minimo, costo_inicial, ...datos } = values;
+  void stock_inicial; void stock_minimo; void costo_inicial;
   const response = await apiPatch<ProductoItem>(`/productos/${id}`, {
-    ...values,
+    ...datos,
     codigo_interno: values.codigo_interno.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
