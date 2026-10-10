@@ -62,8 +62,10 @@ export function CuentasPorCobrarView() {
     isAbonoOpen,
     isAjusteOpen,
     clienteElegido,
+    movimientoCorreccion,
     abrirConsumo,
     abrirAbono,
+    abrirCorreccion,
     abrirAjuste,
     cerrarModales,
     guardarConsumo,
@@ -626,6 +628,7 @@ export function CuentasPorCobrarView() {
         clientes={registros}
         clienteElegido={clienteElegido}
         isSaving={isSaving}
+        correccion={movimientoCorreccion}
       />
 
       <AjusteFormModal
@@ -642,6 +645,7 @@ export function CuentasPorCobrarView() {
         estadoCuenta={estadoCuenta}
         isLoading={isLoadingDetalle}
         onAnular={abrirConfirmAnular}
+        onCorregir={abrirCorreccion}
       />
 
       <ReporteQuincenaModal

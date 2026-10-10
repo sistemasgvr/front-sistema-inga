@@ -1,4 +1,6 @@
 "use client";
+import { CierrePedido, type CierrePedidoDatos } from "./cierre-pedido";
+
 import { useEffect, useState } from "react";
 import { getMe } from "@/modules/auth/services/auth.service";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
@@ -20,7 +22,9 @@ interface PedidoPanelProps {
   saving: boolean;
   feedback: Feedback | null;
   onComandar: () => void;
+  onCerrarPedido: (accion: "precuenta"|"cobrar"|"credito", datos:CierrePedidoDatos) => Promise<boolean>;
   onEntregarItem: (idItem: number) => void;
+  onCancelarItem: (idItem: number, motivo: string) => Promise<boolean>;
   onCambiarEstado: (estado: number) => void;
   onAnular: (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) => void;
   onActualizar?: () => void;
@@ -75,7 +79,9 @@ export function PedidoPanel({
   saving,
   feedback,
   onComandar,
+  onCerrarPedido,
   onEntregarItem,
+  onCancelarItem,
   onCambiarEstado,
   onAnular,
   onActualizar,
@@ -84,6 +90,8 @@ export function PedidoPanel({
   hideAgregar = false,
 }: PedidoPanelProps) {
   const [showAnularConfirm, setShowAnularConfirm] = useState(false);
+  const [itemCancelar, setItemCancelar] = useState<PedidoItem | null>(null);
+  const [motivoItem, setMotivoItem] = useState("");
   const [motivoAnular,setMotivoAnular] = useState("");
   const [destinoAnular,setDestinoAnular] = useState("");
   const [destinoInsumosAnular,setDestinoInsumosAnular] = useState("");
@@ -119,7 +127,7 @@ export function PedidoPanel({
     : [];
 
   const puedeComandar =
-    (pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2) &&
+    (!!pedido && [1,2,3].includes(pedido.estado_pedido)) &&
     itemsPendientes.length > 0;
   const puedePorCobrar =
     pedido?.estado_pedido === 2 && itemsPendientes.length === 0 && pedido.items.every(i=>i.tipo_linea===3 || Number(i.cantidad_entregada)+Number(i.cantidad_cancelada)>=Number(i.cantidad));
@@ -131,7 +139,7 @@ export function PedidoPanel({
   const hayPreparados = lineasActivas.some(i=>Number(i.cantidad_reservada)>0);
   const hayEnPreparacion = lineasActivas.some(i=>i.estado_preparacion===3 && unidadesSinPreparar(i)>0);
   const puedeAgregarItems =
-    pedido?.estado_pedido === 1 || pedido?.estado_pedido === 2;
+    !!pedido && [1,2,3].includes(pedido.estado_pedido);
 
   const documentoInfo = TIPO_DOCUMENTO[tipoComprobante];
 
@@ -142,10 +150,10 @@ export function PedidoPanel({
   return (
     <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">
               {pedido ? `Pedido ${pedido.codigo}` : "Resumen del pedido" }
             </h3>
             {estado && (
@@ -160,8 +168,13 @@ export function PedidoPanel({
               : "Selecciona una mesa para comenzar"}
           </p>
         </div>
-        {onActualizar && pedido && <Button size="sm" variant="outline" onClick={onActualizar} disabled={loading || saving}>Actualizar</Button>}
-        {!hideAgregar && (!pedido || puedeAgregarItems) && <Button size="sm" className="shrink-0 whitespace-nowrap" onClick={onAgregarItem} disabled={saving} startIcon={<Icon name="mdi:plus" size={18} />}>Añadir platos</Button>}
+        <div className="flex shrink-0 items-center gap-2">
+          {puedeAnular && <button type="button" title="Cancelar pedido" aria-label="Cancelar pedido" disabled={saving}
+            onClick={() => {setMotivoAnular("");setDestinoAnular("");setDestinoInsumosAnular("");setShowAnularConfirm(true);}}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-error-200 text-error-600 hover:bg-error-50 disabled:opacity-40 dark:border-error-500/30 dark:text-error-400 dark:hover:bg-error-500/10"><Icon name="mdi:cancel" size={18}/></button>}
+          {onActualizar && pedido && <button type="button" title="Actualizar pedido" aria-label="Actualizar pedido" onClick={onActualizar} disabled={loading || saving} className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 dark:border-gray-700 dark:text-gray-300"><Icon name="mdi:refresh" size={18}/></button>}
+          {!hideAgregar && (!pedido || puedeAgregarItems) && <button type="button" onClick={onAgregarItem} disabled={saving} className="inline-flex h-9 items-center gap-1 rounded-lg bg-brand-500 px-3 text-xs font-semibold text-white disabled:opacity-40"><Icon name="mdi:plus" size={16}/>Añadir platos</button>}
+        </div>
       </div>
 
       {/* Feedback */}
@@ -171,8 +184,9 @@ export function PedidoPanel({
         </div>
       )}
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Items: única región que scrollea. Al llevar flex-1 absorbe el espacio
+          sobrante y empuja la barra de totales y acciones contra el borde inferior. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {!pedido && loading ? (
           <p role="status" className="py-12 text-center text-sm text-gray-500">
             Cargando pedido...
@@ -198,11 +212,13 @@ export function PedidoPanel({
             No hay productos agregados
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {pedido.items.map((item) => (
               <PedidoItemRow key={item.id} item={item}
+                onCancelar={tienePermisoAnular && [1,2,3].includes(pedido.estado_pedido) && item.estado===1 && item.tipo_linea!==3 && [1,2].includes(item.estado_preparacion)
+                  ?()=>{setMotivoItem("");setItemCancelar(item);} :undefined}
                 entregando={saving || loading}
-                onEntregar={tienePermisoEntregar && pedido.estado_pedido === 2 &&
+                onEntregar={tienePermisoEntregar && [2,3].includes(pedido.estado_pedido) &&
                   item.estado === 1 && item.tipo_linea !== 3 && item.estado_preparacion === 4 &&
                   Number(item.cantidad) > Number(item.cantidad_entregada) + Number(item.cantidad_cancelada)
                   ? () => onEntregarItem(item.id) : undefined} />
@@ -211,133 +227,53 @@ export function PedidoPanel({
         )}
       </div>
 
+      <FormModal isOpen={!!itemCancelar} title="Cancelar plato" onClose={()=>{if(!saving)setItemCancelar(null);}}
+        isSaving={saving} submitText="Cancelar plato" submitDisabled={!motivoItem.trim()}
+        onSubmit={async e=>{e.preventDefault();if(itemCancelar&&await onCancelarItem(itemCancelar.id,motivoItem))setItemCancelar(null);}}>
+        <p>{itemCancelar?.nombre_producto}</p>
+        <p className="text-sm text-gray-500">Se cancelará este ítem completo. Si ya fue comandado, cocina recibirá un aviso.</p>
+        <Label>Motivo de cancelación</Label><InputField value={motivoItem} disabled={saving} onChange={e=>setMotivoItem(e.target.value)}/>
+        {feedback?.variant==="error"&&<Alert {...feedback}/>}
+      </FormModal>
+      {/* Barra inferior fija. shrink-0 para que el flex nunca la aplaste cuando
+          la lista de platos es larga: subtotal, IGV, total y los botones de
+          precuenta, cobrar y crédito quedan siempre a la vista, abajo. */}
+      <div className="shrink-0">
       {/* Totales */}
-      <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              S/ {subtotal.toFixed(2)}
-            </span>
+      <div className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-800">
+        <dl className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+            <dt className="text-gray-500">Subtotal</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">S/ {subtotal.toFixed(2)}</dd>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">IGV</span>
-            <span className="font-medium text-gray-900 dark:text-white">
-              S/ {igv.toFixed(2)}
-            </span>
+          <div className="rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
+            <dt className="text-gray-500">IGV</dt>
+            <dd className="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">S/ {igv.toFixed(2)}</dd>
           </div>
-          <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-800">
-            <span className="font-semibold text-gray-900 dark:text-white">
-              Total a pagar
-            </span>
-            <span className="text-lg font-bold text-brand-600">
-              S/ {total.toFixed(2)}
-            </span>
-          </div>
-          {pedido && pedido.monto_pagado > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Pagado</span>
-              <span className="font-medium text-success-600">
-                S/ {pedido.monto_pagado.toFixed(2)}
-              </span>
-            </div>
-          )}
+        </dl>
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-semibold text-gray-900 dark:text-white">Total a pagar</span>
+          <span className="text-2xl font-bold text-brand-600">S/ {total.toFixed(2)}</span>
         </div>
+        {pedido && pedido.monto_pagado > 0 && (
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Pagado</span>
+            <span className="font-medium text-success-600">S/ {pedido.monto_pagado.toFixed(2)}</span>
+          </div>
+        )}
+        {puedeComandar && (
+          <Button
+            onClick={onComandar}
+            disabled={saving}
+            className="w-full"
+            startIcon={<Icon name="mdi:chef-hat" size={18} />}
+          >
+            Enviar comanda ({itemsPendientes.length} pendientes)
+          </Button>
+        )}
       </div>
 
-      {/* Comprobante */}
-      <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-        <div className="space-y-3">
-          <Label>Tipo de comprobante</Label>
-          <ListaSelect
-            idLista={LISTA_IDS.COMPROBANTE_TIPO}
-            campoValor="codigo"
-            defaultValue={tipoComprobante}
-            disabled={!pedido || saving}
-            placeholder="Seleccione un comprobante"
-            onChange={(value) => {
-              setTipoComprobante(value);
-              setNumeroDocumento("");
-            }}
-          />
-
-          {documentoInfo && (
-            <div>
-              <Label>{documentoInfo.label}</Label>
-              <InputField
-                type="text"
-                value={numeroDocumento}
-                onChange={(e) => setNumeroDocumento(e.target.value)}
-                placeholder={documentoInfo.placeholder}
-                maxLength={documentoInfo.maxLength}
-              />
-            </div>
-          )}
-
-          {tipoComprobante && documentoInfo && (
-            <Button
-              onClick={() =>
-                onGenerarComprobante(tipoComprobante, numeroDocumento)
-              }
-              disabled={!numeroDocumento.trim() || saving}
-              className="w-full"
-              startIcon={<Icon name="mdi:receipt-text-outline" size={18} />}
-            >
-              Emitir comprobante
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Acciones */}
-      <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-        <div className="space-y-2">
-
-          {puedeComandar && (
-            <Button
-              onClick={onComandar}
-              disabled={saving}
-              className="w-full"
-              startIcon={<Icon name="mdi:chef-hat" size={18} />}
-            >
-              Enviar comanda ({itemsPendientes.length} pendientes)
-            </Button>
-          )}
-
-          {puedePorCobrar && (
-            <Button
-              onClick={() => onCambiarEstado(3)}
-              disabled={saving}
-              className="w-full"
-              startIcon={<Icon name="mdi:cash-clock" size={18} />}
-            >
-              Por cobrar
-            </Button>
-          )}
-
-          {puedePagar && (
-            <Button
-              onClick={() => onCambiarEstado(4)}
-              disabled={saving}
-              className="w-full"
-              startIcon={<Icon name="mdi:cash-check" size={18} />}
-            >
-              Cobrar
-            </Button>
-          )}
-
-          {puedeAnular && (
-            <Button
-              onClick={() => {setMotivoAnular("");setDestinoAnular("");setDestinoInsumosAnular("");setShowAnularConfirm(true);}}
-              disabled={saving}
-              variant="outline"
-              className="w-full text-error-600 hover:bg-error-50 dark:text-error-400 dark:hover:bg-error-500/10"
-              startIcon={<Icon name="mdi:cancel" size={18} />}
-            >
-              Cancelar pedido
-            </Button>
-          )}
-        </div>
+      {pedido && [1,2,3].includes(pedido.estado_pedido) && <CierrePedido key={pedido.id} pedido={pedido} saving={saving} feedback={feedback} onConfirmar={onCerrarPedido}/>}
       </div>
 
       <FormModal isOpen={showAnularConfirm && puedeAnular} onClose={()=>{if(!saving)setShowAnularConfirm(false);}}
@@ -357,67 +293,70 @@ export function PedidoPanel({
   );
 }
 
-function PedidoItemRow({ item, onEntregar, entregando }: {
-  item: PedidoItem; onEntregar?: () => void; entregando: boolean;
+function PedidoItemRow({ item, onEntregar, onCancelar, entregando }: {
+  item: PedidoItem; onEntregar?: () => void; onCancelar?: () => void; entregando: boolean;
 }) {
   const esAnulado = item.tipo_linea === 3 || item.estado_preparacion === 6;
+  const listo = !esAnulado && item.estado_preparacion === 4;
 
   return (
     <div
-      className={`rounded-xl border p-3 ${
+      className={`grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-xl border p-3 ${
         esAnulado
           ? "border-gray-200 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-gray-800"
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       }`}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p
-            className={`text-sm font-medium ${
-              esAnulado
-                ? "text-gray-400 line-through"
-                : "text-gray-900 dark:text-white"
-            }`}
-          >
-            {item.nombre_producto}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">{ESTADOS_PREPARACION[item.estado_preparacion] ?? "Pendiente"} · Entregados: {item.cantidad_entregada ?? 0} · Cancelados: {item.cantidad_cancelada ?? 0}</p>
-          {item.observacion && (
-            <p className="mt-0.5 text-xs text-gray-500">{item.observacion}</p>
-          )}
-          {item.adicionales.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {item.adicionales.map((adj) => (
-                <span
-                  key={adj.id}
-                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  + {adj.nombre}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+      <span className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-sm font-bold ${
+        esAnulado ? "bg-gray-100 text-gray-400 dark:bg-gray-700" : "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+      }`}>
+        {item.cantidad}
+      </span>
+      <div className="min-w-0">
+        <p className={`truncate text-sm font-medium ${esAnulado ? "text-gray-400 line-through" : "text-gray-900 dark:text-white"}`}
+          title={item.nombre_producto}>
+          {item.nombre_producto}
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
+          <span className={listo ? "font-medium text-success-600" : undefined}>
+            {ESTADOS_PREPARACION[item.estado_preparacion] ?? "Pendiente"}
+          </span>
+          <span aria-hidden>·</span><span>Entregados: {item.cantidad_entregada ?? 0}</span>
+          {Number(item.cantidad_cancelada) > 0 && <><span aria-hidden>·</span><span className="text-error-600">Cancelados: {item.cantidad_cancelada}</span></>}
+        </p>
+        {item.observacion && (
+          <p className="mt-0.5 text-xs italic text-gray-500">{item.observacion}</p>
+        )}
+        {item.adicionales.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {item.adicionales.map((adj) => (
+              <span
+                key={adj.id}
+                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+              >
+                + {adj.nombre}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-1.5">
         <div className="text-right">
-          <p
-            className={`text-sm font-semibold ${
-              esAnulado ? "text-gray-400" : "text-gray-900 dark:text-white"
-            }`}
-          >
+          <p className={`text-sm font-semibold ${esAnulado ? "text-gray-400" : "text-gray-900 dark:text-white"}`}>
             S/ {item.monto_subtotal.toFixed(2)}
           </p>
-          <p className="text-xs text-gray-500">
-            {item.cantidad} x S/ {item.precio_unitario.toFixed(2)}
-          </p>
+          <p className="text-xs text-gray-500">S/ {item.precio_unitario.toFixed(2)} c/u</p>
         </div>
+        {(onCancelar || onEntregar) && <div className="flex gap-1">
+          {onCancelar && <button type="button" onClick={onCancelar} disabled={entregando} title="Cancelar plato" aria-label={`Cancelar ${item.nombre_producto}`}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-error-600 hover:bg-error-50 disabled:opacity-40 dark:hover:bg-error-500/10"><Icon name="mdi:cancel" size={18}/></button>}
+          {onEntregar && <button type="button" title="Entregar al cliente" aria-label={`Entregar ${item.nombre_producto} al cliente`}
+            disabled={entregando} onClick={onEntregar}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
+            <Icon name="mdi:hand-extended" size={18} />
+          </button>}
+        </div>}
       </div>
-      {onEntregar && <div className="mt-2 flex justify-end border-t border-gray-100 pt-2 dark:border-gray-700">
-        <button type="button" title="Entregar al cliente" aria-label={`Entregar ${item.nombre_producto} al cliente`}
-          disabled={entregando} onClick={onEntregar}
-          className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">
-          <Icon name="mdi:hand-extended" size={20} />
-        </button>
-      </div>}
     </div>
   );
 }

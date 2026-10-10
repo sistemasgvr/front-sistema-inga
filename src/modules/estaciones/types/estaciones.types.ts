@@ -1,6 +1,7 @@
 export type EstacionStatus = 1 | 0;
 
 export type EstacionItem = {
+  es_caja_principal?: boolean;
   id: number;
   id_sucursal: number;
   codigo: string;

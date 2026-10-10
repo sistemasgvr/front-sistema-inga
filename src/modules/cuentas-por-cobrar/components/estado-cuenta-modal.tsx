@@ -11,6 +11,8 @@ type EstadoCuentaModalProps = {
   estadoCuenta: EstadoCuentaCxc | null;
   isLoading: boolean;
   onAnular: (mov: MovimientoCxc) => void;
+  /** Abre el abono de corrección sobre un cargo que viene de un pedido. */
+  onCorregir: (mov: MovimientoCxc) => void;
 };
 
 /**
@@ -28,6 +30,7 @@ export function EstadoCuentaModal({
   estadoCuenta,
   isLoading,
   onAnular,
+  onCorregir,
 }: EstadoCuentaModalProps) {
   const persona = estadoCuenta?.persona;
   const credito = nivelCredito(
@@ -168,9 +171,12 @@ export function EstadoCuentaModal({
               <ul className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {estadoCuenta.movimientos.map((mov) => {
                   const esConsumo = mov.tipo_movimiento === 1;
-                  // Un consumo que viene de un pedido no se puede anular por
-                  // acá: hay que anular la venta. Lo dejo visible como candado
-                  // en vez de esconder el botón, para que se entienda por qué.
+                  // Un consumo que viene de un pedido no se anula desde acá: la venta
+                  // ocurrió, con comprobante y con caja. Si en realidad el cliente iba
+                  // a pagar en efectivo, lo que se corrige es la DEUDA, con un abono
+                  // vinculado a este cargo. Por eso el botón es "Corregir crédito" y no
+                  // "Anular". Los movimientos sin pedido sí se anulan acá, que para eso
+                  // existe cxc_anular_movimiento.
                   const ligadoAPedido = mov.id_pedido !== null;
 
                   return (
@@ -204,6 +210,13 @@ export function EstadoCuentaModal({
                           {formatearFecha(mov.fecha_creacion)}
                           {mov.observacion ? ` — ${mov.observacion}` : ""}
                         </p>
+                        {/* Qué se pidió en el pedido del cargo. Sin esto el historial
+                            decía "Pedido PED-20" y obligaba a ir a buscarlo. */}
+                        {mov.detalle_pedido && (
+                          <p className="mt-0.5 truncate text-xs text-gray-400 dark:text-gray-500">
+                            {mov.detalle_pedido}
+                          </p>
+                        )}
                       </div>
 
                       <div className="text-end">
@@ -223,17 +236,19 @@ export function EstadoCuentaModal({
                       </div>
 
                       {ligadoAPedido ? (
-                        <span
-                          className="text-gray-300 dark:text-gray-600"
-                          title="Viene de un pedido. Para revertirlo, anula la venta."
+                        <button
+                          type="button"
+                          onClick={() => onCorregir(mov)}
+                          className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-warning-600 transition-colors hover:bg-warning-50 dark:text-warning-400 dark:hover:bg-warning-500/10"
+                          title="Registrar un abono por el monto de este crédito, dejando la venta como fue"
                         >
-                          <Icon name="mdi:lock-outline" size={17} />
-                        </span>
+                          Corregir crédito
+                        </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => onAnular(mov)}
-                          className="text-gray-400 transition-colors hover:text-error-500"
+                          className="shrink-0 text-gray-400 transition-colors hover:text-error-500"
                           title="Anular movimiento"
                         >
                           <Icon name="mdi:close-circle-outline" size={17} />

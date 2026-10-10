@@ -6,7 +6,11 @@ import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
-import type { AbonoCxcFormValues, SaldoCliente } from "../types/cxc.types";
+import type {
+  AbonoCxcFormValues,
+  MovimientoCxc,
+  SaldoCliente,
+} from "../types/cxc.types";
 import { formatearSoles, hoyISO } from "../utils/formato";
 
 type AbonoFormModalProps = {
@@ -17,6 +21,12 @@ type AbonoFormModalProps = {
   clientes: SaldoCliente[];
   clienteElegido: SaldoCliente | null;
   isSaving: boolean;
+  /**
+   * Cuando viene, el abono es una corrección: se precarga el monto del cargo y
+   * se manda el id del pedido para que quede trazado. Sin esto el modal arranca
+   * siempre en cero, que es lo correcto para un abono de quincena normal.
+   */
+  correccion?: MovimientoCxc | null;
 };
 
 /**
@@ -38,6 +48,7 @@ export function AbonoFormModal({
   clientes,
   clienteElegido,
   isSaving,
+  correccion,
 }: AbonoFormModalProps) {
   const [values, setValues] = useState<AbonoCxcFormValues>({
     id_persona: null,
@@ -51,20 +62,35 @@ export function AbonoFormModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    setValues({
-      id_persona: clienteElegido?.id_persona ?? null,
-      monto: 0,
-      fecha_movimiento: hoyISO(),
-      observacion: "",
-    });
+    // En modo corrección el monto y el pedido vienen del cargo que se está
+    // devolviendo; el cajero solo confirma la fecha y ajusta el texto.
+    setValues(
+      correccion
+        ? {
+            id_persona: correccion.id_persona,
+            monto: Number(correccion.monto),
+            fecha_movimiento: hoyISO(),
+            observacion: "",
+            id_pedido: correccion.id_pedido,
+          }
+        : {
+            id_persona: clienteElegido?.id_persona ?? null,
+            monto: 0,
+            fecha_movimiento: hoyISO(),
+            observacion: "",
+            id_pedido: null,
+          },
+    );
     setIntentoEnviar(false);
     setServerError(null);
-  }, [isOpen, clienteElegido]);
+  }, [isOpen, clienteElegido, correccion]);
 
   // Solo ofrezco a quienes tienen deuda: el backend rechaza lo demás, y es
   // mejor que la opción no exista a que exista y falle.
   const conDeuda = clientes.filter((c) => Number(c.saldo) > 0);
-  const seleccionado = conDeuda.find((c) => c.id_persona === values.id_persona);
+  // Busco en TODOS, no solo en conDeuda: en una corrección el cliente viene del
+  // cargo y su saldo es el dato que valida el monto que se está devolviendo.
+  const seleccionado = clientes.find((c) => c.id_persona === values.id_persona);
   const deuda = Number(seleccionado?.saldo ?? 0);
 
   const errorCliente =
@@ -105,10 +131,12 @@ export function AbonoFormModal({
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title="Registrar abono del cliente"
-      subtitle="Reduce lo que el consorcio nos debe."
+      title={correccion ? "Corregir crédito del pedido" : "Registrar abono del cliente"}
+      subtitle={correccion
+        ? "La venta queda como fue: se devuelve el monto que se llevó a cuenta por cobrar."
+        : "Reduce lo que el consorcio nos debe."}
       isSaving={isSaving}
-      submitText="Registrar abono"
+      submitText={correccion ? "Registrar corrección" : "Registrar abono"}
     >
       {serverError && (
         <Alert variant="error" title="Error" message={serverError} />
@@ -127,13 +155,15 @@ export function AbonoFormModal({
             setServerError(null);
             setValues((p) => ({ ...p, id_persona: Number(value) }));
           }}
-          disabled={isSaving}
+          disabled={isSaving || Boolean(correccion)}
           error={Boolean(errorCliente)}
           hint={
             errorCliente ??
-            (conDeuda.length === 0
-              ? "Ningún cliente tiene deuda pendiente en este momento."
-              : undefined)
+            (correccion
+              ? "El cliente viene del cargo que se está corrigiendo."
+              : conDeuda.length === 0
+                ? "Ningún cliente tiene deuda pendiente en este momento."
+                : undefined)
           }
         />
       </div>

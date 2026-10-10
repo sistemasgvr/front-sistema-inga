@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/ui/icon";
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
@@ -50,13 +51,16 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === "undefined") return null;
 
   const contentClasses = isFullscreen
     ? "w-full h-full"
     : "relative w-full rounded-2xl sm:rounded-3xl bg-white dark:bg-gray-900 shadow-2xl";
 
-  return (
+  // Se monta en <body>: si el modal se abre desde un contenedor sticky, transformado o con
+  // z-index propio, ese contenedor crea un contexto de apilamiento y el fondo quedaría
+  // debajo del header y del sidebar.
+  return createPortal(
     <div className="fixed inset-0 flex items-center justify-center p-4 sm:p-6 overflow-y-auto modal z-99999">
       {!isFullscreen && (
         <div
@@ -79,6 +83,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
         <div>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

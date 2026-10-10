@@ -89,8 +89,16 @@ export type MovimientoCxc = {
   mes: number;
   /** 1 = días 1-15, 2 = días 16-fin. */
   quincena: number;
-  /** Pedido que lo originó, cuando viene de M12. */
+  /** Pedido que lo originó, cuando viene del flujo de cobros. */
   id_pedido: number | null;
+  /**
+   * Qué se pidió en ese pedido, como texto ("2x Ceviche, 1x Gaseosa"). Lo arma el
+   * backend con un JOIN al detalle del pedido; es null en abonos, ajustes y
+   * consumos cargados a mano. Ojo: el cargo no siempre es el pedido entero —con
+   * tope, parte del total va a crédito y el resto en efectivo—, así que esto
+   * describe el pedido de origen, no la porción que se llevó a cuenta.
+   */
+  detalle_pedido?: string | null;
   observacion: string | null;
   estado: EstadoRegistro;
   fecha_creacion: string;
@@ -152,6 +160,12 @@ export type AbonoCxcFormValues = {
   monto: number;
   fecha_movimiento: string;
   observacion: string;
+  /**
+   * Solo en correcciones: el pedido cuyo cargo a crédito se está devolviendo.
+   * El backend lo usa para completar la observación y validar que el pedido sea
+   * de esta misma persona.
+   */
+  id_pedido?: number | null;
 };
 
 /** Un consumo registrado, más la advertencia de tope si la hubo. */

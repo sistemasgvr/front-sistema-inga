@@ -6,7 +6,7 @@ const texto = (value: unknown) => String(value ?? '').normalize('NFD')
 
 export function formatearComanda(comanda: ComandaImpresion): string {
   const lineas = [texto(comanda.estacion).toUpperCase(),
-    `COMANDA ${texto(comanda.id)} / LOTE ${comanda.numero}`,
+    comanda.tipo==='PRECUENTA'?'PRECUENTA - NO ES COMPROBANTE':`COMANDA ${texto(comanda.id)} / LOTE ${comanda.numero}`,
     `Pedido: ${texto(comanda.pedido)}`,
     `Mesa: ${texto(comanda.mesa || (comanda.tipo_pedido === 3 ? 'DELIVERY' : 'PARA LLEVAR'))}`,
     `Mozo: ${texto(comanda.mozo)}`,
@@ -14,10 +14,12 @@ export function formatearComanda(comanda: ComandaImpresion): string {
     '--------------------------------',
     ...comanda.items.flatMap((item) => [
       `${Number(item.cantidad)} x ${texto(item.nombre_producto)}`,
+      ...(comanda.tipo==='PRECUENTA'?[`  S/ ${Number(item.monto_subtotal ?? 0).toFixed(2)}`]:[]),
       ...(item.adicionales ?? []).map((a) => `  + ${texto(a.nombre)}`),
       ...(item.observacion ? [`  NOTA: ${texto(item.observacion)}`] : []),
     ]),
     ...(comanda.observacion ? ['--------------------------------', texto(comanda.observacion)] : []),
+    ...(comanda.tipo==='PRECUENTA'?['--------------------------------',`TOTAL S/ ${Number(comanda.total).toFixed(2)}`]:[]),
     '--------------------------------', '', '', '',
   ];
   return '\x1b@' + lineas.join('\n') + '\n\x1dV\x00';

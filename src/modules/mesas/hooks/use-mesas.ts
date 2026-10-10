@@ -193,7 +193,7 @@ export function useMesas() {
 
   // Mantiene visible el avance de cocina sin vaciar ni bloquear el resumen.
   useEffect(() => {
-    if (!pedido?.id || pedido.estado_pedido !== 2) return;
+    if (!pedido?.id || ![2,3].includes(pedido.estado_pedido)) return;
     const id = pedido.id;
     const controller = new AbortController();
     let consultando = false;
@@ -325,7 +325,7 @@ export function useMesas() {
   const entregarItem = (idItem: number) =>
     mutate(async () => {
       const item = pedido?.items.find(i => i.id === idItem);
-      if (!pedido || pedido.estado_pedido !== 2 || !item || item.estado !== 1 ||
+      if (!pedido || ![2,3].includes(pedido.estado_pedido) || !item || item.estado !== 1 ||
           item.tipo_linea === 3 || item.estado_preparacion !== 4)
         throw new Error("Solo se pueden entregar platos listos.");
       const objetivo = Number(item.cantidad) - Number(item.cantidad_cancelada);
@@ -333,11 +333,22 @@ export function useMesas() {
         throw new Error("Este plato ya fue entregado.");
       setPedido(await api.entregarItemPedido(pedido.id, item.id, objetivo));
     }, "Plato entregado al cliente.");
+  const cancelarItem = (idItem: number, motivo: string) => mutate(async()=>{
+    const item=pedido?.items.find(i=>i.id===idItem);
+    const usuario=getStoredUser();
+    if(!pedido||!item||!usuario||![1,2].includes(item.estado_preparacion)||!motivo.trim())
+      throw new Error("Solo se puede cancelar desde el resumen antes de iniciar la preparación.");
+    setPedido(await api.anularItem(pedido.id,item.id,{id_usuario_autoriza:usuario.id,motivo:motivo.trim(),
+      cantidad_cancelada:Number(item.cantidad)-Number(item.cantidad_entregada),solo_sin_preparar:true}));
+  },"Plato cancelado.");
   const cambiarEstado = (estado_pedido: number) =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
       setPedido(await api.cambiarEstadoPedido(pedido.id, { estado_pedido }));
     });
+  const cerrarPedido = (accion:'precuenta'|'cobrar'|'credito',datos:{id_estacion?:number;tipo_comprobante?:number;medio_pago?:number;documento?:string}) =>
+    mutate(async()=>{if(!pedido)throw new Error('Seleccione un pedido.');setPedido(await api.cerrarPedido(pedido.id,accion,datos));},
+      accion==='precuenta'?'Precuenta enviada a impresión.':accion==='credito'?'Cuenta por cobrar registrada.':'Cobro registrado.');
   const descartar = () =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
@@ -393,7 +404,9 @@ export function useMesas() {
     agregarItems,
     comandar,
     entregarItem,
+    cancelarItem,
     cambiarEstado,
+    cerrarPedido,
     anular,
     descartar,
   };

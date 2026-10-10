@@ -1,3 +1,5 @@
+import { apiPost as postPrincipal } from '@/shared/api/api-client';
+export const marcarCajaPrincipal=(id:number)=>postPrincipal(`/estaciones/${id}/caja-principal`,{});
 import {
   apiGetPaginated,
   apiPost,

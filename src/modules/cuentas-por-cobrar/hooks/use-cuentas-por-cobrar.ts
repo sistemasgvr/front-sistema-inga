@@ -81,6 +81,9 @@ export function useCuentasPorCobrar() {
 
   const [isConsumoOpen, setIsConsumoOpen] = useState(false);
   const [isAbonoOpen, setIsAbonoOpen] = useState(false);
+  // Cargo del pedido que se está corrigiendo con el abono; null en abono normal.
+  const [movimientoCorreccion, setMovimientoCorreccion] =
+    useState<MovimientoCxc | null>(null);
   const [isAjusteOpen, setIsAjusteOpen] = useState(false);
   /** Cliente preseleccionado al abrir un modal desde su fila. */
   const [clienteElegido, setClienteElegido] = useState<SaldoCliente | null>(null);
@@ -201,6 +204,18 @@ export function useCuentasPorCobrar() {
 
   function abrirAbono(cliente?: SaldoCliente) {
     setClienteElegido(cliente ?? null);
+    setMovimientoCorreccion(null);
+    setIsAbonoOpen(true);
+  }
+
+  /**
+   * Corrige un cargo que vino de un pedido: el cajero vendió a crédito lo que el
+   * cliente iba a pagar en efectivo. Cierro el estado de cuenta porque el abono
+   * se hace sobre el mismo cliente y la lista de saldos es la que valida el monto.
+   */
+  function abrirCorreccion(mov: MovimientoCxc) {
+    setMovimientoCorreccion(mov);
+    setIsDetalleOpen(false);
     setIsAbonoOpen(true);
   }
 
@@ -214,6 +229,7 @@ export function useCuentasPorCobrar() {
     setIsAbonoOpen(false);
     setIsAjusteOpen(false);
     setClienteElegido(null);
+    setMovimientoCorreccion(null);
   }
 
   /**
@@ -257,14 +273,17 @@ export function useCuentasPorCobrar() {
   }
 
   async function guardarAbono(values: AbonoCxcFormValues) {
+    const esCorreccion = Boolean(values.id_pedido);
     setIsSaving(true);
     try {
       await registrarAbono(values);
       cerrarModales();
       setFeedback({
         variant: "success",
-        title: "Abono registrado",
-        message: "La deuda del cliente se redujo.",
+        title: esCorreccion ? "Crédito corregido" : "Abono registrado",
+        message: esCorreccion
+          ? "Se devolvió el monto a la cuenta. La venta queda registrada tal como fue."
+          : "La deuda del cliente se redujo.",
       });
       await load();
     } catch (error) {
@@ -403,8 +422,10 @@ export function useCuentasPorCobrar() {
     isAbonoOpen,
     isAjusteOpen,
     clienteElegido,
+    movimientoCorreccion,
     abrirConsumo,
     abrirAbono,
+    abrirCorreccion,
     abrirAjuste,
     cerrarModales,
     guardarConsumo,

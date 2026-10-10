@@ -63,6 +63,7 @@ export type PedidoAdicional = {
 };
 
 export type Pedido = {
+  id_sucursal: number;
   id: number;
   codigo: string;
   tipo_pedido: TipoPedido;
@@ -138,6 +139,7 @@ export type AgregarItemValues = {
 };
 
 export type AnularValues = {
+  solo_sin_preparar?: boolean;
   cantidad_cancelada?: number;
   destino_preparado?: "DISPONIBLE" | "MERMA";
   destino_insumos?: "LIBERAR" | "MERMA";

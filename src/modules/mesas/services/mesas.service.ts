@@ -108,6 +108,9 @@ export const entregarItemPedido = (idPedido: number, idItem: number, cantidadEnt
     cantidad_entregada: cantidadEntregada,
   });
 
+export const cerrarPedido = (id:number,accion:'precuenta'|'cobrar'|'credito',datos:{id_estacion?:number;tipo_comprobante?:number;medio_pago?:number;documento?:string}) =>
+  apiPost<Pedido>(`/pedidos/${id}/${accion}`,datos);
+
 export const cambiarEstadoPedido = (
   idPedido: number,
   values: { estado_pedido: number } & Partial<AnularValues>,

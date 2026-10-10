@@ -218,7 +218,11 @@ export function MesasView() {
           />
         </div>
 
-        <div className="lg:col-span-1">
+        {/* El panel necesita una altura acotada para que su h-full sea real: sin ella
+            el flex no tiene espacio que repartir y la barra de totales queda pegada al
+            final del contenido en vez de al borde inferior. self-start evita que el
+            sticky se estire, y top-[5rem] lo despega del header. */}
+        <div className="lg:col-span-1 lg:sticky lg:top-[5rem] lg:self-start lg:h-[calc(100dvh-7rem)]">
           <PedidoPanel
             key={m.pedido?.id ?? "sin-pedido"}
             pedido={m.pedido}
@@ -227,6 +231,8 @@ export function MesasView() {
             feedback={m.feedback}
             onComandar={() => void m.comandar()}
             onEntregarItem={(id) => void m.entregarItem(id)}
+              onCancelarItem={m.cancelarItem}
+              onCerrarPedido={m.cerrarPedido}
             onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
             onAnular={(values) => void m.anular(values)}
             onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
@@ -307,6 +313,8 @@ export function MesasView() {
               hideAgregar
               onComandar={() => void m.comandar()}
               onEntregarItem={(id) => void m.entregarItem(id)}
+              onCancelarItem={m.cancelarItem}
+              onCerrarPedido={m.cerrarPedido}
               onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
               onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
               onAnular={(values) => {

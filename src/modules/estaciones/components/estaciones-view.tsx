@@ -15,6 +15,7 @@ import { PanelImpresion } from "@/modules/impresion";
 export function EstacionesView() {
   const {
     registros,
+    marcarPrincipal,
     total,
     pagina,
     setPagina,
@@ -79,6 +80,11 @@ export function EstacionesView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Gestión de Estaciones" />
+      {(isSuper||userPermisos.includes(PermisoBanderas.ESTACIONES_EDITAR))&&<section className="mb-4 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+        <h2 className="font-semibold">Estación principal de caja y cobros</h2>
+        <p className="mb-2 text-sm text-gray-500">Crea o edita una estación con impresora y márcala como principal. Se permite una por sucursal.</p>
+        <div className="flex flex-wrap gap-2">{registros.filter(e=>e.estado===1).map(e=><Button key={e.id} size="sm" variant="outline" disabled={e.es_caja_principal||!e.impresora_ip} onClick={()=>void marcarPrincipal(e.id)}>{e.nombre}{e.es_caja_principal?' · Principal':' · Usar para caja'}</Button>)}</div>
+      </section>}
       {(isSuper || userPermisos.includes("pedidos.comandar")) && <PanelImpresion />}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">

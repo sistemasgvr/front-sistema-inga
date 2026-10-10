@@ -3,8 +3,8 @@ import { useCallback,useEffect,useState } from "react";
 import { atenderAvisoCocina,listarAvisosCocina } from "../services/cocina.service";
 import type { AvisoCocina } from "../types/cocina.types";
 
-// La cocina no tiene canal en tiempo real: se consulta al cambiar filtros, al actualizar y cada 20 s.
-const INTERVALO_MS=20000;
+// Consulta avisos de faltantes y cancelaciones al cambiar filtros y cada 3 s.
+const INTERVALO_MS=3000;
 
 export function useAvisosCocina(sucursal:number,estacion:number,revision:number){
   const clave=`${sucursal}:${estacion}`;

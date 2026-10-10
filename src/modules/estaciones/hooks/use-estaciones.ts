@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast/ToastContext";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import {
   listEstaciones,
+  marcarCajaPrincipal,
   createEstacion,
   updateEstacion,
   toggleEstacionStatus,
@@ -326,6 +327,7 @@ export function useEstaciones() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
+    marcarPrincipal:async(id:number)=>{try{await marcarCajaPrincipal(id);await loadEstaciones();toast('success','Caja principal','Estación configurada para precuentas.');}catch(e){toast('error','No se pudo configurar',e instanceof Error?e.message:'Error al guardar');}},
     registros,
     total,
     pagina,

@@ -36,7 +36,9 @@ export function FormModal({
 }: FormModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} className={`${maxWidth} p-0 overflow-hidden flex flex-col`}>
-      <form onSubmit={onSubmit} className={`flex flex-col max-h-[85vh] ${panelScroll ? "lg:h-[85vh]" : ""}`}>
+      {/* El submit no se propaga por el árbol de React: con el portal, un formulario abierto
+          desde otro modal (p. ej. el panel del pedido junto a la carta) dispararía también el del padre. */}
+      <form onSubmit={(e) => { e.stopPropagation(); onSubmit(e); }} className={`flex flex-col max-h-[85vh] ${panelScroll ? "lg:h-[85vh]" : ""}`}>
         {/* Cabecera fija */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1">

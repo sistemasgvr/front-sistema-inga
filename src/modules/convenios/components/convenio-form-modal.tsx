@@ -230,7 +230,7 @@ export function ConvenioFormModal({
             }}
             onBlur={() => setTouched((p) => ({ ...p, limite_credito: true }))}
             error={Boolean(showError("limite_credito"))}
-            hint={showError("limite_credito") ?? "Deja 0 si no quieres poner tope."}
+            hint={showError("limite_credito") ?? "0 = sin tope: puede comprar a crédito sin límite."}
             disabled={isSaving}
           />
         </div>

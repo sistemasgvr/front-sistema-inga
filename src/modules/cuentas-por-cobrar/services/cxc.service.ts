@@ -133,6 +133,7 @@ export async function registrarAbono(
     monto: values.monto,
     fecha_movimiento: values.fecha_movimiento || undefined,
     observacion: values.observacion.trim() || undefined,
+    id_pedido: values.id_pedido ?? undefined,
   });
 }
 
