@@ -12,6 +12,10 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "Sistema Inga",
   description: "Sistema de gestión Inga",
+  icons: {
+    icon: { url: "/images/logo/icono.webp", type: "image/webp" },
+    shortcut: "/images/logo/icono.webp",
+  },
 };
 
 export default function RootLayout({
