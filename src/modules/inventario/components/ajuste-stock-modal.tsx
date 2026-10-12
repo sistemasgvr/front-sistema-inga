@@ -1,8 +1,9 @@
 "use client";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { ListaSelect, LISTA_IDS } from "@/modules/listas";
 import { useAjusteStock } from "../hooks/use-ajuste-stock";
@@ -25,7 +26,7 @@ export function AjusteStockModal({isOpen,onClose,onSubmit,stockItem,isSaving}:Pr
  cantidad:f.cantidad,signo:f.signo,costo_unitario:f.signo===1?costoIngresado:Number(stockItem.costo_promedio),observacion:f.observacion,confirmar:true});}
  catch(e){f.setError(e instanceof Error?e.message:'No se pudo registrar el ajuste');}
  }}>
- {f.error&&<Alert variant="error" title="Error" message={f.error}/>}
+ {f.error&&<ToastNotification variant="error" title="Error" message={f.error}/>}
  <Label>Motivo *</Label><ListaSelect idLista={LISTA_IDS.ALM_MOTIVO_MOVIMIENTO} campoValor="id" tipoMovimiento={f.tipo?.valor_entero??undefined}
  defaultValue={f.motivo} onChange={f.setMotivo} disabled={!f.tipo||isSaving} placeholder="Seleccione motivo"/>
  <Label>Efecto sobre el stock</Label><Select options={[{value:'1',label:'Aumentar (+)'},{value:'-1',label:'Disminuir (-)'}]}

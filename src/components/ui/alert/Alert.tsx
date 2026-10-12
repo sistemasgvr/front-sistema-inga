@@ -10,6 +10,7 @@ interface AlertProps {
   linkText?: string; // Link text
 }
 
+/** Información persistente o validación del formulario. Para eventos usar useToast/useFeedback. */
 const Alert: React.FC<AlertProps> = ({
   variant,
   title,

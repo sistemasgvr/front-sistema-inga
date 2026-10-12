@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
@@ -46,7 +48,7 @@ export function ConvenioFormModal({
     Partial<Record<keyof ConvenioFormValues, boolean>>
   >({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   // Cada vez que se abre el modal recargo los valores. Sin esto, editar un
   // convenio y luego pulsar "Nuevo" mostraría los datos del anterior.
@@ -76,7 +78,7 @@ export function ConvenioFormModal({
     setErrors({});
     setTouched({});
     setIsSubmitted(false);
-    setServerError(null);
+
   }, [isOpen, convenio, condicionesPago]);
 
   function validate(current: ConvenioFormValues) {
@@ -115,14 +117,13 @@ export function ConvenioFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIsSubmitted(true);
-    setServerError(null);
 
     if (!validate(values)) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "Ocurrió un error inesperado al guardar.",
@@ -145,9 +146,6 @@ export function ConvenioFormModal({
       subtitle="Empresa del consorcio cuyo personal consume a crédito y paga por quincena."
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       {condicionesPago.length === 0 && (
         <Alert
@@ -164,7 +162,7 @@ export function ConvenioFormModal({
             id="codigo"
             value={values.codigo}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, codigo: true }))}
@@ -181,7 +179,7 @@ export function ConvenioFormModal({
             id="nombre"
             value={values.nombre}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombre: e.target.value }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, nombre: true }))}
@@ -203,7 +201,7 @@ export function ConvenioFormModal({
             }
             placeholder="Selecciona una condición"
             onChange={(value) => {
-              setServerError(null);
+
               setTouched((p) => ({ ...p, id_condicion_pago: true }));
               setValues((p) => ({ ...p, id_condicion_pago: Number(value) }));
             }}
@@ -222,7 +220,7 @@ export function ConvenioFormModal({
             min="0"
             value={values.limite_credito}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 limite_credito: Number(e.target.value),

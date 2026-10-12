@@ -1,9 +1,12 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
-import Alert from "@/components/ui/alert/Alert";
 import { PasswordField } from "@/components/form/input/PasswordField";
 import { RoleCheckboxCard } from "@/components/form/input/RoleCheckboxCard";
 import { FormModal } from "@/components/ui/modal/FormModal";
@@ -37,7 +40,7 @@ export function UserFormModal({
   isSaving,
 }: Props) {
   const [values, setValues] = useState<UserFormValues>(initial);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("No se pudo guardar");
   const trabajadores = useTrabajadorUsuario(isOpen && !user);
 
   useEffect(() => {
@@ -53,26 +56,26 @@ export function UserFormModal({
           }
         : { ...initial, rolesIds: [] },
     );
-    setServerError(null);
+
   }, [isOpen, user]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving) return;
-    setServerError(null);
+
     if (
       !user &&
       (!trabajadores.selected ||
         trabajadores.loadingDetail ||
         Number(trabajadores.selected.id) !== values.idTrabajador)
     ) {
-      setServerError(
+      notifyError(
         "Selecciona un trabajador activo con correo electrónico y sin usuario.",
       );
       return;
     }
     if (!values.username.trim() || values.username.trim().length > 50) {
-      setServerError(
+      notifyError(
         "El nombre de usuario es obligatorio y admite hasta 50 caracteres.",
       );
       return;
@@ -82,17 +85,17 @@ export function UserFormModal({
       (values.password &&
         (values.password.length < 8 || values.password.length > 100))
     ) {
-      setServerError("La contraseña debe tener entre 8 y 100 caracteres.");
+      notifyError("La contraseña debe tener entre 8 y 100 caracteres.");
       return;
     }
     if (values.pin && (values.pin.length < 4 || values.pin.length > 10)) {
-      setServerError("El PIN debe tener entre 4 y 10 caracteres.");
+      notifyError("El PIN debe tener entre 4 y 10 caracteres.");
       return;
     }
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "No se pudo guardar el usuario.",
@@ -110,13 +113,7 @@ export function UserFormModal({
       subtitle="Vincula la cuenta a un trabajador. Sus datos personales se administran en Personal → Trabajadores."
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert
-          variant="error"
-          title="No se pudo guardar"
-          message={serverError}
-        />
-      )}
+
       {!user && (
         <div>
           <Label>Trabajador *</Label>
@@ -151,7 +148,7 @@ export function UserFormModal({
         <p className="text-sm text-gray-500">Consultando trabajador…</p>
       )}
       {!user && trabajadores.error && (
-        <Alert
+        <ToastNotification
           variant="error"
           title="Trabajador"
           message={trabajadores.error}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
@@ -47,13 +49,13 @@ export function CierreTurnoModal({
   // Guardo las cantidades por denominación en un objeto simple.
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [observacion, setObservacion] = useState("");
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al cerrar");
 
   useEffect(() => {
     if (isOpen) {
       setCantidades({});
       setObservacion("");
-      setServerError(null);
+
     }
   }, [isOpen]);
 
@@ -79,7 +81,6 @@ export function CierreTurnoModal({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving) return;
-    setServerError(null);
 
     const detalle: ArqueoLinea[] = DENOMINACIONES_SOLES.filter(
       (den) => (cantidades[den] || 0) > 0,
@@ -95,7 +96,7 @@ export function CierreTurnoModal({
     try {
       await onSubmit(detalle, totalContado, observacion);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo cerrar el turno.",
       );
     }
@@ -112,9 +113,6 @@ export function CierreTurnoModal({
       maxWidth="max-w-[760px]"
       submitText={cuadra ? "Cerrar turno" : "Cerrar con diferencia"}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al cerrar" message={serverError} />
-      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Tabla de conteo */}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
@@ -41,7 +43,7 @@ export function useCajas() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -76,7 +78,7 @@ export function useCajas() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, setFeedback]);
 
   useEffect(() => {
     void loadCajas();

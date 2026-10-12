@@ -4,7 +4,6 @@ import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import { FormModal } from "@/components/ui/modal/FormModal";
-import Alert from "@/components/ui/alert/Alert";
 import type { Mesa, AbrirPedidoValues } from "../types/mesas.types";
 import { LISTA_IDS, ListaSelect } from "@/modules/listas";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
@@ -33,7 +32,6 @@ function AbrirPedidoContent({
   mesa,
   turnoActivo,
   isSaving,
-  error,
   onClose,
   onSubmit,
 }: AbrirPedidoModalProps) {
@@ -133,13 +131,6 @@ function AbrirPedidoContent({
           </div>
         )}
 
-        {error && (
-          <Alert
-            variant="error"
-            title="No se pudo abrir el pedido"
-            message={error}
-          />
-        )}
       </div>
     </FormModal>
   );

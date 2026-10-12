@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
@@ -49,7 +51,7 @@ export function usePersonas() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -87,7 +89,7 @@ export function usePersonas() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro, rolFiltro]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, rolFiltro, setFeedback]);
 
   useEffect(() => {
     void loadPersonas();
@@ -151,8 +153,7 @@ export function usePersonas() {
       closeFormModal();
       await loadPersonas();
     } catch (error) {
-      // Relanzo para que el modal muestre el error dentro del formulario y no
-      // se cierre: así el usuario corrige sin perder lo que escribió.
+      // El aviso es global; relanzo para mantener el formulario abierto y sus datos.
       setFeedback({
         variant: "error",
         title: "Error al guardar",
@@ -183,7 +184,7 @@ export function usePersonas() {
       await loadPersonas();
     } catch (error) {
       // Los dos motivos típicos de rechazo son "tiene saldo pendiente" y
-      // "su convenio está inactivo". Los muestro arriba, con el texto que
+      // "su convenio está inactivo". El aviso flotante conserva el texto que
       // manda el backend, que ya explica qué hacer.
       closeConfirmModal();
       setFeedback({

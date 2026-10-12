@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
@@ -75,7 +76,7 @@ export function LineaFormModal({
 }: LineaFormModalProps) {
   const [values, setValues] = useState<LineaFormValues>(VALORES_INICIALES);
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   const hayTurno = Boolean(turnoAbierto);
   const turnoCerrado = turnoAbierto?.estado_turno === 2;
@@ -89,7 +90,7 @@ export function LineaFormModal({
       forma_pago: puedeEfectivo ? FORMA_PAGO.EFECTIVO : FORMA_PAGO.YAPE,
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, puedeEfectivo]);
 
   /** Aplano el árbol para el selector, con la categoría como prefijo. */
@@ -119,7 +120,7 @@ export function LineaFormModal({
    * No piso un precio ya escrito: el precio real puede diferir del referencial.
    */
   function elegirInsumo(id: number) {
-    setServerError(null);
+
     let encontrado: InsumoItem | null = null;
     for (const cat of categorias) {
       const i = cat.insumos.find((x) => x.id === id);
@@ -159,7 +160,6 @@ export function LineaFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_insumo || values.cantidad <= 0) return;
     if (esCredito && !values.id_proveedor) return;
@@ -167,7 +167,7 @@ export function LineaFormModal({
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar la compra.",
       );
     }
@@ -183,9 +183,6 @@ export function LineaFormModal({
       isSaving={isSaving}
       submitText="Agregar al día"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div>
         <div className="flex items-center justify-between">
@@ -226,7 +223,7 @@ export function LineaFormModal({
             min="0"
             value={values.cantidad || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, cantidad: Number(e.target.value) || 0 }));
             }}
             error={Boolean(errorCantidad)}
@@ -247,7 +244,7 @@ export function LineaFormModal({
             }
             placeholder="Elige la unidad"
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 id_unidad_medida: value ? Number(value) : null,
@@ -269,7 +266,7 @@ export function LineaFormModal({
             min="0"
             value={values.precio_unitario || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 precio_unitario: Number(e.target.value) || 0,
@@ -312,7 +309,7 @@ export function LineaFormModal({
                 type="button"
                 disabled={isSaving || bloqueado}
                 onClick={() => {
-                  setServerError(null);
+
                   setValues((p) => ({ ...p, forma_pago: opcion.valor }));
                 }}
                 title={
@@ -366,7 +363,7 @@ export function LineaFormModal({
             defaultValue={values.id_proveedor ? String(values.id_proveedor) : ""}
             placeholder="¿A quién se le debe?"
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, id_proveedor: Number(value) }));
             }}
             disabled={isSaving}
@@ -387,7 +384,7 @@ export function LineaFormModal({
           id="observacion"
           value={values.observacion}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, observacion: e.target.value }));
           }}
           placeholder="Opcional"

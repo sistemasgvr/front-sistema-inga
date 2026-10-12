@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
 import type {
@@ -57,7 +58,7 @@ export function AbonoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,7 +83,7 @@ export function AbonoFormModal({
           },
     );
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, clienteElegido, correccion]);
 
   // Solo ofrezco a quienes tienen deuda: el backend rechaza lo demás, y es
@@ -113,14 +114,13 @@ export function AbonoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_persona || montoInvalido) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar el abono.",
       );
     }
@@ -138,9 +138,6 @@ export function AbonoFormModal({
       isSaving={isSaving}
       submitText={correccion ? "Registrar corrección" : "Registrar abono"}
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div>
         <Label htmlFor="id_persona">Cliente *</Label>
@@ -152,7 +149,7 @@ export function AbonoFormModal({
           defaultValue={values.id_persona ? String(values.id_persona) : ""}
           placeholder="Selecciona al cliente"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_persona: Number(value) }));
           }}
           disabled={isSaving || Boolean(correccion)}
@@ -179,7 +176,7 @@ export function AbonoFormModal({
             max={deuda > 0 ? String(deuda) : undefined}
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -197,7 +194,7 @@ export function AbonoFormModal({
             value={values.fecha_movimiento}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_movimiento: e.target.value }));
             }}
             disabled={isSaving}
@@ -212,7 +209,7 @@ export function AbonoFormModal({
           id="observacion"
           value={values.observacion}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, observacion: e.target.value }));
           }}
           placeholder="Ej. Transferencia consorcio — 2ª quincena de agosto"
@@ -235,7 +232,7 @@ export function AbonoFormModal({
           <button
             type="button"
             onClick={() => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: deuda }));
             }}
             disabled={isSaving}

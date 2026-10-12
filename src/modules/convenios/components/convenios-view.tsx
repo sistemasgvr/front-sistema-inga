@@ -3,7 +3,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
-import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
@@ -28,8 +27,6 @@ export function ConveniosView() {
     condicionesPago,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     editingConvenio,
     isFormOpen,
     openCreateModal,
@@ -68,23 +65,6 @@ export function ConveniosView() {
           .
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button

@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { PersonaBusquedaItem } from "@/modules/personas/types/personas.types";
 import { FormEvent, useEffect, useState } from "react";
@@ -44,7 +45,7 @@ export function InsumoFormModal({
     id_proveedor_habitual: null,
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,7 +56,7 @@ export function InsumoFormModal({
       id_proveedor_habitual: null,
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen]);
 
   const errorCategoria =
@@ -67,14 +68,13 @@ export function InsumoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_categoria || !values.nombre.trim()) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo crear el insumo.",
       );
     }
@@ -90,9 +90,6 @@ export function InsumoFormModal({
       isSaving={isSaving}
       submitText="Crear insumo"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -105,7 +102,7 @@ export function InsumoFormModal({
             defaultValue={values.id_categoria ? String(values.id_categoria) : ""}
             placeholder="Selecciona la categoría"
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, id_categoria: Number(value) }));
             }}
             disabled={isSaving}
@@ -120,7 +117,7 @@ export function InsumoFormModal({
             id="nombre"
             value={values.nombre}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombre: e.target.value }));
             }}
             placeholder="Sal"
@@ -141,7 +138,7 @@ export function InsumoFormModal({
             min="0"
             value={values.precio_referencial || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 precio_referencial: Number(e.target.value) || 0,
@@ -167,7 +164,7 @@ export function InsumoFormModal({
             }
             placeholder="Sin proveedor fijo"
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 id_proveedor_habitual: value ? Number(value) : null,

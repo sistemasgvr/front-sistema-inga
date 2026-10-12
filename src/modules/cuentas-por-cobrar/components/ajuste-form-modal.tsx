@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
@@ -46,7 +48,7 @@ export function AjusteFormModal({
   const [monto, setMonto] = useState(0);
   const [motivo, setMotivo] = useState("");
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,7 +58,7 @@ export function AjusteFormModal({
     setMonto(0);
     setMotivo("");
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen]);
 
   const saldoActual = Number(cliente?.saldo ?? 0);
@@ -84,14 +86,13 @@ export function AjusteFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!cliente || invalido) return;
 
     try {
       await onSubmit(delta, motivo);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar el ajuste.",
       );
     }
@@ -111,9 +112,6 @@ export function AjusteFormModal({
       isSaving={isSaving}
       submitText="Registrar ajuste"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <Alert
         variant="info"
@@ -151,7 +149,7 @@ export function AjusteFormModal({
                 type="button"
                 disabled={isSaving}
                 onClick={() => {
-                  setServerError(null);
+
                   setDireccion(op.valor);
                 }}
                 className={`rounded-xl border-2 p-3 text-start transition-colors disabled:opacity-50 ${
@@ -192,7 +190,7 @@ export function AjusteFormModal({
           min="0"
           value={monto || ""}
           onChange={(e) => {
-            setServerError(null);
+
             setMonto(Number(e.target.value) || 0);
           }}
           placeholder="0.00"
@@ -207,7 +205,7 @@ export function AjusteFormModal({
         <TextArea
           value={motivo}
           onChange={(value) => {
-            setServerError(null);
+
             setMotivo(value);
           }}
           rows={3}

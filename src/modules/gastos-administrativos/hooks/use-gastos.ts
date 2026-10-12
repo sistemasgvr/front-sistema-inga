@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
@@ -64,7 +66,7 @@ export function useGastos() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -109,7 +111,7 @@ export function useGastos() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, anio, mes, tipoFiltro, categoriaFiltro]);
+  }, [debouncedSearch, pagina, pageSize, anio, mes, tipoFiltro, categoriaFiltro, setFeedback]);
 
   useEffect(() => {
     void load();

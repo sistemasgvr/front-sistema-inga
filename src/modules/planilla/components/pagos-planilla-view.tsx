@@ -40,8 +40,6 @@ export function PagosPlanillaView() {
     turnoAbierto,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     isPagoOpen,
     trabajadorPreseleccionado,
     abrirPago,
@@ -70,23 +68,6 @@ export function PagosPlanillaView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Pagos de planilla" />
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* Selector de período. Va arriba de todo porque define qué muestran
           todas las tarjetas y tablas de abajo. */}

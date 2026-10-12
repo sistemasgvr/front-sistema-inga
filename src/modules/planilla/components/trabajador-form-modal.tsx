@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
 import { FormEvent, useEffect, useState } from "react";
@@ -49,7 +50,7 @@ export function TrabajadorFormModal({
 }: TrabajadorFormModalProps) {
   const [values, setValues] = useState<TrabajadorFormValues>(VALORES_INICIALES);
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +75,7 @@ export function TrabajadorFormModal({
     }
 
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, trabajador, sucursales]);
 
   const doc = values.num_documento.trim();
@@ -96,14 +97,13 @@ export function TrabajadorFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.nombres.trim() || !values.apellidos.trim() || errorDoc) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo guardar.",
       );
     }
@@ -118,9 +118,6 @@ export function TrabajadorFormModal({
       subtitle="Datos personales y laborales. La cuenta de acceso es opcional y se vincula desde Personal → Usuarios."
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -142,7 +139,7 @@ export function TrabajadorFormModal({
             id="nombres"
             value={values.nombres}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombres: e.target.value }));
             }}
             placeholder="María"
@@ -158,7 +155,7 @@ export function TrabajadorFormModal({
             id="apellidos"
             value={values.apellidos}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, apellidos: e.target.value }));
             }}
             placeholder="Quispe Rojas"
@@ -176,7 +173,7 @@ export function TrabajadorFormModal({
             id="num_documento"
             value={values.num_documento}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 num_documento: e.target.value.slice(0, 12),
@@ -195,7 +192,7 @@ export function TrabajadorFormModal({
             id="puesto"
             value={values.puesto}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, puesto: e.target.value }));
             }}
             placeholder="Cocinera"
@@ -215,7 +212,7 @@ export function TrabajadorFormModal({
             min="0"
             value={values.sueldo_referencial || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 sueldo_referencial: Number(e.target.value) || 0,
@@ -245,7 +242,7 @@ export function TrabajadorFormModal({
               defaultValue={values.id_sucursal ? String(values.id_sucursal) : ""}
               placeholder="Sin asignar"
               onChange={(value) => {
-                setServerError(null);
+
                 setValues((p) => ({
                   ...p,
                   id_sucursal: value ? Number(value) : null,

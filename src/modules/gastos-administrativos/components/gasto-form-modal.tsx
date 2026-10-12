@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
@@ -58,7 +60,7 @@ export function GastoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   const hayTurno = Boolean(turnoAbierto);
 
@@ -91,7 +93,7 @@ export function GastoFormModal({
     }
 
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, gasto, turnoAbierto, hayTurno]);
 
   /**
@@ -133,7 +135,6 @@ export function GastoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_categoria || !values.concepto.trim() || values.monto <= 0) {
       return;
@@ -146,7 +147,7 @@ export function GastoFormModal({
         id_turno: esEfectivo ? (turnoAbierto?.id ?? values.id_turno) : null,
       });
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo guardar el gasto.",
       );
     }
@@ -161,9 +162,6 @@ export function GastoFormModal({
       subtitle="Gastos que no son de cocina: alquiler, servicios, mantenimiento, oficina."
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       {!hayTurno && !gasto && (
         <Alert
@@ -180,7 +178,7 @@ export function GastoFormModal({
           defaultValue={values.id_categoria ? String(values.id_categoria) : ""}
           placeholder="Selecciona la categoría"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_categoria: Number(value) }));
           }}
           disabled={isSaving}
@@ -200,7 +198,7 @@ export function GastoFormModal({
           id="concepto"
           value={values.concepto}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, concepto: e.target.value }));
           }}
           placeholder="Recibo de luz - septiembre"
@@ -223,7 +221,7 @@ export function GastoFormModal({
             min="0"
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -241,7 +239,7 @@ export function GastoFormModal({
             value={values.fecha_gasto}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_gasto: e.target.value }));
             }}
             disabled={isSaving}
@@ -265,7 +263,7 @@ export function GastoFormModal({
                 type="button"
                 disabled={isSaving || bloqueado}
                 onClick={() => {
-                  setServerError(null);
+
                   setValues((p) => ({ ...p, medio_pago: opcion.valor }));
                 }}
                 title={
@@ -309,7 +307,7 @@ export function GastoFormModal({
             id="num_comprobante"
             value={values.num_comprobante}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, num_comprobante: e.target.value }));
             }}
             placeholder="F001-00123"
@@ -324,7 +322,7 @@ export function GastoFormModal({
             id="observacion"
             value={values.observacion}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, observacion: e.target.value }));
             }}
             placeholder="Opcional"

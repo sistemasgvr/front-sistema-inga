@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
@@ -73,7 +75,7 @@ export function useCuentasPorCobrar() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info" | "warning";
     title: string;
     message: string;

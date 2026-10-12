@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { ConvenioItem } from "@/modules/convenios/types/convenios.types";
@@ -57,7 +58,7 @@ export function PersonaFormModal({
     Partial<Record<keyof PersonaFormValues, boolean>>
   >({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   const esJuridica = values.tipo_persona === TIPO_PERSONA.JURIDICA;
   const reglaDoc = REGLAS_DOCUMENTO[values.tipo_documento];
@@ -88,7 +89,7 @@ export function PersonaFormModal({
     setErrors({});
     setTouched({});
     setIsSubmitted(false);
-    setServerError(null);
+
   }, [isOpen, persona]);
 
   /**
@@ -99,7 +100,7 @@ export function PersonaFormModal({
    * ya había elegido carné de extranjería, se lo respeto.
    */
   function cambiarTipoPersona(tipo: number) {
-    setServerError(null);
+
     setValues((p) => {
       if (tipo === TIPO_PERSONA.JURIDICA) {
         return { ...p, tipo_persona: tipo, tipo_documento: TIPO_DOCUMENTO.RUC };
@@ -121,7 +122,7 @@ export function PersonaFormModal({
    * prefiero limpiarlo acá antes de que llegue a fallar.
    */
   function alternarRol(rol: "es_cliente" | "es_proveedor") {
-    setServerError(null);
+
     setValues((p) => {
       const siguiente = { ...p, [rol]: !p[rol] };
       if (rol === "es_cliente" && !siguiente.es_cliente) {
@@ -185,14 +186,13 @@ export function PersonaFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIsSubmitted(true);
-    setServerError(null);
 
     if (!validate(values)) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "Ocurrió un error inesperado al guardar.",
@@ -226,9 +226,6 @@ export function PersonaFormModal({
       isSaving={isSaving}
       maxWidth="max-w-[720px]"
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       {/* Control segmentado: es la decisión que cambia todo el resto del
           formulario, así que va primero y bien visible, no escondido en un
@@ -293,7 +290,7 @@ export function PersonaFormModal({
             options={opcionesDocumento}
             defaultValue={String(values.tipo_documento)}
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, tipo_documento: Number(value) }));
             }}
             disabled={isSaving || esJuridica}
@@ -309,7 +306,7 @@ export function PersonaFormModal({
             id="num_documento"
             value={values.num_documento}
             onChange={(e) => {
-              setServerError(null);
+
               // Recorto al vuelo a la longitud máxima y, si el documento es
               // numérico, filtro las letras. Así el usuario no puede llegar a
               // escribir algo inválido.
@@ -347,7 +344,7 @@ export function PersonaFormModal({
             id="razon_social"
             value={values.razon_social}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, razon_social: e.target.value }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, razon_social: true }))}
@@ -365,7 +362,7 @@ export function PersonaFormModal({
               id="nombres"
               value={values.nombres}
               onChange={(e) => {
-                setServerError(null);
+
                 setValues((p) => ({ ...p, nombres: e.target.value }));
               }}
               onBlur={() => setTouched((p) => ({ ...p, nombres: true }))}
@@ -381,7 +378,7 @@ export function PersonaFormModal({
               id="apellido_paterno"
               value={values.apellido_paterno}
               onChange={(e) => {
-                setServerError(null);
+
                 setValues((p) => ({ ...p, apellido_paterno: e.target.value }));
               }}
               onBlur={() => setTouched((p) => ({ ...p, apellido_paterno: true }))}
@@ -397,7 +394,7 @@ export function PersonaFormModal({
               id="apellido_materno"
               value={values.apellido_materno}
               onChange={(e) => {
-                setServerError(null);
+
                 setValues((p) => ({ ...p, apellido_materno: e.target.value }));
               }}
               placeholder="Vargas"
@@ -478,7 +475,7 @@ export function PersonaFormModal({
             defaultValue={values.id_convenio ? String(values.id_convenio) : ""}
             placeholder="Sin convenio"
             onChange={(value) => {
-              setServerError(null);
+
               setValues((p) => ({
                 ...p,
                 id_convenio: value ? Number(value) : null,
@@ -501,7 +498,7 @@ export function PersonaFormModal({
             id="telefono"
             value={values.telefono}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, telefono: e.target.value }));
             }}
             placeholder="987654321"
@@ -515,7 +512,7 @@ export function PersonaFormModal({
             type="email"
             value={values.email}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, email: e.target.value }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, email: true }))}
@@ -533,7 +530,7 @@ export function PersonaFormModal({
           id="direccion"
           value={values.direccion}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, direccion: e.target.value }));
           }}
           placeholder="Av. Principal 123"

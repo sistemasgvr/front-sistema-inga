@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
@@ -58,7 +60,7 @@ export function usePagosPlanilla() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -104,7 +106,7 @@ export function usePagosPlanilla() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagina, pageSize, anio, mes, quincena]);
+  }, [pagina, pageSize, anio, mes, quincena, setFeedback]);
 
   useEffect(() => {
     void load();

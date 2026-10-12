@@ -1,11 +1,12 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Checkbox from "@/components/form/input/Checkbox";
 import TextArea from "@/components/form/input/TextArea";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { Modal } from "@/components/ui/modal";
 import { Icon } from "@/components/ui/icon";
@@ -87,7 +88,7 @@ export function ProductoFormModal({
   });
 
   const [costoReceta, setCostoReceta] = useState<number>(0);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("No se pudo guardar");
 
   const tipos = useTiposProducto(isOpen);
   const [isTipoOpen, setIsTipoOpen] = useState(false);
@@ -106,7 +107,6 @@ export function ProductoFormModal({
     setIsTipoOpen(false);
     setSelectedFile(null);
     setShowConfirmRemoveImage(false);
-    setServerError(null);
 
     if (producto) {
       const sub = subcategorias.find((s) => s.id === producto.id_subcategoria);
@@ -220,36 +220,35 @@ export function ProductoFormModal({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving || uploadingImage) return;
-    setServerError(null);
 
     if (!tipoSeleccionado || tipos.isLoading || tipos.error) {
-      setServerError(
+      notifyError(
         "Selecciona un tipo de producto válido y espera a que cargue el catálogo.",
       );
       return;
     }
     if (!values.codigo_interno.trim()) {
-      setServerError("El código interno es obligatorio.");
+      notifyError("El código interno es obligatorio.");
       return;
     }
     if (!values.nombre.trim()) {
-      setServerError("El nombre del producto es obligatorio.");
+      notifyError("El nombre del producto es obligatorio.");
       return;
     }
     if (!values.id_subcategoria) {
-      setServerError("Selecciona una subcategoría.");
+      notifyError("Selecciona una subcategoría.");
       return;
     }
     if (!values.id_unidad_medida) {
-      setServerError("Selecciona una unidad de medida base.");
+      notifyError("Selecciona una unidad de medida base.");
       return;
     }
     if (requiereEstacion && !values.id_estacion) {
-      setServerError("Debes asignar una estación de comandas/impresión.");
+      notifyError("Debes asignar una estación de comandas/impresión.");
       return;
     }
     if (requiereAlmacen && !values.id_almacen_stock) {
-      setServerError("Debes asignar un almacén de stock compatible.");
+      notifyError("Debes asignar un almacén de stock compatible.");
       return;
     }
 
@@ -271,7 +270,7 @@ export function ProductoFormModal({
 
       await onSubmit(payload);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "Ocurrió un error al procesar el registro.",
@@ -325,13 +324,6 @@ export function ProductoFormModal({
         }
         isSaving={isSaving || uploadingImage}
       >
-        {serverError && (
-          <Alert
-            variant="error"
-            title="No se pudo guardar"
-            message={serverError}
-          />
-        )}
 
         <div>
           <Label>Imagen del Producto</Label>

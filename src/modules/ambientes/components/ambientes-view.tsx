@@ -4,7 +4,6 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import Alert from "@/components/ui/alert/Alert";
 import {
   Table,
   TableHeader,
@@ -62,11 +61,7 @@ export function AmbientesView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Ambientes" />
-      {a.feedback && (
-        <div className="mb-5">
-          <Alert {...a.feedback} />
-        </div>
-      )}
+
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">

@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import {
   getMe,
@@ -44,7 +46,7 @@ export function useSucursales() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<SucursalesFeedback>(null);
+  const [feedback, setFeedback] = useFeedback<SucursalesFeedback>(null);
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [hasLoadedSession, setHasLoadedSession] = useState(false);
@@ -160,14 +162,7 @@ export function useSucursales() {
     } finally {
       setIsLoading(false);
     }
-  }, [
-    debouncedSearch,
-    pagina,
-    pageSize,
-    estadoFiltro,
-    hasLoadedSession,
-    currentUser,
-  ]);
+  }, [hasLoadedSession, currentUser, debouncedSearch, pagina, pageSize, estadoFiltro, setFeedback]);
 
   useEffect(() => {
     void loadSucursales();

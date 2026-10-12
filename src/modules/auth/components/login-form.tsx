@@ -44,12 +44,6 @@ export function LoginForm() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="space-y-6">
-            {errors.form ? (
-              <div className="rounded-lg border border-error-300 bg-error-50 px-4 py-3 text-sm text-error-700 dark:border-error-500/40 dark:bg-error-500/10 dark:text-error-400">
-                {errors.form}
-              </div>
-            ) : null}
-
             <div>
               <Label htmlFor="email">
                 Correo electrónico <span className="text-error-500">*</span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { getResumenTurno, listTurnos } from "../services/caja.service";
 import type {
@@ -33,7 +35,7 @@ export function useTurnos() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -64,7 +66,7 @@ export function useTurnos() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagina, pageSize, filtros]);
+  }, [pagina, pageSize, filtros, setFeedback]);
 
   useEffect(() => {
     void loadTurnos();

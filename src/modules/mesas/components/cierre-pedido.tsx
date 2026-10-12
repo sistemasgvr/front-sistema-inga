@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Button from '@/components/ui/button/Button';
 import { Icon } from '@/components/ui/icon';
 import Input from '@/components/form/input/InputField';
-import { useToast } from '@/components/ui/toast/ToastContext';
 import { PersonaFormModal } from '@/modules/personas/components/persona-form-modal';
 import { useCierrePedido } from '../hooks/use-cierre-pedido';
 import { CreditoPedidoModal } from './credito-pedido-modal';
@@ -23,7 +22,6 @@ const ICONO_MEDIO:Record<string,string>={EFECTIVO:'mdi:cash',YAPE:'mdi:cellphone
 export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido;saving:boolean;feedback:Feedback|null;
   onConfirmar:(accion:'precuenta'|'cobrar'|'credito',datos:CierrePedidoDatos)=>Promise<boolean>}){
   const f=useCierrePedido(pedido.id_sucursal);
-  const {toast}=useToast();
   const [aperturasCredito,setAperturasCredito]=useState(0);
   const esFactura=f.tipo==='2',sinDocumento=f.tipo==='3';
   const documentoValido=esFactura?/^\d{11}$/.test(f.documentoCobro):f.tipo==='1'?f.documentoCobro===''||/^\d{8}$/.test(f.documentoCobro):true;
@@ -33,8 +31,7 @@ export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido
 
   async function enviarPrecuenta(){
     if(saving)return;
-    if(await onConfirmar('precuenta',{}))
-      toast('success','Precuenta enviada',`Se imprimirá en la estación de caja de la sucursal. El pedido ${pedido.codigo} queda por cobrar.`);
+    await onConfirmar('precuenta',{});
   }
 
   async function cobrar(){

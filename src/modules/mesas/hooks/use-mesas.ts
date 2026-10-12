@@ -1,4 +1,6 @@
 "use client";
+
+import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import * as api from "../services/mesas.service";
@@ -25,7 +27,7 @@ export function useMesas() {
   const [loading, setLoading] = useState(true);
   const [loadingMesas, setLoadingMesas] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useFeedback<Feedback | null>(null);
   const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [turnoActivo, setTurnoActivo] = useState<{ id: number } | null>(null);
@@ -46,7 +48,7 @@ export function useMesas() {
         message:
           e instanceof Error ? e.message : "Ocurrió un error inesperado.",
       }),
-    [],
+    [setFeedback],
   );
 
   useEffect(() => {
@@ -169,7 +171,7 @@ export function useMesas() {
     setFeedback(null);
     setSelectedMesa(mesa);
     setPedido(null);
-  }, []);
+  }, [setFeedback]);
 
   const loadPedido = useCallback(
     async (idPedido: number) => {
@@ -262,7 +264,7 @@ export function useMesas() {
         if (mesasRequest.current === controller) mesasRequest.current = null;
       }
     },
-    [error],
+    [error, setFeedback],
   );
 
   async function mutate(
@@ -348,7 +350,7 @@ export function useMesas() {
     });
   const cerrarPedido = (accion:'precuenta'|'cobrar'|'credito',datos:{id_estacion?:number;tipo_comprobante?:number;medio_pago?:number;documento?:string}) =>
     mutate(async()=>{if(!pedido)throw new Error('Seleccione un pedido.');setPedido(await api.cerrarPedido(pedido.id,accion,datos));},
-      accion==='precuenta'?'Precuenta enviada a impresión.':accion==='credito'?'Cuenta por cobrar registrada.':'Cobro registrado.');
+      accion==='precuenta'?`Precuenta enviada a la estación de caja. El pedido ${pedido?.codigo} queda por cobrar.`:accion==='credito'?'Cuenta por cobrar registrada.':'Cobro registrado.');
   const descartar = () =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");

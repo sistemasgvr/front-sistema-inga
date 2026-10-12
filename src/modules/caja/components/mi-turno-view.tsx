@@ -1,7 +1,6 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
@@ -20,8 +19,6 @@ export function MiTurnoView() {
     cajasDisponibles,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     isMovimientoOpen,
     openMovimiento,
     closeMovimiento,
@@ -39,23 +36,6 @@ export function MiTurnoView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Mi turno de caja" />
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {isLoading ? (
         <div className="rounded-xl border border-gray-200 bg-white py-16 text-center dark:border-gray-800 dark:bg-white/[0.03]">

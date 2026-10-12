@@ -1,5 +1,7 @@
 "use client";
 
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
+
 import {
   useCallback,
   useState,
@@ -84,7 +86,6 @@ function CartaContent({
   isOpen,
   canAdd,
   isSaving,
-  error,
   onClose,
   onSubmit,
   sidePanel,
@@ -263,9 +264,7 @@ function CartaContent({
               message="Selecciona una mesa y abre un pedido para añadir productos. Puedes consultar la carta mientras tanto."
             />
           )}
-          {error && (
-            <Alert variant="error" title="No se pudo añadir" message={error} />
-          )}
+
           <fieldset
             disabled={isSaving}
             className="min-w-0 space-y-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
@@ -314,7 +313,7 @@ function CartaContent({
             </div>
             {tipos.error && (
               <div className="flex items-center gap-3 text-sm text-error-500">
-                <span>{tipos.error}</span>
+                <ToastNotification variant="error" title="No se pudieron cargar los tipos de producto" message={tipos.error} />
                 <Button size="sm" variant="outline" onClick={tipos.load}>
                   Reintentar tipos
                 </Button>
@@ -353,7 +352,7 @@ function CartaContent({
                     </div>
                   ) : carta.error ? (
                     <div className="space-y-3">
-                      <Alert
+                      <ToastNotification
                         variant="error"
                         title="No se pudo cargar la carta"
                         message={carta.error}

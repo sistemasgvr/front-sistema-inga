@@ -1,8 +1,9 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
@@ -39,7 +40,7 @@ export function CategoriaFormModal({
     orden: 0,
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   const esSubcategoria = Boolean(padre) || Boolean(categoria?.id_categoria_padre);
 
@@ -67,7 +68,7 @@ export function CategoriaFormModal({
     }
 
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, categoria, padre]);
 
   const errorCodigo =
@@ -88,14 +89,13 @@ export function CategoriaFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.codigo.trim() || !values.nombre.trim() || errorCodigo) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo guardar.",
       );
     }
@@ -120,9 +120,6 @@ export function CategoriaFormModal({
       }
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
@@ -131,7 +128,7 @@ export function CategoriaFormModal({
             id="codigo"
             value={values.codigo}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
             }}
             placeholder="LUZ"
@@ -147,7 +144,7 @@ export function CategoriaFormModal({
             id="nombre"
             value={values.nombre}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombre: e.target.value }));
             }}
             placeholder="Luz"
@@ -169,7 +166,7 @@ export function CategoriaFormModal({
                 type="button"
                 disabled={isSaving || bloqueaTipo}
                 onClick={() => {
-                  setServerError(null);
+
                   setValues((p) => ({ ...p, tipo_gasto: opcion.valor }));
                 }}
                 className={`flex items-start gap-3 rounded-xl border p-3.5 text-left transition-colors ${
@@ -213,7 +210,7 @@ export function CategoriaFormModal({
           min="0"
           value={values.orden}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, orden: Number(e.target.value) || 0 }));
           }}
           hint="Define la posición en la lista. Menor número aparece primero."

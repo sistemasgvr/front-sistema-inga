@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
@@ -60,7 +62,7 @@ export function AbonoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   const hayTurno = Boolean(turnoAbierto);
 
@@ -77,7 +79,7 @@ export function AbonoFormModal({
       observacion: "",
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, proveedorElegido, turnoAbierto, hayTurno]);
 
   // Solo ofrezco proveedores con deuda: abonar a quien está en cero no tiene
@@ -109,7 +111,6 @@ export function AbonoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_persona || values.monto <= 0 || excedeDeuda) return;
 
@@ -119,7 +120,7 @@ export function AbonoFormModal({
         id_turno: esEfectivo ? (turnoAbierto?.id ?? null) : null,
       });
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar el abono.",
       );
     }
@@ -135,9 +136,6 @@ export function AbonoFormModal({
       isSaving={isSaving}
       submitText="Registrar abono"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       {!hayTurno && (
         <Alert
@@ -157,7 +155,7 @@ export function AbonoFormModal({
           defaultValue={values.id_persona ? String(values.id_persona) : ""}
           placeholder="Selecciona al proveedor"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_persona: Number(value) }));
           }}
           disabled={isSaving}
@@ -204,7 +202,7 @@ export function AbonoFormModal({
             min="0"
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -227,7 +225,7 @@ export function AbonoFormModal({
             value={values.fecha_movimiento}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_movimiento: e.target.value }));
             }}
             disabled={isSaving}
@@ -248,7 +246,7 @@ export function AbonoFormModal({
                 type="button"
                 disabled={isSaving || bloqueado}
                 onClick={() => {
-                  setServerError(null);
+
                   setValues((p) => ({ ...p, medio_pago: opcion.valor }));
                 }}
                 title={
@@ -292,7 +290,7 @@ export function AbonoFormModal({
             id="num_comprobante"
             value={values.num_comprobante}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, num_comprobante: e.target.value }));
             }}
             placeholder="Opcional"
@@ -306,7 +304,7 @@ export function AbonoFormModal({
             id="observacion"
             value={values.observacion}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, observacion: e.target.value }));
             }}
             placeholder="Opcional"

@@ -82,11 +82,11 @@ export function SalonFormModal({
         void onSubmit(values);
       }}
     >
-      {(validation || props.error) && (
+      {validation && (
         <Alert
           variant="error"
           title="Revisa los datos"
-          message={validation || props.error!}
+          message={validation}
         />
       )}
       <div>
@@ -141,7 +141,6 @@ export function SalonFormModal({
     </FormModal>
   );
 }
-
 
 export function MesaFormModal({
   mesa,
@@ -201,11 +200,11 @@ export function MesaFormModal({
         });
       }}
     >
-      {(validation || props.error) && (
+      {validation && (
         <Alert
           variant="error"
           title="Revisa los datos"
-          message={validation || props.error!}
+          message={validation}
         />
       )}
       <div>

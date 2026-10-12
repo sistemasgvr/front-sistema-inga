@@ -1,9 +1,10 @@
 "use client";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
-import Alert from "@/components/ui/alert/Alert";
 import Pagination from "@/components/tables/Pagination";
 import { useCocina } from "../hooks/use-cocina";
 import { ESTADOS_PREPARACION } from "../utils/cocina.utils";
@@ -23,7 +24,7 @@ export function CocinaView(){
     </div>
     <div className="flex flex-wrap gap-3"><Button disabled={!c.sucursal||c.saving} onClick={()=>c.setPreparacion({item:null})}>Preparación anticipada</Button>
       <Button variant="outline" disabled={!c.sucursal||c.loading} onClick={c.reload}>Actualizar pedidos</Button></div>
-    {c.error&&<Alert variant="error" title="Cocina" message={c.error}/>}
+    {c.error&&<ToastNotification variant="error" title="Cocina" message={c.error}/>}
     {!c.historial&&<AvisosCocina sucursal={c.sucursal} estacion={c.estacion} revision={c.revision}/>}
     {c.loading?<p role="status">Cargando pedidos…</p>:!c.sucursal?<p>Selecciona una sucursal.</p>:c.items.length===0?<p>No hay platos en esta vista.</p>:<div className="grid gap-4 lg:grid-cols-2">
       {c.items.map(item=><article key={item.id} className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">

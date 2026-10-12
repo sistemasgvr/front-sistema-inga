@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
+import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
@@ -51,7 +53,7 @@ export function useGastosDiarios() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -64,14 +66,8 @@ export function useGastosDiarios() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isAnulando, setIsAnulando] = useState(false);
 
-  /**
-   * Abre el día y trae su reporte.
-   *
-   * La dejo como función normal, sin `useCallback`: este hook maneja bastante
-   * estado y el React Compiler no logra preservar la memoización manual en esos
-   * casos. Sin `useCallback` el compilador memoiza solo.
-   */
-  async function cargarDia(fechaObjetivo: string, idTurno?: number | null) {
+  /** Referencia estable para que una notificación no vuelva a cargar el día. */
+  const cargarDia = useCallback(async (fechaObjetivo: string, idTurno?: number | null) => {
     setIsLoading(true);
     try {
       const [diaCargado, rep] = await Promise.all([
@@ -92,7 +88,7 @@ export function useGastosDiarios() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [setFeedback]);
 
   // Cargo primero el turno, y recién después el día: el día necesita quedar
   // vinculado al turno para poder registrar compras en efectivo.
@@ -112,7 +108,7 @@ export function useGastosDiarios() {
         setTurnoAbierto(null);
         void cargarDia(fecha);
       });
-  }, [fecha]);
+  }, [fecha, cargarDia]);
 
   async function recargarInsumos() {
     try {

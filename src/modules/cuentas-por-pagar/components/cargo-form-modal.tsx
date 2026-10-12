@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { PersonaBusquedaItem } from "@/modules/personas/types/personas.types";
 import { FormEvent, useEffect, useState } from "react";
@@ -48,7 +49,7 @@ export function CargoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -61,7 +62,7 @@ export function CargoFormModal({
       observacion: "",
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, proveedorElegido]);
 
   const errorProveedor =
@@ -75,14 +76,13 @@ export function CargoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_persona || values.monto <= 0) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar el cargo.",
       );
     }
@@ -98,9 +98,6 @@ export function CargoFormModal({
       isSaving={isSaving}
       submitText="Registrar cargo"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div>
         <Label htmlFor="id_persona">Proveedor *</Label>
@@ -112,7 +109,7 @@ export function CargoFormModal({
           defaultValue={values.id_persona ? String(values.id_persona) : ""}
           placeholder="Selecciona al proveedor"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_persona: Number(value) }));
           }}
           disabled={isSaving}
@@ -136,7 +133,7 @@ export function CargoFormModal({
             min="0"
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -154,7 +151,7 @@ export function CargoFormModal({
             value={values.fecha_movimiento}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_movimiento: e.target.value }));
             }}
             disabled={isSaving}
@@ -170,7 +167,7 @@ export function CargoFormModal({
             id="num_comprobante"
             value={values.num_comprobante}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, num_comprobante: e.target.value }));
             }}
             placeholder="Opcional"
@@ -184,7 +181,7 @@ export function CargoFormModal({
             id="observacion"
             value={values.observacion}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, observacion: e.target.value }));
             }}
             placeholder="Ej. Pollo semana 38"

@@ -1,4 +1,6 @@
 "use client";
+
+import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import * as api from "../services/ambientes.service";
@@ -18,7 +20,7 @@ export function useAmbientes() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canManage, setCanManage] = useState(false);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [feedback, setFeedback] = useFeedback<Feedback | null>(null);
   const generation = useRef(0);
   const pending = useRef(false);
 
@@ -30,7 +32,7 @@ export function useAmbientes() {
         message:
           e instanceof Error ? e.message : "Ocurrió un error inesperado.",
       }),
-    [],
+    [setFeedback],
   );
 
   useEffect(() => {

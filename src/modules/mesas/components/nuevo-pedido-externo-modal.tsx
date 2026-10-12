@@ -1,9 +1,10 @@
 "use client";
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import { useState, type FormEvent } from "react";
 import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
@@ -44,7 +45,6 @@ function NuevoPedidoExternoContent({
   idSucursal,
   turnoActivo,
   isSaving,
-  error,
   onClose,
   onSubmit,
 }: NuevoPedidoExternoModalProps) {
@@ -69,7 +69,7 @@ function NuevoPedidoExternoContent({
   const [direccion, setDireccion] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const [creando, setCreando] = useState(false);
-  const [errorCliente, setErrorCliente] = useState("");
+  const notifyClientError = useErrorNotification("No se pudo registrar el cliente");
 
   const esDelivery = Number(tipoPedido) === TIPO_DELIVERY;
   const dniValido = !dni.trim() || /^[0-9]{8}$/.test(dni.trim());
@@ -86,7 +86,6 @@ function NuevoPedidoExternoContent({
 
   const elegirCliente = (c: ClienteElegido, datos: { telefono: string | null; direccion: string | null }) => {
     setCliente(c);
-    setErrorCliente("");
     setTelefono(datos.telefono ?? "");
     setDireccion(datos.direccion ?? "");
   };
@@ -94,7 +93,6 @@ function NuevoPedidoExternoContent({
   const cambiarModo = (nuevo: "buscar" | "nuevo") => {
     setModo(nuevo);
     setCliente(null);
-    setErrorCliente("");
     if (nuevo === "nuevo" && !nombres) setNombres(busqueda.trim());
   };
 
@@ -105,7 +103,6 @@ function NuevoPedidoExternoContent({
     let elegido = cliente;
     if (modo === "nuevo") {
       setCreando(true);
-      setErrorCliente("");
       try {
         const persona = await crearClienteRapido({
           nombres,
@@ -124,7 +121,7 @@ function NuevoPedidoExternoContent({
         setCliente(elegido);
         setModo("buscar");
       } catch (err) {
-        setErrorCliente(err instanceof Error ? err.message : "No se pudo registrar el cliente.");
+        notifyClientError(err instanceof Error ? err.message : "No se pudo registrar el cliente.");
         return;
       } finally {
         setCreando(false);
@@ -217,7 +214,7 @@ function NuevoPedidoExternoContent({
                   {buscador.isLoading ? (
                     <p role="status" className="p-3 text-sm text-gray-500">Buscando...</p>
                   ) : buscador.error ? (
-                    <p className="p-3 text-sm text-error-500">{buscador.error}</p>
+                    <ToastNotification variant="error" title="No se pudo buscar el cliente" message={buscador.error} />
                   ) : !buscador.clientes.length ? (
                     <p className="p-3 text-sm text-gray-500">
                       No se encontraron clientes.{" "}
@@ -269,7 +266,6 @@ function NuevoPedidoExternoContent({
               </div>
             </div>
           )}
-          {errorCliente && <p className="mt-2 text-sm text-error-500">{errorCliente}</p>}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -296,7 +292,7 @@ function NuevoPedidoExternoContent({
             No tienes un turno abierto. Debes abrir un turno en caja antes de crear pedidos.
           </div>
         )}
-        {error && <Alert variant="error" title="No se pudo abrir el pedido" message={error} />}
+
       </div>
     </FormModal>
   );

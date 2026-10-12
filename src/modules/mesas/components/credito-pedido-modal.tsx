@@ -1,4 +1,6 @@
 "use client";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import { useState, type FormEvent } from 'react';
 import Label from '@/components/form/Label';
 import Input from '@/components/form/input/InputField';
@@ -29,7 +31,7 @@ type CreditoPedidoModalProps={
   onSubmit:()=>void;
 };
 
-export function CreditoPedidoModal({isOpen,total,saving,feedback,documento,onDocumento,cliente,buscando,errorBusqueda,
+export function CreditoPedidoModal({isOpen,total,saving,documento,onDocumento,cliente,buscando,errorBusqueda,
   efectivoConfirmado,onEfectivoConfirmado,onRegistrarCliente,onClose,onSubmit}:CreditoPedidoModalProps){
   const [tocado,setTocado]=useState(false);
   const [enviado,setEnviado]=useState(false);
@@ -65,7 +67,6 @@ export function CreditoPedidoModal({isOpen,total,saving,feedback,documento,onDoc
     <FormModal isOpen={isOpen} onClose={onClose} onSubmit={handleSubmit} isSaving={saving} submitDisabled={!valido}
       title="Venta a crédito" subtitle={`Registra el pedido en la cuenta del convenio del cliente. Total del pedido: ${soles(total)}.`}
       submitText={aCredito===0&&tieneConvenio?'Registrar pago en efectivo':'Registrar crédito'}>
-      {feedback?.variant==='error'&&<Alert variant="error" title="No se pudo registrar" message={feedback.message}/>}
 
       <div>
         <Label htmlFor="credito_dni">DNI del cliente *</Label>
@@ -76,7 +77,7 @@ export function CreditoPedidoModal({isOpen,total,saving,feedback,documento,onDoc
           hint={mostrarErrorDni?errorDni:buscando?'Buscando cliente…':`${documento.length}/8 dígitos`}/>
       </div>
 
-      {errorBusqueda&&<Alert variant="error" title="No se pudo buscar el cliente" message={errorBusqueda}/>}
+      {errorBusqueda&&<ToastNotification variant="error" title="No se pudo buscar el cliente" message={errorBusqueda}/>}
 
       {noEncontrado&&<div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 p-5 text-center dark:border-gray-700">
         <Icon name="mdi:account-search-outline" size={28} className="text-gray-400"/>

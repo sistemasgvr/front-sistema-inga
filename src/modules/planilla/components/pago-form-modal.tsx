@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
@@ -62,7 +64,7 @@ export function PagoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   const hayTurno = Boolean(turnoAbierto);
 
@@ -79,7 +81,7 @@ export function PagoFormModal({
       observacion: "",
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, trabajadorPreseleccionado, turnoAbierto, hayTurno]);
 
   const trabajadorElegido = useMemo(
@@ -92,7 +94,7 @@ export function PagoFormModal({
    * cero. No piso un monto ya escrito: el pago real puede diferir del sueldo.
    */
   function elegirTrabajador(id: number) {
-    setServerError(null);
+
     const t = trabajadores.find((x) => x.id === id);
     setValues((p) => ({
       ...p,
@@ -122,7 +124,6 @@ export function PagoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_trabajador || values.monto <= 0) return;
 
@@ -133,7 +134,7 @@ export function PagoFormModal({
         id_turno: esEfectivo ? (turnoAbierto?.id ?? null) : null,
       });
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar el pago.",
       );
     }
@@ -149,9 +150,6 @@ export function PagoFormModal({
       isSaving={isSaving}
       submitText="Registrar pago"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       {!hayTurno && (
         <Alert
@@ -194,7 +192,7 @@ export function PagoFormModal({
             min="0"
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -217,7 +215,7 @@ export function PagoFormModal({
             value={values.fecha_pago}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_pago: e.target.value }));
             }}
             disabled={isSaving}
@@ -262,7 +260,7 @@ export function PagoFormModal({
                 type="button"
                 disabled={isSaving || bloqueado}
                 onClick={() => {
-                  setServerError(null);
+
                   setValues((p) => ({ ...p, medio_pago: opcion.valor }));
                 }}
                 title={
@@ -305,7 +303,7 @@ export function PagoFormModal({
           id="observacion"
           value={values.observacion}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, observacion: e.target.value }));
           }}
           placeholder="Opcional"

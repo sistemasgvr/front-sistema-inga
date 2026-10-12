@@ -1,5 +1,7 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
@@ -46,7 +48,7 @@ export function ConsumoFormModal({
     observacion: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,7 +60,7 @@ export function ConsumoFormModal({
       observacion: "",
     });
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, clienteElegido]);
 
   // Datos del cliente seleccionado, para mostrar su crédito antes de guardar.
@@ -88,14 +90,13 @@ export function ConsumoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.id_persona || values.monto <= 0) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "No se pudo registrar el consumo.",
@@ -113,9 +114,6 @@ export function ConsumoFormModal({
       isSaving={isSaving}
       submitText="Registrar consumo"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div>
         <Label htmlFor="id_persona">Cliente *</Label>
@@ -129,7 +127,7 @@ export function ConsumoFormModal({
           defaultValue={values.id_persona ? String(values.id_persona) : ""}
           placeholder="Selecciona al cliente"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_persona: Number(value) }));
           }}
           disabled={isSaving}
@@ -153,7 +151,7 @@ export function ConsumoFormModal({
             min="0"
             value={values.monto || ""}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, monto: Number(e.target.value) || 0 }));
             }}
             placeholder="0.00"
@@ -171,7 +169,7 @@ export function ConsumoFormModal({
             value={values.fecha_movimiento}
             max={hoyISO()}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, fecha_movimiento: e.target.value }));
             }}
             disabled={isSaving}
@@ -186,7 +184,7 @@ export function ConsumoFormModal({
           id="observacion"
           value={values.observacion}
           onChange={(e) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, observacion: e.target.value }));
           }}
           placeholder="Ej. Almuerzo menú del 18/09"

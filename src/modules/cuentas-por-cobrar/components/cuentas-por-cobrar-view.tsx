@@ -56,8 +56,6 @@ export function CuentasPorCobrarView() {
     cerrarReporte,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     isConsumoOpen,
     isAbonoOpen,
     isAjusteOpen,
@@ -108,23 +106,6 @@ export function CuentasPorCobrarView() {
           .
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* Lo que nos deben va grande y solo: es la alerta "Por cobrar al
           consorcio" que el cliente pidió ver en el dashboard. */}

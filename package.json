@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:notificaciones": "node --test test/notificaciones/*.test.mjs",
     "test:impresion": "node --test test/impresion/*.test.mjs",
     "dev": "next dev",
     "build": "next build",

@@ -1,9 +1,10 @@
 "use client";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Checkbox from "@/components/form/input/Checkbox";
-import Alert from "@/components/ui/alert/Alert";
 import { useTipoProductoForm } from "../hooks/use-tipo-producto-form";
 import type { TipoProducto } from "../types/tipos-producto.types";
 
@@ -38,7 +39,7 @@ export function TipoProductoFormModal({
       }}
     >
       {form.error && (
-        <Alert
+        <ToastNotification
           variant="error"
           title="No se pudo guardar"
           message={form.error}

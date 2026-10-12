@@ -37,8 +37,6 @@ export function GastosDiariosView() {
     turnoAbierto,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     isLineaOpen,
     abrirLinea,
     cerrarLinea,
@@ -77,23 +75,6 @@ export function GastosDiariosView() {
           en Cuentas por Pagar.
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* Selector de día. Encabeza la pantalla porque todo lo de abajo es de
           esa jornada. */}

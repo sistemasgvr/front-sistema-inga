@@ -1,9 +1,10 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
 import { FormEvent, useEffect, useState } from "react";
@@ -32,7 +33,7 @@ export function CajaFormModal({
     nombre: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -52,7 +53,7 @@ export function CajaFormModal({
     }
 
     setIntentoEnviar(false);
-    setServerError(null);
+
   }, [isOpen, caja, sucursales]);
 
   const errorCodigo =
@@ -70,14 +71,13 @@ export function CajaFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (!values.codigo.trim() || !values.nombre.trim() || !values.id_sucursal) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo guardar la caja.",
       );
     }
@@ -92,9 +92,6 @@ export function CajaFormModal({
       subtitle="Cada caja física del local sobre la que se abren turnos."
       isSaving={isSaving}
     >
-      {serverError && (
-        <Alert variant="error" title="Error al guardar" message={serverError} />
-      )}
 
       <div>
         <Label htmlFor="id_sucursal">Sucursal *</Label>
@@ -106,7 +103,7 @@ export function CajaFormModal({
           defaultValue={values.id_sucursal ? String(values.id_sucursal) : ""}
           placeholder="Selecciona la sucursal"
           onChange={(value) => {
-            setServerError(null);
+
             setValues((p) => ({ ...p, id_sucursal: Number(value) }));
           }}
           disabled={isSaving || bloqueaSucursal}
@@ -127,7 +124,7 @@ export function CajaFormModal({
             id="codigo"
             value={values.codigo}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
             }}
             placeholder="CAJA-01"
@@ -143,7 +140,7 @@ export function CajaFormModal({
             id="nombre"
             value={values.nombre}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombre: e.target.value }));
             }}
             placeholder="Caja principal"

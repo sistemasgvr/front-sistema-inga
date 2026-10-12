@@ -1,5 +1,7 @@
 "use client";
 
+import { useFeedback } from "@/shared/hooks/use-feedback";
+
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
@@ -49,7 +51,7 @@ export function useTrabajadores() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{
+  const [feedback, setFeedback] = useFeedback<{
     variant: "success" | "error" | "info";
     title: string;
     message: string;
@@ -86,7 +88,7 @@ export function useTrabajadores() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, estadoFiltro]);
+  }, [debouncedSearch, pagina, pageSize, estadoFiltro, setFeedback]);
 
   useEffect(() => {
     void load();
@@ -141,8 +143,7 @@ export function useTrabajadores() {
       closeFormModal();
       await load();
     } catch (error) {
-      // Relanzo para que el modal muestre el error dentro del formulario y no
-      // se cierre: así el usuario corrige sin perder lo que escribió.
+      // El aviso es global; relanzo para mantener el formulario abierto y sus datos.
       setFeedback({
         variant: "error",
         title: "Error al guardar",

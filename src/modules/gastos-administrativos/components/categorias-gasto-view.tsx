@@ -1,7 +1,6 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
@@ -18,8 +17,6 @@ export function CategoriasGastoView() {
     setEstadoFiltro,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     editing,
     padreParaNueva,
     isFormOpen,
@@ -167,23 +164,6 @@ export function CategoriasGastoView() {
           son puntuales. Puedes anidar un nivel de subcategorías.
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       <div className="mb-5 grid grid-cols-3 gap-3">
         {[

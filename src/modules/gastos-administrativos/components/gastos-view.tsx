@@ -42,8 +42,6 @@ export function GastosView() {
     turnoAbierto,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     editing,
     isFormOpen,
     openCreateModal,
@@ -65,23 +63,6 @@ export function GastosView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Gastos administrativos" />
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* El período manda sobre todo lo demás: estos gastos se revisan al
           cerrar el mes, no día a día. */}

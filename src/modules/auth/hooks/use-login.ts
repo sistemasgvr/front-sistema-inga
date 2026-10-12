@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast/ToastContext";
 import { useRouter } from "next/navigation";
 import { login } from "../services/auth.service";
 import type { LoginFormErrors } from "../types/auth.types";
 
 export function useLogin() {
+  const { toast } = useToast();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -45,7 +47,7 @@ export function useLogin() {
     });
 
     if (!result.ok) {
-      setErrors({ form: result.message });
+      toast("error", "No se pudo iniciar sesión", result.message);
       setIsSubmitting(false);
       return;
     }

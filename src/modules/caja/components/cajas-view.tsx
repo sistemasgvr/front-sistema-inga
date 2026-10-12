@@ -3,7 +3,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
-import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
@@ -36,8 +35,6 @@ export function CajasView() {
     sucursales,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     editingCaja,
     isFormOpen,
     openCreateModal,
@@ -57,23 +54,6 @@ export function CajasView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Cajas físicas" />
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[

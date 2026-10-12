@@ -2,7 +2,6 @@
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Pagination from "@/components/tables/Pagination";
-import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import { Icon } from "@/components/ui/icon";
 import {
@@ -30,8 +29,6 @@ export function TurnosView() {
     aplicarFiltro,
     resumen,
     isLoading,
-    feedback,
-    clearFeedback,
     detalle,
     isDetalleOpen,
     isLoadingDetalle,
@@ -42,23 +39,6 @@ export function TurnosView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Historial de turnos" />
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* Los descuadres van primero porque es lo que el administrador entra a
           buscar: turnos cerrados donde lo contado no coincidió con el sistema. */}

@@ -1,8 +1,9 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
@@ -39,7 +40,7 @@ export function MovimientoFormModal({
   const [monto, setMonto] = useState<number>(0);
   const [motivo, setMotivo] = useState("");
   const [intentoEnviar, setIntentoEnviar] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error");
 
   useEffect(() => {
     if (isOpen) {
@@ -48,7 +49,7 @@ export function MovimientoFormModal({
       setMonto(0);
       setMotivo("");
       setIntentoEnviar(false);
-      setServerError(null);
+
     }
   }, [isOpen]);
 
@@ -67,14 +68,13 @@ export function MovimientoFormModal({
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
-    setServerError(null);
 
     if (monto <= 0 || !motivo.trim() || excedeDisponible) return;
 
     try {
       await onSubmit({ tipo_movimiento: tipo, monto, motivo });
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error ? error.message : "No se pudo registrar.",
       );
     }
@@ -90,9 +90,6 @@ export function MovimientoFormModal({
       isSaving={isSaving}
       submitText="Registrar"
     >
-      {serverError && (
-        <Alert variant="error" title="Error" message={serverError} />
-      )}
 
       <div className="grid grid-cols-2 gap-3">
         {[
@@ -153,7 +150,7 @@ export function MovimientoFormModal({
           min="0"
           value={monto || ""}
           onChange={(e) => {
-            setServerError(null);
+
             setMonto(Number(e.target.value) || 0);
           }}
           placeholder="0.00"
@@ -174,7 +171,7 @@ export function MovimientoFormModal({
           id="motivo"
           value={motivo}
           onChange={(e) => {
-            setServerError(null);
+
             setMotivo(e.target.value);
           }}
           placeholder={esEgreso ? "Compra de hielo" : "Reposición de sencillo"}

@@ -48,8 +48,6 @@ export function CuentasPorPagarView() {
     proveedores,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     isAbonoOpen,
     isCargoOpen,
     proveedorElegido,
@@ -94,23 +92,6 @@ export function CuentasPorPagarView() {
           , marcándolos como proveedor.
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       {/* La deuda total va grande y sola: es la alerta "Deudas por pagar" que
           el cliente pidió explícitamente ver en el dashboard. */}

@@ -1,9 +1,10 @@
 "use client";
+
+import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
-import Alert from "@/components/ui/alert/Alert";
 import { usePreparacion } from "../hooks/use-preparacion";
 import type { CocinaItem } from "../types/cocina.types";
 
@@ -12,7 +13,7 @@ export function PreparacionModal({sucursal,item,onClose,onSaved}:{sucursal:numbe
   return <FormModal isOpen onClose={()=>{if(!p.saving)onClose();}} title={item?`Estás comenzando con la preparación del plato: ${item.nombre_producto}`:"Preparación anticipada"}
     subtitle={item?"Confirma que tienes los insumos. Al confirmar se descontarán del almacén.":"Confirma cuando las porciones estén preparadas. Se descontarán los ingredientes y se ingresarán los platos al almacén."}
     isSaving={p.saving} submitDisabled={!p.puedeGuardar} submitText={item?"Confirmar e iniciar preparación":"Confirmar preparación terminada"} onSubmit={e=>{e.preventDefault();void p.guardar();}}>
-    {p.error&&<Alert variant="error" title="Preparación" message={p.error}/>}
+    {p.error&&<ToastNotification variant="error" title="Preparación" message={p.error}/>}
     {item&&<p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400">
       CANT: {p.cantidad} <span className="font-normal">· {p.cantidad===1?"plato a preparar":"platos a preparar"}</span>
     </p>}

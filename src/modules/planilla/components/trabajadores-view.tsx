@@ -3,7 +3,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
-import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
@@ -36,8 +35,6 @@ export function TrabajadoresView() {
     sucursales,
     isLoading,
     isSaving,
-    feedback,
-    clearFeedback,
     editing,
     isFormOpen,
     openCreateModal,
@@ -72,23 +69,6 @@ export function TrabajadoresView() {
           .
         </p>
       </div>
-
-      {feedback && (
-        <div className="mb-5">
-          <Alert
-            variant={feedback.variant}
-            title={feedback.title}
-            message={feedback.message}
-          />
-          <button
-            type="button"
-            onClick={clearFeedback}
-            className="mt-2 text-xs text-gray-500 underline"
-          >
-            Cerrar aviso
-          </button>
-        </div>
-      )}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         {(

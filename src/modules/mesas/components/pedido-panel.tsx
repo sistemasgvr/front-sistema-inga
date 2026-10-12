@@ -6,7 +6,6 @@ import { getMe } from "@/modules/auth/services/auth.service";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import Select from "@/components/form/Select";
 import { ESTADOS_PREPARACION } from "@/modules/inventario/utils/cocina.utils";
@@ -148,12 +147,12 @@ export function PedidoPanel({
   const total = pedido?.monto_total ?? 0;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+    <div className="flex min-w-0 flex-col rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 p-4 dark:border-gray-800">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="break-words text-base font-semibold text-gray-900 dark:text-white">
               {pedido ? `Pedido ${pedido.codigo}` : "Resumen del pedido" }
             </h3>
             {estado && (
@@ -177,16 +176,8 @@ export function PedidoPanel({
         </div>
       </div>
 
-      {/* Feedback */}
-      {feedback && (
-        <div className="border-b border-gray-200 p-4 dark:border-gray-800">
-          <Alert {...feedback} />
-        </div>
-      )}
-
-      {/* Items: única región que scrollea. Al llevar flex-1 absorbe el espacio
-          sobrante y empuja la barra de totales y acciones contra el borde inferior. */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+      {/* La lista conserva su altura; el contenedor desplaza el panel completo. */}
+      <div className="shrink-0 p-4">
         {!pedido && loading ? (
           <p role="status" className="py-12 text-center text-sm text-gray-500">
             Cargando pedido...
@@ -233,11 +224,9 @@ export function PedidoPanel({
         <p>{itemCancelar?.nombre_producto}</p>
         <p className="text-sm text-gray-500">Se cancelará este ítem completo. Si ya fue comandado, cocina recibirá un aviso.</p>
         <Label>Motivo de cancelación</Label><InputField value={motivoItem} disabled={saving} onChange={e=>setMotivoItem(e.target.value)}/>
-        {feedback?.variant==="error"&&<Alert {...feedback}/>}
+
       </FormModal>
-      {/* Barra inferior fija. shrink-0 para que el flex nunca la aplaste cuando
-          la lista de platos es larga: subtotal, IGV, total y los botones de
-          precuenta, cobrar y crédito quedan siempre a la vista, abajo. */}
+      {/* Totales y cobro siguen a los platos sin reducir su espacio. */}
       <div className="shrink-0">
       {/* Totales */}
       <div className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-800">
@@ -301,7 +290,7 @@ function PedidoItemRow({ item, onEntregar, onCancelar, entregando }: {
 
   return (
     <div
-      className={`grid grid-cols-[auto_1fr_auto] items-start gap-3 rounded-xl border p-3 ${
+      className={`grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-xl border p-3 ${
         esAnulado
           ? "border-gray-200 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-gray-800"
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
@@ -313,7 +302,7 @@ function PedidoItemRow({ item, onEntregar, onCancelar, entregando }: {
         {item.cantidad}
       </span>
       <div className="min-w-0">
-        <p className={`truncate text-sm font-medium ${esAnulado ? "text-gray-400 line-through" : "text-gray-900 dark:text-white"}`}
+        <p className={`break-words text-sm font-medium ${esAnulado ? "text-gray-400 line-through" : "text-gray-900 dark:text-white"}`}
           title={item.nombre_producto}>
           {item.nombre_producto}
         </p>
@@ -340,7 +329,7 @@ function PedidoItemRow({ item, onEntregar, onCancelar, entregando }: {
           </div>
         )}
       </div>
-      <div className="flex flex-col items-end gap-1.5">
+      <div className="col-start-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-right">
           <p className={`text-sm font-semibold ${esAnulado ? "text-gray-400" : "text-gray-900 dark:text-white"}`}>
             S/ {item.monto_subtotal.toFixed(2)}

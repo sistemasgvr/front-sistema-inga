@@ -4,7 +4,6 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
-import Alert from "@/components/ui/alert/Alert";
 import { Icon } from "@/components/ui/icon";
 import { useMesas } from "../hooks/use-mesas";
 import { MesaCard } from "./mesa-card";
@@ -101,14 +100,8 @@ export function MesasView() {
   }));
 
   return (
-    <div>
+    <div className="@container min-w-0">
       <PageBreadcrumb pageTitle="Mesas" />
-
-      {m.feedback && (
-        <div className="mb-5">
-          <Alert {...m.feedback} />
-        </div>
-      )}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -166,8 +159,8 @@ export function MesasView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-6 @min-[60rem]:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900 dark:text-white">
@@ -192,7 +185,7 @@ export function MesasView() {
                 No hay mesas en este salón
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-4">
                 {mesasDelSalon.map((mesa) => (
                   <MesaCard
                     key={mesa.id}
@@ -218,11 +211,8 @@ export function MesasView() {
           />
         </div>
 
-        {/* El panel necesita una altura acotada para que su h-full sea real: sin ella
-            el flex no tiene espacio que repartir y la barra de totales queda pegada al
-            final del contenido en vez de al borde inferior. self-start evita que el
-            sticky se estire, y top-[5rem] lo despega del header. */}
-        <div className="lg:col-span-1 lg:sticky lg:top-[5rem] lg:self-start lg:h-[calc(100dvh-7rem)]">
+        {/* Dos columnas solo cuando el contenido, descontando el sidebar, tiene espacio. */}
+        <div className="min-w-0 @min-[60rem]:sticky @min-[60rem]:top-[6rem] @min-[60rem]:max-h-[calc(100dvh-7rem)] @min-[60rem]:overflow-y-auto @min-[60rem]:overscroll-contain">
           <PedidoPanel
             key={m.pedido?.id ?? "sin-pedido"}
             pedido={m.pedido}

@@ -1,11 +1,12 @@
 "use client";
 
+import { useErrorNotification } from "@/shared/hooks/use-error-notification";
+
 import { LISTA_IDS, useLista } from "@/modules/listas";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Checkbox from "@/components/form/input/Checkbox";
-import Alert from "@/components/ui/alert/Alert";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { useCatalogo } from "@/shared/hooks/useCatalogo";
 import { FormEvent, useEffect, useState } from "react";
@@ -50,7 +51,7 @@ function AlmacenFormContent({
   const [errors, setErrors] = useState<Partial<Record<keyof AlmacenFormValues, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<keyof AlmacenFormValues, boolean>>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const notifyError = useErrorNotification("Error al guardar");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,7 +79,7 @@ function AlmacenFormContent({
     setErrors({});
     setTouched({});
     setIsSubmitted(false);
-    setServerError(null);
+
   }, [isOpen, almacen, defaultSucursalId, availableSucursales, tiposAlmacen]);
 
   function handleBlur(field: keyof AlmacenFormValues) {
@@ -112,14 +113,13 @@ function AlmacenFormContent({
     event.preventDefault();
     if (isSaving) return;
     setIsSubmitted(true);
-    setServerError(null);
 
     if (!validate()) return;
 
     try {
       await onSubmit(values);
     } catch (error) {
-      setServerError(
+      notifyError(
         error instanceof Error
           ? error.message
           : "Ocurrió un error inesperado al procesar la solicitud."
@@ -150,11 +150,6 @@ function AlmacenFormContent({
       }
       isSaving={isSaving}
     >
-      {serverError && (
-        <div className="mb-4">
-          <Alert variant="error" title="Error al guardar" message={serverError} />
-        </div>
-      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -163,7 +158,7 @@ function AlmacenFormContent({
             id="codigo"
             value={values.codigo}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
             }}
             onBlur={() => handleBlur("codigo")}
@@ -184,7 +179,7 @@ function AlmacenFormContent({
             error={Boolean(showError("tipo_almacen"))}
             hint={showError("tipo_almacen")}
             onChange={(val) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, tipo_almacen: Number(val) }));
               handleBlur("tipo_almacen");
             }}
@@ -199,7 +194,7 @@ function AlmacenFormContent({
             id="nombre"
             value={values.nombre}
             onChange={(e) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, nombre: e.target.value }));
             }}
             onBlur={() => handleBlur("nombre")}
@@ -224,7 +219,7 @@ function AlmacenFormContent({
             error={Boolean(showError("id_sucursal"))}
             hint={showError("id_sucursal")}
             onChange={(val) => {
-              setServerError(null);
+
               setValues((p) => ({ ...p, id_sucursal: Number(val) }));
               handleBlur("id_sucursal");
             }}
