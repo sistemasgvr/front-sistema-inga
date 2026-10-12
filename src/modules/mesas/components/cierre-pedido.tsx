@@ -14,8 +14,11 @@ export type CierrePedidoDatos={id_estacion?:number;tipo_comprobante?:number;medi
 const COMPROBANTES=[
   {value:'1',label:'Boleta'},
   {value:'2',label:'Factura'},
-  {value:'3',label:'Sin documento'},
+  {value:'3',label:'Nota de venta'},
 ] as const;
+
+/** DNI del cliente genérico "Clientes varios"; el backend lo usa también si la boleta va sin DNI. */
+const DNI_CLIENTES_VARIOS='00000000';
 
 const ICONO_MEDIO:Record<string,string>={EFECTIVO:'mdi:cash',YAPE:'mdi:cellphone',PLIN:'mdi:cellphone',TARJETA:'mdi:credit-card-outline',TRANSFERENCIA:'mdi:bank-transfer'};
 
@@ -23,7 +26,7 @@ export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido
   onConfirmar:(accion:'precuenta'|'cobrar'|'credito',datos:CierrePedidoDatos)=>Promise<boolean>}){
   const f=useCierrePedido(pedido.id_sucursal);
   const [aperturasCredito,setAperturasCredito]=useState(0);
-  const esFactura=f.tipo==='2',sinDocumento=f.tipo==='3';
+  const esFactura=f.tipo==='2',sinDocumento=f.tipo==='3',clientesVarios=f.tipo==='1'&&f.documentoCobro===DNI_CLIENTES_VARIOS;
   const documentoValido=esFactura?/^\d{11}$/.test(f.documentoCobro):f.tipo==='1'?f.documentoCobro===''||/^\d{8}$/.test(f.documentoCobro):true;
   const cobroValido=!!f.medio&&documentoValido;
   const sinItems=pedido.items.every(i=>i.tipo_linea===3);
@@ -51,12 +54,21 @@ export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido
               :'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>{c.label}</button>);})}
       </div>
 
-      {!sinDocumento&&<div>
-        <Input value={f.documentoCobro} disabled={saving} maxLength={esFactura?11:8}
-          placeholder={esFactura?'RUC del cliente (11 dígitos) *':'DNI del cliente (opcional)'}
-          error={f.documentoCobro!==''&&!documentoValido}
-          hint={f.documentoCobro!==''&&!documentoValido?(esFactura?'El RUC debe tener 11 dígitos.':'El DNI debe tener 8 dígitos.'):undefined}
-          onChange={e=>f.setDocumentoCobro(e.target.value.replace(/\D/g,''))}/>
+      {!sinDocumento&&<div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <Input value={clientesVarios?'Clientes varios':f.documentoCobro} disabled={saving||clientesVarios} maxLength={esFactura?11:8}
+            placeholder={esFactura?'RUC del cliente (11 dígitos) *':'DNI del cliente (opcional)'}
+            error={f.documentoCobro!==''&&!documentoValido}
+            hint={f.documentoCobro!==''&&!documentoValido?(esFactura?'El RUC debe tener 11 dígitos.':'El DNI debe tener 8 dígitos.'):undefined}
+            onChange={e=>f.setDocumentoCobro(e.target.value.replace(/\D/g,''))}/>
+        </div>
+        {f.tipo==='1'&&<button type="button" aria-pressed={clientesVarios} disabled={saving}
+          onClick={()=>f.setDocumentoCobro(clientesVarios?'':DNI_CLIENTES_VARIOS)}
+          className={`h-11 shrink-0 rounded-lg border px-3 text-xs font-semibold transition disabled:opacity-50 ${clientesVarios
+            ?'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400'
+            :'border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-300'}`}>
+          <Icon name="mdi:account-group-outline" size={16} className="mr-1 inline"/>Clientes varios
+        </button>}
       </div>}
 
       {/* Medios de pago (el crédito tiene su propio flujo) */}
