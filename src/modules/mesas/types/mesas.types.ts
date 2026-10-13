@@ -40,6 +40,8 @@ export type PedidoItem = {
   cantidad_entregada: number;
   cantidad_cancelada: number;
   cantidad_reservada: number;
+  /** Sub-platos ya preparados apartados para la línea (p. ej. el Ceviche de un Barco). */
+  subplatos_preparados?: number;
   id: number;
   id_pedido: number;
   id_producto: number;

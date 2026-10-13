@@ -43,6 +43,6 @@ export function usePreparacion(sucursal:number,item:CocinaItem|null,onSaved:()=>
     (!item||(insumosConfirmados&&cantidad<=Number(item.cantidad_pendiente)-Number(item.cantidad_reservada)))&&
     disponibilidad.ingredientes.every(i=>Number(i.faltante)===0);
   return {insumosConfirmados,setInsumosConfirmados,productos,producto,cambiarProducto:(id:string)=>{setProducto(id);setRevision(v=>v+1);},cantidad,setCantidad,
-    disponibilidad,loading,saving,error,guardar,almacen:elegido?.almacen,
+    disponibilidad,loading,saving,error,guardar,almacen:elegido?.almacen,plato:item?.nombre_producto??elegido?.nombre??"",
     puedeGuardar};
 }

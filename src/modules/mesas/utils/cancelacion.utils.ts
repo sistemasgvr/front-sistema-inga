@@ -1,6 +1,6 @@
 import type { PedidoItem } from "../types/mesas.types";
 
-type ItemCancelable = Pick<PedidoItem, "cantidad" | "cantidad_cancelada" | "cantidad_entregada" | "cantidad_reservada" | "estado_preparacion">;
+type ItemCancelable = Pick<PedidoItem, "cantidad" | "cantidad_cancelada" | "cantidad_entregada" | "cantidad_reservada" | "estado_preparacion" | "subplatos_preparados">;
 
 // Unidades comandadas que aún no tienen plato preparado (sus ingredientes están apartados).
 export const unidadesSinPreparar = (item: ItemCancelable) =>
@@ -10,11 +10,16 @@ export const unidadesSinPreparar = (item: ItemCancelable) =>
 export function repartoCancelacion(item: ItemCancelable, cantidad: number) {
   const sinPreparar = Math.min(cantidad, unidadesSinPreparar(item));
   const preparados = Math.max(0, cantidad - sinPreparar);
+  const enPreparacion = sinPreparar > 0 && item.estado_preparacion === 3;
+  // Un plato compuesto en preparación con sub-platos preparados apartados: guardarlos o desecharlos.
+  // Sin preparación iniciada vuelven solos al stock libre.
+  const subplatos = enPreparacion && Number(item.subplatos_preparados ?? 0) > 0;
   return {
     sinPreparar,
     preparados,
+    subplatos,
     // Solo se pregunta qué hacer con los ingredientes si la preparación ya inició.
-    pideDestinoInsumos: sinPreparar > 0 && item.estado_preparacion === 3,
-    pideDestinoPreparado: preparados > 0,
+    pideDestinoInsumos: enPreparacion,
+    pideDestinoPreparado: preparados > 0 || subplatos,
   };
 }

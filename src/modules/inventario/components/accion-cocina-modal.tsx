@@ -21,7 +21,8 @@ export function AccionCocinaModal({item,tipo,onClose,onSaved}:{item:CocinaItem;t
         {a.reparto.sinPreparar} sin preparar: sus ingredientes apartados vuelven al almacén.</p>}
       {a.reparto.pideDestinoInsumos&&<><Label>Ingredientes de {a.reparto.sinPreparar} en preparación</Label><Select defaultValue={a.destinoInsumos} onChange={a.setDestinoInsumos} disabled={a.saving}
         options={[{value:"LIBERAR",label:"No se usaron: devolver al almacén"},{value:"MERMA",label:"Ya se usaron: registrar merma"}]}/></>}
-      {a.reparto.pideDestinoPreparado&&<><Label>{a.reparto.preparados} ya preparados</Label><Select defaultValue={a.destino} onChange={a.setDestino} disabled={a.saving}
+      {a.reparto.pideDestinoPreparado&&<><Label>{[a.reparto.preparados>0&&`${a.reparto.preparados} ya preparados`,
+        a.reparto.subplatos&&`Sub-platos preparados apartados (${Number(item.subplatos_preparados)})`].filter(Boolean).join(" y ")}</Label><Select defaultValue={a.destino} onChange={a.setDestino} disabled={a.saving}
         options={[{value:"DISPONIBLE",label:"Guardar en inventario para revender"},{value:"MERMA",label:"Descartar y registrar merma"}]}/>
         <p className="text-sm text-gray-500">Los ingredientes de los platos preparados no se devuelven al almacén.</p></>}
     </>}

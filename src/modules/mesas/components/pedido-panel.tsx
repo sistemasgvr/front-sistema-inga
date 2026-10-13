@@ -135,7 +135,9 @@ export function PedidoPanel({
     tienePermisoAnular && !!pedido && [1, 2, 3].includes(pedido.estado_pedido) && pedido.items.every(i=>!Number(i.cantidad_entregada));
   // Al anular se cancela todo lo pendiente: se pregunta por platos listos y por ingredientes en preparación.
   const lineasActivas = pedido?.items.filter(i=>i.tipo_linea!==3) ?? [];
-  const hayPreparados = lineasActivas.some(i=>Number(i.cantidad_reservada)>0);
+  // Incluye sub-platos preparados apartados de un plato compuesto en preparación (el Ceviche de un Barco).
+  const hayPreparados = lineasActivas.some(i=>Number(i.cantidad_reservada)>0 ||
+    (i.estado_preparacion===3 && unidadesSinPreparar(i)>0 && Number(i.subplatos_preparados??0)>0));
   const hayEnPreparacion = lineasActivas.some(i=>i.estado_preparacion===3 && unidadesSinPreparar(i)>0);
   const puedeAgregarItems =
     !!pedido && [1,2,3].includes(pedido.estado_pedido);

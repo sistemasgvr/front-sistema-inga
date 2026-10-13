@@ -21,7 +21,7 @@ export function AvisosCocina({sucursal,estacion,revision}:{sucursal:number;estac
         <Button size="sm" variant="outline" disabled={!!a.atendiendo} onClick={()=>void a.atender(aviso.id)}>{a.atendiendo===aviso.id?"Guardando…":"Atendido"}</Button>
       </div>
       <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-gray-800 dark:text-gray-200">
-        {aviso.faltantes.map(f=><li key={f.id_producto}><strong>{f.producto}</strong>: faltan {Number(f.faltante)} {f.unidad} (hay {Number(f.disponible)}) · {f.platos.join(", ")}</li>)}
+        {aviso.faltantes.map(f=><li key={f.id_producto}>{f.ruta&&<span className="text-gray-600 dark:text-gray-400">{f.ruta}: </span>}<strong>{f.producto}</strong>: faltan {Number(f.faltante)} {f.unidad} (hay {Number(f.disponible)}) · {f.platos.join(", ")}</li>)}
       </ul>
     </article>)}
   </section>;
