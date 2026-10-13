@@ -87,12 +87,63 @@ export type InsumoFormValues = {
   id_proveedor_habitual: number | null;
 };
 
+/**
+ * Qué se compra en una línea:
+ *   - "inventario": un producto que controla stock. La compra lo ingresa al
+ *     almacén, aunque hoy esté en cero.
+ *   - "insumo": un ítem de la lista libre. Solo es gasto, no toca el stock.
+ */
+export type TipoItemCompra = "inventario" | "insumo";
+
+/** Stock de un producto en un almacén. */
+export type StockAlmacen = {
+  id_almacen: number;
+  stock_actual: number;
+  stock_disponible: number;
+};
+
+/** Producto del inventario que se puede comprar. */
+export type ProductoInventario = {
+  id: number;
+  codigo_interno: string | null;
+  nombre: string;
+  /** Unidad base: la compra entra en esta unidad, no se elige. */
+  id_unidad_medida: number;
+  nombre_unidad: string;
+  simbolo_unidad: string | null;
+  /** Almacén habitual del producto; se preselecciona. */
+  id_almacen_stock: number | null;
+  stock_total: number;
+  stocks: StockAlmacen[];
+  /** Costo promedio con que se viene comprando. Sugiere el precio. */
+  costo_referencial: number;
+};
+
+export type AlmacenCompra = {
+  id: number;
+  nombre: string;
+  tipo_almacen: number;
+  es_principal: boolean;
+};
+
+export type ProductosInventarioResult = {
+  productos: ProductoInventario[];
+  almacenes: AlmacenCompra[];
+};
+
 export type LineaGasto = {
   id: number;
-  id_insumo: number;
+  id_insumo: number | null;
   nombre_insumo: string;
-  id_categoria: number;
+  id_categoria: number | null;
   nombre_categoria: string;
+  /** Solo en compras de inventario. */
+  id_producto?: number | null;
+  id_almacen?: number | null;
+  nombre_almacen?: string | null;
+  id_alm_movimiento?: number | null;
+  /** La compra ingresó stock al almacén. */
+  es_inventario?: boolean;
   id_unidad_medida: number | null;
   nombre_unidad: string | null;
   simbolo_unidad: string | null;
@@ -136,7 +187,10 @@ export type DiaConDetalle = {
 };
 
 export type LineaFormValues = {
+  tipo_item: TipoItemCompra;
   id_insumo: number | null;
+  id_producto: number | null;
+  id_almacen: number | null;
   cantidad: number;
   precio_unitario: number;
   forma_pago: number;

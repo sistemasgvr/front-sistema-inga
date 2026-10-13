@@ -123,6 +123,70 @@ export function TurnoDetalleModal({
                 </div>
               </div>
 
+              {/* Cobranzas de CxC */}
+              {(turno.total_cobranzas ?? 0) > 0 && (
+                <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                  <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                    Cobranzas de cuentas por cobrar
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { etiqueta: "Efectivo", valor: turno.cobranzas_efectivo ?? 0 },
+                      { etiqueta: "Yape", valor: turno.cobranzas_yape ?? 0 },
+                      { etiqueta: "Transferencia", valor: turno.cobranzas_tarjeta ?? 0 },
+                    ].map((m) => (
+                      <div key={m.etiqueta}>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {m.etiqueta}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                          {formatearSoles(m.valor)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    Total cobrado:{" "}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                      {formatearSoles(turno.total_cobranzas ?? 0)}
+                    </span>
+                    {" "}· Solo el efectivo entra al cajón.
+                  </p>
+                </div>
+              )}
+
+              {/* Pagos de otros módulos (proveedores, gastos, planilla, compras) */}
+              {(turno.total_pagos ?? 0) > 0 && (
+                <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                  <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                    Pagos por medio de pago
+                  </h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { etiqueta: "Efectivo", valor: turno.pagos_efectivo ?? 0 },
+                      { etiqueta: "Yape", valor: turno.pagos_yape ?? 0 },
+                      { etiqueta: "Transferencia", valor: turno.pagos_tarjeta ?? 0 },
+                    ].map((m) => (
+                      <div key={m.etiqueta}>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {m.etiqueta}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                          {formatearSoles(m.valor)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    Total pagado:{" "}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                      {formatearSoles(turno.total_pagos ?? 0)}
+                    </span>
+                    {" "}· Solo el efectivo sale del cajón.
+                  </p>
+                </div>
+              )}
+
               {/* Movimientos */}
               <div>
                 <h5 className="mb-2 text-sm font-semibold text-gray-800 dark:text-white/90">
@@ -136,9 +200,10 @@ export function TurnoDetalleModal({
                   <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-700">
                     {detalle.movimientos.map((mov) => {
                       const esIngreso = mov.tipo_movimiento === TIPO_MOVIMIENTO.INGRESO;
+                      const tocaCajon = (mov.medio_pago ?? 1) === 1;
                       return (
                         <li
-                          key={mov.id}
+                          key={mov.clave ?? mov.id}
                           className="flex items-center justify-between px-4 py-2.5"
                         >
                           <div>
@@ -147,12 +212,19 @@ export function TurnoDetalleModal({
                             </p>
                             <p className="text-xs text-gray-400">
                               {formatearFechaHora(mov.fecha_creacion)}
+                              {mov.origen_nombre && ` · ${mov.origen_nombre}`}
+                              {mov.medio_pago_nombre && ` · ${mov.medio_pago_nombre}`}
                             </p>
                           </div>
                           <span
                             className={`text-sm font-semibold ${
-                              esIngreso ? "text-success-600" : "text-error-500"
+                              !tocaCajon
+                                ? "text-gray-500 dark:text-gray-400"
+                                : esIngreso
+                                  ? "text-success-600"
+                                  : "text-error-500"
                             }`}
+                            title={tocaCajon ? undefined : "No toca el cajón"}
                           >
                             {esIngreso ? "+" : "−"} {formatearSoles(mov.monto)}
                           </span>

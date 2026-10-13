@@ -17,6 +17,15 @@ export const TIPO_MOVIMIENTO = {
   AJUSTE: 3,
 } as const;
 
+/** Catálogo MEDIO_PAGO. Sin crédito: un abono es plata que entra, no otra deuda. */
+export const MEDIO_PAGO = { EFECTIVO: 1, YAPE: 2, TARJETA: 3 } as const;
+
+export const MEDIOS_PAGO_ABONO = [
+  { valor: MEDIO_PAGO.EFECTIVO, etiqueta: "Efectivo", icono: "mdi:cash" },
+  { valor: MEDIO_PAGO.YAPE, etiqueta: "Yape", icono: "mdi:cellphone" },
+  { valor: MEDIO_PAGO.TARJETA, etiqueta: "Transferencia", icono: "mdi:bank-outline" },
+] as const;
+
 /**
  * La quincena es el corte del negocio: días 1-15 y 16-fin de mes.
  * No se elige al registrar (la base la deduce de la fecha), pero sí se filtra.
@@ -99,6 +108,11 @@ export type MovimientoCxc = {
    * describe el pedido de origen, no la porción que se llevó a cuenta.
    */
   detalle_pedido?: string | null;
+  /** Solo en abonos: 1 efectivo, 2 yape, 3 tarjeta/transferencia. */
+  medio_pago?: number | null;
+  medio_pago_nombre?: string | null;
+  /** Turno de caja donde entró el abono. */
+  id_turno?: number | null;
   observacion: string | null;
   estado: EstadoRegistro;
   fecha_creacion: string;
@@ -158,6 +172,9 @@ export type ConsumoFormValues = {
 export type AbonoCxcFormValues = {
   id_persona: number | null;
   monto: number;
+  medio_pago: number;
+  /** Turno de caja abierto. Obligatorio en efectivo; en los demás, si hay uno. */
+  id_turno: number | null;
   fecha_movimiento: string;
   observacion: string;
   /**

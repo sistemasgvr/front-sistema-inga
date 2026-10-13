@@ -32,6 +32,8 @@ export function GastosDiariosView() {
     dia,
     reporte,
     categorias,
+    productos,
+    almacenes,
     unidades,
     proveedores,
     turnoAbierto,
@@ -316,7 +318,15 @@ export function GastosDiariosView() {
                             {linea.nombre_insumo}
                           </span>
                           <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">
-                            {linea.nombre_categoria}
+                            {linea.es_inventario ? (
+                              // Compra que ingresó stock: digo a qué almacén.
+                              <span className="inline-flex items-center gap-1 text-success-600 dark:text-success-400">
+                                <Icon name="mdi:package-variant-closed-plus" size={13} />
+                                Ingresó a {linea.nombre_almacen ?? "inventario"}
+                              </span>
+                            ) : (
+                              linea.nombre_categoria
+                            )}
                             {linea.observacion && ` · ${linea.observacion}`}
                           </span>
                         </TableCell>
@@ -385,6 +395,8 @@ export function GastosDiariosView() {
         onClose={cerrarLinea}
         onSubmit={guardarLinea}
         categorias={categorias}
+        productos={productos}
+        almacenes={almacenes}
         unidades={unidades}
         proveedores={proveedores}
         turnoAbierto={turnoAbierto}
@@ -413,6 +425,10 @@ export function GastosDiariosView() {
             ? `Se anulará ${confirmLinea.nombre_insumo} por ${formatearSoles(confirmLinea.subtotal)}.${
                 confirmLinea.forma_pago === FORMA_PAGO.CREDITO
                   ? " También se revertirá la deuda generada al proveedor."
+                  : ""
+              }${
+                confirmLinea.es_inventario
+                  ? " El stock que ingresó se descontará del almacén."
                   : ""
               }`
             : ""

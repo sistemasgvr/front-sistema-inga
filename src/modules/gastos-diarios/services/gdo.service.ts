@@ -17,6 +17,7 @@ import type {
   LineaFormValues,
   ListDiasParams,
   ListDiasResult,
+  ProductosInventarioResult,
   ReporteDia,
 } from "../types/gdo.types";
 
@@ -95,6 +96,26 @@ export async function toggleInsumo(id: number): Promise<ToggleStatusResult> {
   return apiDelete<ToggleStatusResult>(`${BASE}/insumos/${id}`);
 }
 
+/* ------------------------- Productos del inventario ---------------------- */
+
+/**
+ * Productos del inventario que se pueden comprar (incluidos los que están en
+ * stock cero), con su stock por almacén, más los almacenes activos.
+ * Sin paginar: el formulario de compra los necesita todos a mano.
+ */
+export async function listProductosInventario(
+  buscar = "",
+): Promise<ProductosInventarioResult> {
+  const response = await apiGet<ProductosInventarioResult>(
+    `${BASE}/productos-inventario`,
+    { params: { buscar: buscar || undefined } },
+  );
+  return {
+    productos: response?.productos ?? [],
+    almacenes: response?.almacenes ?? [],
+  };
+}
+
 /* ------------------------------ Gasto del día ---------------------------- */
 
 /**
@@ -152,12 +173,19 @@ export async function agregarLinea(
   idGastoDia: number,
   values: LineaFormValues,
 ): Promise<DiaConDetalle> {
+  const esInventario = values.tipo_item === "inventario";
   return apiPost<DiaConDetalle>(`${BASE}/dias/${idGastoDia}/lineas`, {
-    id_insumo: values.id_insumo,
+    // Se manda uno u otro, nunca ambos: el backend lo exige.
+    id_insumo: esInventario ? undefined : (values.id_insumo ?? undefined),
+    id_producto: esInventario ? (values.id_producto ?? undefined) : undefined,
+    id_almacen: esInventario ? (values.id_almacen ?? undefined) : undefined,
     cantidad: values.cantidad,
     precio_unitario: values.precio_unitario,
     forma_pago: values.forma_pago,
-    id_unidad_medida: values.id_unidad_medida ?? undefined,
+    // El producto de inventario entra en su unidad base; la pone el backend.
+    id_unidad_medida: esInventario
+      ? undefined
+      : (values.id_unidad_medida ?? undefined),
     id_proveedor: values.id_proveedor ?? undefined,
     observacion: values.observacion.trim() || undefined,
   });

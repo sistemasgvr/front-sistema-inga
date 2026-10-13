@@ -61,6 +61,7 @@ export function CuentasPorCobrarView() {
     isAjusteOpen,
     clienteElegido,
     movimientoCorreccion,
+    turnoAbierto,
     abrirConsumo,
     abrirAbono,
     abrirCorreccion,
@@ -608,6 +609,7 @@ export function CuentasPorCobrarView() {
         onSubmit={guardarAbono}
         clientes={registros}
         clienteElegido={clienteElegido}
+        turnoAbierto={turnoAbierto}
         isSaving={isSaving}
         correccion={movimientoCorreccion}
       />

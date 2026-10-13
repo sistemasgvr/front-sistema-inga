@@ -202,6 +202,7 @@ export function EstadoCuentaModal({
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                           {mov.tipo_movimiento_nombre}
+                          {mov.medio_pago_nombre ? ` · ${mov.medio_pago_nombre}` : ""}
                           <span className="ml-2 text-xs font-normal text-gray-400">
                             {mov.quincena}ª quincena
                           </span>

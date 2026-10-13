@@ -17,13 +17,16 @@ import {
   createInsumo,
   getReporteDia,
   listInsumos,
+  listProductosInventario,
 } from "../services/gdo.service";
 import type {
+  AlmacenCompra,
   CategoriaInsumos,
   DiaConDetalle,
   InsumoFormValues,
   LineaFormValues,
   LineaGasto,
+  ProductoInventario,
   ReporteDia,
 } from "../types/gdo.types";
 import { hoyISO } from "../utils/formato";
@@ -39,6 +42,8 @@ import { hoyISO } from "../utils/formato";
  *     cajón y el día necesita quedar vinculado al turno
  *   - los proveedores del maestro de personas (M05), para las compras a crédito
  *   - las unidades de medida, que se eligen por línea y no vienen del insumo
+ *   - los productos del inventario (M09) y sus almacenes: comprarlos ingresa
+ *     stock, así que se recargan después de cada compra o anulación
  */
 export function useGastosDiarios() {
   const [fecha, setFecha] = useState(hoyISO());
@@ -47,6 +52,8 @@ export function useGastosDiarios() {
   const [reporte, setReporte] = useState<ReporteDia | null>(null);
 
   const [categorias, setCategorias] = useState<CategoriaInsumos[]>([]);
+  const [productos, setProductos] = useState<ProductoInventario[]>([]);
+  const [almacenes, setAlmacenes] = useState<AlmacenCompra[]>([]);
   const [unidades, setUnidades] = useState<UnidadMedidaItem[]>([]);
   const [proveedores, setProveedores] = useState<PersonaBusquedaItem[]>([]);
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
@@ -123,6 +130,30 @@ export function useGastosDiarios() {
     void recargarInsumos();
   }, []);
 
+  /** El stock que se muestra al elegir cambia con cada compra: recargo tras guardar. */
+  async function recargarProductos() {
+    try {
+      const result = await listProductosInventario();
+      setProductos(result.productos);
+      setAlmacenes(result.almacenes);
+    } catch {
+      setProductos([]);
+      setAlmacenes([]);
+    }
+  }
+
+  useEffect(() => {
+    listProductosInventario()
+      .then((r) => {
+        setProductos(r.productos);
+        setAlmacenes(r.almacenes);
+      })
+      .catch(() => {
+        setProductos([]);
+        setAlmacenes([]);
+      });
+  }, []);
+
   useEffect(() => {
     getUnidadesMedida()
       .then((r) => setUnidades(r.unidades))
@@ -159,14 +190,19 @@ export function useGastosDiarios() {
       setFeedback({
         variant: "success",
         title: "Compra registrada",
-        message:
+        message: [
           values.forma_pago === 3
             ? "Se registró la compra y la deuda quedó cargada al proveedor."
             : "La compra quedó registrada en el día.",
+          values.tipo_item === "inventario" ? "El stock del producto aumentó." : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       });
       // La lista de insumos guarda el último precio pagado: la recargo para que
       // la próxima compra sugiera el precio real.
-      void recargarInsumos();
+      if (values.tipo_item === "inventario") void recargarProductos();
+      else void recargarInsumos();
       refrescarTurno();
     } catch (error) {
       setFeedback({
@@ -228,11 +264,16 @@ export function useGastosDiarios() {
       setFeedback({
         variant: "success",
         title: "Compra anulada",
-        message:
+        message: [
           confirmLinea.forma_pago === 3
             ? "Se anuló la compra y se revirtió la deuda del proveedor."
             : "La compra quedó anulada.",
+          confirmLinea.es_inventario ? "El stock que ingresó se descontó." : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
       });
+      if (confirmLinea.es_inventario) void recargarProductos();
       refrescarTurno();
     } catch (error) {
       // Rechazos típicos: el turno ya se cerró, o en CxP ya hubo movimientos
@@ -254,6 +295,8 @@ export function useGastosDiarios() {
     dia,
     reporte,
     categorias,
+    productos,
+    almacenes,
     unidades,
     proveedores,
     turnoAbierto,

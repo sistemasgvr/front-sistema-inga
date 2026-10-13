@@ -104,12 +104,13 @@ export function MiTurnoView() {
             </p>
             <p className="mt-1 text-xs text-brand-600/80 dark:text-brand-400/80">
               Apertura {formatearSoles(turno.monto_apertura)} + ventas en efectivo
-              + ingresos − egresos. Yape, tarjeta y crédito no entran acá.
+              + cobranzas en efectivo + ingresos − egresos − pagos en
+              efectivo. Yape, tarjeta y crédito no entran acá.
             </p>
           </div>
 
           {/* Desglose */}
-          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
             {[
               {
                 etiqueta: "Apertura",
@@ -124,14 +125,23 @@ export function MiTurnoView() {
                 color: "text-success-600 dark:text-success-400",
               },
               {
+                etiqueta: "Cobranzas efectivo",
+                valor: turno.cobranzas_efectivo ?? 0,
+                icono: "mdi:cash-check",
+                color: "text-success-600 dark:text-success-400",
+              },
+              {
                 etiqueta: "Ingresos",
                 valor: turno.ingresos_caja ?? 0,
                 icono: "mdi:arrow-down-bold-box-outline",
                 color: "text-blue-600 dark:text-blue-400",
               },
               {
-                etiqueta: "Egresos",
-                valor: turno.egresos_caja ?? 0,
+                // Retiros manuales + pagos en efectivo de otros módulos
+                // (proveedores, gastos, planilla, compras): todo sale del cajón.
+                etiqueta: "Egresos y pagos",
+                valor:
+                  Number(turno.egresos_caja ?? 0) + Number(turno.pagos_efectivo ?? 0),
                 icono: "mdi:arrow-up-bold-box-outline",
                 color: "text-error-500",
               },
@@ -189,6 +199,72 @@ export function MiTurnoView() {
             </p>
           </div>
 
+          {/* Abonos de cuentas por cobrar cobrados en el turno. Van aparte de las
+              ventas para no contar dos veces lo que ya se vendió a crédito. */}
+          {(turno.total_cobranzas ?? 0) > 0 && (
+            <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+              <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                Cobranzas de cuentas por cobrar
+              </h4>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { etiqueta: "Efectivo", valor: turno.cobranzas_efectivo ?? 0 },
+                  { etiqueta: "Yape", valor: turno.cobranzas_yape ?? 0 },
+                  { etiqueta: "Transferencia", valor: turno.cobranzas_tarjeta ?? 0 },
+                ].map((m) => (
+                  <div key={m.etiqueta}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {m.etiqueta}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                      {formatearSoles(m.valor)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                Total cobrado:{" "}
+                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  {formatearSoles(turno.total_cobranzas ?? 0)}
+                </span>
+                {" "}· Solo el efectivo entra al cajón.
+              </p>
+            </div>
+          )}
+
+          {/* Pagos hechos desde otros módulos contra este turno: proveedores,
+              gastos administrativos, planilla y compras del día. */}
+          {(turno.total_pagos ?? 0) > 0 && (
+            <div className="mb-5 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+              <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+                Pagos del turno por medio de pago
+              </h4>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { etiqueta: "Efectivo", valor: turno.pagos_efectivo ?? 0 },
+                  { etiqueta: "Yape", valor: turno.pagos_yape ?? 0 },
+                  { etiqueta: "Transferencia", valor: turno.pagos_tarjeta ?? 0 },
+                ].map((m) => (
+                  <div key={m.etiqueta}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {m.etiqueta}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                      {formatearSoles(m.valor)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                Total pagado:{" "}
+                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                  {formatearSoles(turno.total_pagos ?? 0)}
+                </span>
+                {" "}· Solo el efectivo sale del cajón.
+              </p>
+            </div>
+          )}
+
           {/* Movimientos */}
           <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5 dark:border-gray-800">
@@ -209,16 +285,20 @@ export function MiTurnoView() {
                   Sin movimientos en este turno
                 </p>
                 <p className="mt-1 text-xs text-gray-400">
-                  Registra acá los gastos y retiros que no son ventas.
+                  Registra acá los gastos y retiros que no son ventas. Los
+                  pagos a proveedores, gastos, planilla y compras del día
+                  aparecen solos.
                 </p>
               </div>
             ) : (
               <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                 {movimientos.map((mov) => {
                   const esIngreso = mov.tipo_movimiento === TIPO_MOVIMIENTO.INGRESO;
+                  // Yape y transferencia se listan pero no tocan el cajón.
+                  const tocaCajon = (mov.medio_pago ?? 1) === 1;
                   return (
                     <li
-                      key={mov.id}
+                      key={mov.clave ?? mov.id}
                       className="flex items-center justify-between px-5 py-3"
                     >
                       <div className="flex items-center gap-3">
@@ -237,17 +317,28 @@ export function MiTurnoView() {
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatearFechaHora(mov.fecha_creacion)}
+                            {mov.origen_nombre && ` · ${mov.origen_nombre}`}
+                            {mov.medio_pago_nombre && ` · ${mov.medio_pago_nombre}`}
                             {mov.nombre_autoriza && ` · autorizó ${mov.nombre_autoriza}`}
                           </p>
                         </div>
                       </div>
-                      <span
-                        className={`text-sm font-semibold ${
-                          esIngreso ? "text-success-600" : "text-error-500"
-                        }`}
-                      >
-                        {esIngreso ? "+" : "−"} {formatearSoles(mov.monto)}
-                      </span>
+                      <div className="text-right">
+                        <span
+                          className={`text-sm font-semibold ${
+                            !tocaCajon
+                              ? "text-gray-500 dark:text-gray-400"
+                              : esIngreso
+                                ? "text-success-600"
+                                : "text-error-500"
+                          }`}
+                        >
+                          {esIngreso ? "+" : "−"} {formatearSoles(mov.monto)}
+                        </span>
+                        {!tocaCajon && (
+                          <p className="text-[10px] text-gray-400">No toca el cajón</p>
+                        )}
+                      </div>
                     </li>
                   );
                 })}

@@ -117,7 +117,9 @@ export function AbonoFormModal({
     try {
       await onSubmit({
         ...values,
-        id_turno: esEfectivo ? (turnoAbierto?.id ?? null) : null,
+        // El turno viaja siempre que haya uno: el efectivo sale del cajón, y el
+        // Yape o la transferencia igual se listan en el resumen de la caja.
+        id_turno: turnoAbierto?.id ?? null,
       });
     } catch (error) {
       notifyError(

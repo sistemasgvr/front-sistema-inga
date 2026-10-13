@@ -30,8 +30,7 @@ export default function RootLayout({
         (ColorZilla, Grammarly y compañía) le inyectan atributos al <body> antes
         de que React arranque, y eso hace que el HTML del servidor y el del
         navegador no coincidan. React lo reporta como error de hidratación
-        aunque nuestro código esté bien.
-
+        aunque nuestro código esté bien.  
         Solo silencia diferencias de atributos EN ESTE elemento: no baja a los
         hijos, así que un mismatch real dentro de la app se va a seguir viendo.
       */}

@@ -143,8 +143,9 @@ export function GastoFormModal({
     try {
       await onSubmit({
         ...values,
-        // El turno solo viaja si el gasto sale del cajón.
-        id_turno: esEfectivo ? (turnoAbierto?.id ?? values.id_turno) : null,
+        // El turno viaja siempre que haya uno: el efectivo sale del cajón, y el
+        // Yape o la transferencia igual se listan en el resumen de la caja.
+        id_turno: turnoAbierto?.id ?? values.id_turno ?? null,
       });
     } catch (error) {
       notifyError(

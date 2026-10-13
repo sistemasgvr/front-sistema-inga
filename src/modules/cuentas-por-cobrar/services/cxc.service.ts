@@ -131,6 +131,8 @@ export async function registrarAbono(
   return apiPost<MovimientoCxc>(`${BASE}/abonos`, {
     id_persona: values.id_persona,
     monto: values.monto,
+    medio_pago: values.medio_pago,
+    id_turno: values.id_turno ?? undefined,
     fecha_movimiento: values.fecha_movimiento || undefined,
     observacion: values.observacion.trim() || undefined,
     id_pedido: values.id_pedido ?? undefined,

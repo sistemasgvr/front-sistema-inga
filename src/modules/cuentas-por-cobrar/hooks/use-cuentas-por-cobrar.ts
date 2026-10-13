@@ -4,6 +4,9 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { getStoredUser } from "@/modules/auth/services/auth.service";
+import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
 import type { ConvenioItem } from "@/modules/convenios/types/convenios.types";
 import { buscarPersonas } from "@/modules/personas/services/personas.service";
@@ -42,6 +45,8 @@ const PAGE_SIZE = 10;
  *   - los clientes del maestro de personas (M05), para poder cargarle un
  *     consumo a alguien que todavía no tiene movimientos y por eso no aparece
  *     en la tabla de saldos
+ *   - el turno de caja abierto (M11), porque el abono entra a la caja: en
+ *     efectivo lo exige, y en Yape/transferencia lo registra si hay uno
  */
 export function useCuentasPorCobrar() {
   const hoy = new Date();
@@ -72,6 +77,7 @@ export function useCuentasPorCobrar() {
 
   const [convenios, setConvenios] = useState<ConvenioItem[]>([]);
   const [clientes, setClientes] = useState<PersonaBusquedaItem[]>([]);
+  const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -179,6 +185,23 @@ export function useCuentasPorCobrar() {
       .catch(() => setClientes([]));
   }, []);
 
+  useEffect(() => {
+    const user = getStoredUser();
+    if (!user) return;
+    getTurnoAbierto(user.id)
+      .then(setTurnoAbierto)
+      .catch(() => setTurnoAbierto(null));
+  }, []);
+
+  /** Refresca el turno: si el abono fue en efectivo, el cajón acaba de cambiar. */
+  function refrescarTurno() {
+    const user = getStoredUser();
+    if (!user) return;
+    getTurnoAbierto(user.id)
+      .then(setTurnoAbierto)
+      .catch(() => undefined);
+  }
+
   function cambiarPeriodo(
     nuevoAnio: number,
     nuevoMes: number,
@@ -285,8 +308,9 @@ export function useCuentasPorCobrar() {
         title: esCorreccion ? "Crédito corregido" : "Abono registrado",
         message: esCorreccion
           ? "Se devolvió el monto a la cuenta. La venta queda registrada tal como fue."
-          : "La deuda del cliente se redujo.",
+          : "La deuda del cliente se redujo y el cobro quedó registrado en la caja.",
       });
+      refrescarTurno();
       await load();
     } catch (error) {
       // Rechazo típico: "el abono supera la deuda". El mensaje del backend ya
@@ -371,6 +395,7 @@ export function useCuentasPorCobrar() {
         title: "Movimiento anulado",
         message: "El saldo del cliente se recalculó.",
       });
+      refrescarTurno();
       await load();
     } catch (error) {
       // Rechazos típicos: "este consumo viene de un pedido" o "la quincena ya
@@ -407,6 +432,7 @@ export function useCuentasPorCobrar() {
     cambiarConvenioFiltro,
     convenios,
     clientes,
+    turnoAbierto,
     resumen,
     anio,
     mes,

@@ -100,11 +100,41 @@ export type TurnoItem = {
   total_ventas?: number;
   ingresos_caja?: number;
   egresos_caja?: number;
-  /** Lo que debería haber en el cajón: apertura + efectivo + ingresos − egresos. */
+  /**
+   * Abonos de cuentas por cobrar cobrados en este turno. Van aparte de las
+   * ventas: la venta ya se contó cuando se fió; esto es la deuda que se paga.
+   */
+  cobranzas_efectivo?: number;
+  cobranzas_yape?: number;
+  cobranzas_tarjeta?: number;
+  total_cobranzas?: number;
+  /**
+   * Pagos hechos contra el turno desde otros módulos: proveedores, gastos
+   * administrativos, planilla y compras del día. Solo el efectivo sale del cajón.
+   */
+  pagos_efectivo?: number;
+  pagos_yape?: number;
+  pagos_tarjeta?: number;
+  total_pagos?: number;
+  /**
+   * Lo que debería haber en el cajón: apertura + ventas en efectivo +
+   * cobranzas en efectivo + ingresos − egresos − pagos en efectivo.
+   */
   efectivo_esperado?: number;
 };
 
 export type MovimientoItem = {
+  /**
+   * Única entre orígenes ("CAJA-3", "CXP-3"): los id se repiten de un módulo a
+   * otro. Llega en el resumen del turno.
+   */
+  clave?: string;
+  /** CAJA (manual), CXC, CXP, GASTO_ADM, PLANILLA o COMPRA_DIA. */
+  origen?: string;
+  origen_nombre?: string;
+  /** 1 efectivo, 2 yape, 3 tarjeta/transferencia. Solo el efectivo toca el cajón. */
+  medio_pago?: number;
+  medio_pago_nombre?: string;
   id: number;
   id_turno?: number;
   tipo_movimiento: number;
