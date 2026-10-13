@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Icon } from "@/components/ui/icon";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import type { SubCategoriaItem } from "../types/subcategorias.types";
+import type { CategoriaItem } from "../../categorias/types/categorias.types";
 import type { User } from "@/modules/users/types/user.types";
 
 type SubCategoriasTableProps = {
@@ -15,6 +17,9 @@ type SubCategoriasTableProps = {
   onEdit: (subcat: SubCategoriaItem) => void;
   onToggleStatus: (subcat: SubCategoriaItem) => void;
   onAddSubCategoriaToCat?: (idCategoria: number) => void;
+  canEditCategoria?: (idCategoria: number) => boolean;
+  onEditCategoria?: (idCategoria: number) => void;
+  categoriasVacias?: CategoriaItem[];
 };
 
 export function SubCategoriasTable({
@@ -25,8 +30,21 @@ export function SubCategoriasTable({
   onEdit,
   onToggleStatus,
   onAddSubCategoriaToCat,
+  canEditCategoria,
+  categoriasVacias = [],
+  onEditCategoria,
 }: SubCategoriasTableProps) {
   const safeSubCategorias = Array.isArray(subcategorias) ? subcategorias : [];
+  const [categoriasColapsadas, setCategoriasColapsadas] = useState<Set<number>>(new Set());
+
+  const toggleCategoria = (idCategoria: number) => {
+    setCategoriasColapsadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(idCategoria)) next.delete(idCategoria);
+      else next.add(idCategoria);
+      return next;
+    });
+  };
 
   const isSuperAdmin = Boolean(
     currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin
@@ -53,6 +71,9 @@ export function SubCategoriasTable({
     userPermisos.includes(PermisoBanderas.CATEGORIAS_CREAR) ||
     userPermisos.includes(PermisoBanderas.SUBCATEGORIAS_CREAR);
 
+  const canEditCategoriaPermission =
+    isSuperAdmin || userPermisos.includes(PermisoBanderas.CATEGORIAS_EDITAR);
+
   const subcategoriasAgrupadas = safeSubCategorias.reduce<
     Record<string, { idCategoria: number; items: SubCategoriaItem[] }>
   >((acc, subcat) => {
@@ -67,6 +88,16 @@ export function SubCategoriasTable({
     return acc;
   }, {});
 
+  // Las categorías sin subcategorías van primero para que una recién creada
+  // se vea de inmediato y se le pueda añadir su primera subcategoría.
+  const idsAgrupados = new Set(Object.values(subcategoriasAgrupadas).map((g) => Number(g.idCategoria)));
+  const grupos: [string, { idCategoria: number; items: SubCategoriaItem[] }][] = [
+    ...categoriasVacias
+      .filter((cat) => !idsAgrupados.has(Number(cat.id)))
+      .map((cat): [string, { idCategoria: number; items: SubCategoriaItem[] }] => [cat.nombre, { idCategoria: cat.id, items: [] }]),
+    ...Object.entries(subcategoriasAgrupadas),
+  ];
+
   return (
     <div>
       {/* VISTA MÓVIL */}
@@ -75,37 +106,63 @@ export function SubCategoriasTable({
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-white/[0.05] dark:bg-white/[0.03]">
             Cargando subcategorías...
           </div>
-        ) : safeSubCategorias.length === 0 ? (
+        ) : grupos.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-sm text-gray-500 dark:border-white/[0.05] dark:bg-white/[0.03]">
             No se encontraron subcategorías.
           </div>
         ) : (
-          Object.entries(subcategoriasAgrupadas).map(([categoria, group]) => (
+          grupos.map(([categoria, group]) => {
+            const isColapsada = categoriasColapsadas.has(group.idCategoria);
+            return (
             <div key={categoria} className="space-y-2">
               <div className="flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-gray-800/80 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2">
-                  <Icon name="mdi:folder-open" className="text-brand-600 dark:text-brand-400" size={18} />
+                <button
+                  type="button"
+                  onClick={() => toggleCategoria(group.idCategoria)}
+                  aria-expanded={!isColapsada}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Icon name={isColapsada ? "mdi:chevron-right" : "mdi:chevron-down"} className="text-gray-500" size={18} />
+                  <Icon name={isColapsada ? "mdi:folder" : "mdi:folder-open"} className="text-brand-600 dark:text-brand-400" size={18} />
                   <span className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
                     {categoria}
                   </span>
                   <Badge size="sm" color="light">
                     {group.items.length}
                   </Badge>
-                </div>
+                </button>
 
-                {canCreatePermission && onAddSubCategoriaToCat && (
-                  <button
-                    type="button"
-                    onClick={() => onAddSubCategoriaToCat(group.idCategoria)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                  >
-                    <Icon name="mdi:plus" size={14} />
-                    Añadir
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  {canEditCategoriaPermission && onEditCategoria && canEditCategoria?.(group.idCategoria) && (
+                    <button
+                      type="button"
+                      onClick={() => onEditCategoria(group.idCategoria)}
+                      className="text-gray-400 hover:text-brand-600 transition-colors"
+                      title="Editar categoría"
+                    >
+                      <Icon name="mdi:pencil-outline" size={16} />
+                    </button>
+                  )}
+                  {canCreatePermission && onAddSubCategoriaToCat && (
+                    <button
+                      type="button"
+                      onClick={() => onAddSubCategoriaToCat(group.idCategoria)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                    >
+                      <Icon name="mdi:plus" size={14} />
+                      Añadir
+                    </button>
+                  )}
+                </div>
               </div>
 
+              {!isColapsada && (
               <div className="pl-3 border-l-2 border-gray-200 dark:border-gray-800 space-y-2">
+                {group.items.length === 0 && (
+                  <p className="px-1 py-2 text-xs italic text-gray-400">
+                    Sin subcategorías. Usa «Añadir» para registrar la primera.
+                  </p>
+                )}
                 {group.items.map((subcat) => {
                   const isActivo = subcat.estado === 1;
                   const isItemLoading = loadingSubCategoriaId === subcat.id;
@@ -169,8 +226,10 @@ export function SubCategoriasTable({
                   );
                 })}
               </div>
+              )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -206,20 +265,31 @@ export function SubCategoriasTable({
                       Cargando subcategorías...
                     </TableCell>
                   </TableRow>
-                ) : safeSubCategorias.length === 0 ? (
+                ) : grupos.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">
                       No se encontraron subcategorías.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  Object.entries(subcategoriasAgrupadas).flatMap(([categoria, group]) => [
+                  grupos.flatMap(([categoria, group]) => {
+                    const isColapsada = categoriasColapsadas.has(group.idCategoria);
+                    return [
                     <TableRow key={`cat-header-${categoria}`} className="bg-gray-50/80 dark:bg-gray-800/60 border-y border-gray-200 dark:border-white/[0.05]">
                       <TableCell colSpan={5} className="px-5 py-3 text-start">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleCategoria(group.idCategoria)}
+                            aria-expanded={!isColapsada}
+                            title={isColapsada ? "Mostrar subcategorías" : "Ocultar subcategorías"}
+                            className="flex items-center gap-2.5 cursor-pointer"
+                          >
+                            <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                              <Icon name={isColapsada ? "mdi:chevron-right" : "mdi:chevron-down"} size={18} />
+                            </span>
                             <span className="text-brand-600 dark:text-brand-400 shrink-0">
-                              <Icon name="mdi:folder-open-outline" size={18} />
+                              <Icon name={isColapsada ? "mdi:folder-outline" : "mdi:folder-open-outline"} size={18} />
                             </span>
                             <span className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
                               {categoria}
@@ -227,7 +297,19 @@ export function SubCategoriasTable({
                             <Badge size="sm" color="info" className="font-medium">
                               {group.items.length} {group.items.length === 1 ? "subcategoría" : "subcategorías"}
                             </Badge>
-                          </div>
+                          </button>
+
+                          <div className="flex items-center gap-3">
+                          {canEditCategoriaPermission && onEditCategoria && canEditCategoria?.(group.idCategoria) && (
+                            <button
+                              type="button"
+                              onClick={() => onEditCategoria(group.idCategoria)}
+                              className="text-gray-500 hover:text-brand-600 cursor-pointer transition-colors"
+                              title={`Editar categoría ${categoria}`}
+                            >
+                              <Icon name="mdi:pencil-outline" size={18} />
+                            </button>
+                          )}
 
                           {canCreatePermission && onAddSubCategoriaToCat && (
                             <button
@@ -240,11 +322,21 @@ export function SubCategoriasTable({
                               <span>Añadir subcategoría</span>
                             </button>
                           )}
+                          </div>
                         </div>
                       </TableCell>
                     </TableRow>,
 
-                    ...group.items.map((subcat) => {
+                    ...(!isColapsada && group.items.length === 0
+                      ? [
+                          <TableRow key={`cat-vacia-${group.idCategoria}`}>
+                            <TableCell colSpan={5} className="px-5 py-3 pl-10 text-start text-xs italic text-gray-400">
+                              Sin subcategorías. Usa «Añadir subcategoría» para registrar la primera.
+                            </TableCell>
+                          </TableRow>,
+                        ]
+                      : []),
+                    ...(isColapsada ? [] : group.items).map((subcat) => {
                       const isActivo = subcat.estado === 1;
                       const isItemLoading = loadingSubCategoriaId === subcat.id;
                       const canEdit = canEditPermission;
@@ -331,7 +423,8 @@ export function SubCategoriasTable({
                         </TableRow>
                       );
                     }),
-                  ])
+                  ];
+                  })
                 )}
               </TableBody>
             </Table>

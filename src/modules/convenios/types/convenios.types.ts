@@ -9,7 +9,6 @@ export type ConvenioStatus = 1 | 0;
 
 export type ConvenioItem = {
   id: number;
-  codigo: string;
   nombre: string;
   id_condicion_pago: number;
   nombre_condicion_pago: string;
@@ -28,7 +27,6 @@ export type ConvenioItem = {
 };
 
 export type ConvenioFormValues = {
-  codigo: string;
   nombre: string;
   id_condicion_pago: number | null;
   limite_credito: number;

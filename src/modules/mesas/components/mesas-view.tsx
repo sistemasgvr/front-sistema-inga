@@ -6,6 +6,9 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { useMesas } from "../hooks/use-mesas";
+import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
+import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
+import type { CierrePedidoDatos } from "./cierre-pedido";
 import { MesaCard } from "./mesa-card";
 import { PedidoPanel } from "./pedido-panel";
 import { AbrirPedidoModal } from "./abrir-pedido-modal";
@@ -16,6 +19,14 @@ import type { AbrirPedidoValues, Mesa } from "../types/mesas.types";
 
 export function MesasView() {
   const m = useMesas();
+  const turnoPendiente = useTurnoPendiente();
+
+  // Antes de cobrar (o registrar a crédito) se revisa si la caja del cajero es
+  // de un día anterior. La precuenta no mueve dinero y no pregunta.
+  const cerrarPedido = async (accion: "precuenta" | "cobrar" | "credito", datos: CierrePedidoDatos) => {
+    if (accion !== "precuenta" && !(await turnoPendiente.confirmar())) return false;
+    return m.cerrarPedido(accion, datos);
+  };
   const [salonId, setSalonId] = useState<number>(0);
   const [showAbrirPedido, setShowAbrirPedido] = useState(false);
   const [showAgregarItem, setShowAgregarItem] = useState(false);
@@ -222,7 +233,7 @@ export function MesasView() {
             onComandar={() => void m.comandar()}
             onEntregarItem={(id) => void m.entregarItem(id)}
               onCancelarItem={m.cancelarItem}
-              onCerrarPedido={m.cerrarPedido}
+              onCerrarPedido={cerrarPedido}
             onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
             onAnular={(values) => void m.anular(values)}
             onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
@@ -304,7 +315,7 @@ export function MesasView() {
               onComandar={() => void m.comandar()}
               onEntregarItem={(id) => void m.entregarItem(id)}
               onCancelarItem={m.cancelarItem}
-              onCerrarPedido={m.cerrarPedido}
+              onCerrarPedido={cerrarPedido}
               onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
               onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
               onAnular={(values) => {
@@ -318,6 +329,8 @@ export function MesasView() {
           }
         />
       )}
+
+      <TurnoPendienteGuard control={turnoPendiente} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
 import type { ConvenioItem } from "@/modules/convenios/types/convenios.types";
@@ -78,6 +79,8 @@ export function useCuentasPorCobrar() {
   const [convenios, setConvenios] = useState<ConvenioItem[]>([]);
   const [clientes, setClientes] = useState<PersonaBusquedaItem[]>([]);
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
+  // Antes de mover dinero se revisa si la caja abierta es de un día anterior.
+  const turnoPendiente = useTurnoPendiente();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -299,6 +302,10 @@ export function useCuentasPorCobrar() {
 
   async function guardarAbono(values: AbonoCxcFormValues) {
     const esCorreccion = Boolean(values.id_pedido);
+    if (!(await turnoPendiente.confirmar())) {
+      refrescarTurno();
+      return;
+    }
     setIsSaving(true);
     try {
       await registrarAbono(values);
@@ -414,6 +421,7 @@ export function useCuentasPorCobrar() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
+    turnoPendiente,
     registros,
     total,
     pagina,

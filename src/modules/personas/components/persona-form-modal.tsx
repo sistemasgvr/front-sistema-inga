@@ -143,7 +143,9 @@ export function PersonaFormModal({
       next.num_documento = "Solo se admiten números.";
     } else if (regla?.longitud && doc.length !== regla.longitud) {
       next.num_documento = `El ${regla.etiqueta} debe tener ${regla.longitud} dígitos.`;
-    } else if (!regla?.longitud && (doc.length < 8 || doc.length > 12)) {
+    } else if (current.tipo_documento === TIPO_DOCUMENTO.PASAPORTE && !/^[A-Za-z0-9]{1,20}$/.test(doc)) {
+      next.num_documento = "Usa entre 1 y 20 caracteres alfanuméricos.";
+    } else if (current.tipo_documento !== TIPO_DOCUMENTO.PASAPORTE && !regla?.longitud && (doc.length < 8 || doc.length > 12)) {
       next.num_documento = "Debe tener entre 8 y 12 caracteres.";
     }
 
@@ -203,7 +205,7 @@ export function PersonaFormModal({
   const opcionesDocumento = (
     esJuridica
       ? [TIPO_DOCUMENTO.RUC]
-      : [TIPO_DOCUMENTO.DNI, TIPO_DOCUMENTO.CE, TIPO_DOCUMENTO.RUC]
+      : [TIPO_DOCUMENTO.DNI, TIPO_DOCUMENTO.CE, TIPO_DOCUMENTO.RUC, TIPO_DOCUMENTO.PASAPORTE]
   ).map((tipo) => ({
     value: String(tipo),
     label: REGLAS_DOCUMENTO[tipo].etiqueta,
@@ -238,7 +240,7 @@ export function PersonaFormModal({
               tipo: TIPO_PERSONA.NATURAL,
               icono: "mdi:account-outline",
               titulo: "Persona natural",
-              detalle: "Con DNI o carné",
+              detalle: "Con DNI, carné o pasaporte",
             },
             {
               tipo: TIPO_PERSONA.JURIDICA,
@@ -315,7 +317,7 @@ export function PersonaFormModal({
                 : e.target.value;
               const recortado = reglaDoc?.longitud
                 ? limpio.slice(0, reglaDoc.longitud)
-                : limpio.slice(0, 12);
+                : limpio.slice(0, values.tipo_documento === TIPO_DOCUMENTO.PASAPORTE ? 20 : 12);
               setValues((p) => ({ ...p, num_documento: recortado }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, num_documento: true }))}

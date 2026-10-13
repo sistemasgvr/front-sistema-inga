@@ -2,9 +2,15 @@
 
 import { useErrorNotification } from "@/shared/hooks/use-error-notification";
 
+import { CategoriaFormModal } from "../categorias/components/categoria-form-modal";
+import { SubCategoriaFormModal } from "../subcategorias/components/subcategoria-form-modal";
+import { useProductoClasificacion } from "../hooks/use-producto-clasificacion";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
+import AddOptionButton from "@/components/form/AddOptionButton";
+import Button from "@/components/ui/button/Button";
+import InfoTooltip from "@/components/ui/tooltip/InfoTooltip";
 import Checkbox from "@/components/form/input/Checkbox";
 import TextArea from "@/components/form/input/TextArea";
 import { FormModal } from "@/components/ui/modal/FormModal";
@@ -75,7 +81,6 @@ export function ProductoFormModal({
     id_unidad_medida: 0,
     id_estacion: null,
     id_almacen_stock: null,
-    codigo_interno: "",
     nombre: "",
     descripcion: "",
     tipo_producto: 0,
@@ -87,6 +92,14 @@ export function ProductoFormModal({
     imagen_url: "",
   });
 
+  const clasificacion = useProductoClasificacion(async (id) => {
+    setSelectedCategoriaId(id);
+    setValues(p => ({ ...p, id_subcategoria: 0 }));
+    await cat.categorias.load();
+  }, async (id) => {
+    await cat.subcategorias.load();
+    setValues(p => ({ ...p, id_subcategoria: id }));
+  });
   const [costoReceta, setCostoReceta] = useState<number>(0);
   const notifyError = useErrorNotification("No se pudo guardar");
 
@@ -97,7 +110,7 @@ export function ProductoFormModal({
   );
   const permiteVenta = tipoSeleccionado?.permite_venta ?? false;
   const requiereReceta = tipoSeleccionado?.requiere_receta ?? false;
-  const permiteStockInicial = tipoSeleccionado?.permite_stock_inicial ?? false;
+  const permiteStockInicial = Boolean(tipoSeleccionado?.permite_stock_inicial && !requiereReceta);
   const requiereEstacion = tipoSeleccionado?.requiere_estacion ?? false;
   const requiereAlmacen = values.controla_stock;
 
@@ -109,7 +122,7 @@ export function ProductoFormModal({
     setShowConfirmRemoveImage(false);
 
     if (producto) {
-      const sub = subcategorias.find((s) => s.id === producto.id_subcategoria);
+      const sub = subcategorias.find((s) => Number(s.id) === Number(producto.id_subcategoria));
       const catId = producto.id_categoria ?? sub?.id_categoria ?? null;
       setSelectedCategoriaId(catId);
 
@@ -118,7 +131,6 @@ export function ProductoFormModal({
         id_unidad_medida: producto.id_unidad_medida,
         id_estacion: producto.id_estacion ?? null,
         id_almacen_stock: producto.id_almacen_stock ?? null,
-        codigo_interno: producto.codigo_interno || "",
         nombre: producto.nombre || "",
         descripcion: producto.descripcion || "",
         tipo_producto: producto.tipo_producto,
@@ -146,7 +158,6 @@ export function ProductoFormModal({
         id_unidad_medida: unidades[0]?.id ?? 0,
         id_estacion: estaciones[0]?.id ?? null,
         id_almacen_stock: almacenes[0]?.id ?? null,
-        codigo_interno: "",
         nombre: "",
         descripcion: "",
         tipo_producto: defaultTipo,
@@ -163,7 +174,7 @@ export function ProductoFormModal({
   }, [isOpen, producto]);
 
   const filteredSubcategorias = selectedCategoriaId
-    ? subcategorias.filter((s) => s.id_categoria === selectedCategoriaId)
+    ? subcategorias.filter((s) => Number(s.id_categoria) === Number(selectedCategoriaId))
     : subcategorias;
 
   function seleccionarTipo(tipo: TipoProducto) {
@@ -185,8 +196,7 @@ export function ProductoFormModal({
     if (tipo) seleccionarTipo(tipo);
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  function acceptImage(file?: File) {
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -195,19 +205,35 @@ export function ProductoFormModal({
         "Formato inválido",
         "Solo se admiten imágenes JPG, PNG o WEBP.",
       );
-      e.target.value = "";
+
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast("error", "Archivo pesado", "La imagen no puede superar los 5 MB.");
-      e.target.value = "";
+
       return;
     }
 
     setSelectedFile(file);
     setImagePreview(URL.createObjectURL(file));
   }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    acceptImage(e.target.files?.[0]);
+    e.target.value = "";
+  }
+  async function pasteImage() {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find(t => ["image/png", "image/jpeg", "image/webp"].includes(t));
+        if (type) { acceptImage(new File([await item.getType(type)], "imagen-pegada." + type.split("/")[1], { type })); return; }
+      }
+      toast("info", "Sin imagen", "Copia una imagen o selecciónala del historial con Windows + V.");
+    } catch { toast("info", "Pegar imagen", "Enfoca la zona de imagen y usa Ctrl + V o Windows + V para pegar."); }
+  }
+  useEffect(() => () => { if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
 
   function confirmRemoveImage() {
     setSelectedFile(null);
@@ -227,10 +253,7 @@ export function ProductoFormModal({
       );
       return;
     }
-    if (!values.codigo_interno.trim()) {
-      notifyError("El código interno es obligatorio.");
-      return;
-    }
+
     if (!values.nombre.trim()) {
       notifyError("El nombre del producto es obligatorio.");
       return;
@@ -294,25 +317,20 @@ export function ProductoFormModal({
     label: `${u.nombre} (${u.simbolo})`,
   }));
 
-  const estacionOptions = [
-    { value: "", label: "-- Seleccione Estación --" },
-    ...estaciones.map((est) => ({ value: String(est.id), label: est.nombre })),
-  ];
+  const estacionOptions = estaciones.map((est) => ({
+    value: String(est.id),
+    label: est.nombre,
+  }));
 
-  const almacenesFiltrados = almacenes;
-
-  const almacenOptions = [
-    { value: "", label: "-- Seleccione Almacén --" },
-    ...almacenesFiltrados.map((alm) => ({
-      value: String(alm.id),
-      label: alm.nombre,
-    })),
-  ];
+  const almacenOptions = almacenes.map((alm) => ({
+    value: String(alm.id),
+    label: alm.nombre,
+  }));
 
   return (
     <>
       <FormModal
-        isOpen={isOpen && !isTipoOpen}
+        isOpen={isOpen && !isTipoOpen && !clasificacion.modal}
         onClose={() => {
           if (!isTipoOpen && !isSaving && !uploadingImage) onClose();
         }}
@@ -327,7 +345,11 @@ export function ProductoFormModal({
 
         <div>
           <Label>Imagen del Producto</Label>
-          <div className="mt-1.5 flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] p-4 text-center transition-colors">
+          <div tabIndex={0} aria-label="Zona para pegar una imagen" onPaste={(event) => {
+            if (isSaving || uploadingImage) return;
+            const file = Array.from(event.clipboardData.items).find(item => item.type.startsWith("image/"))?.getAsFile();
+            if (file) { event.preventDefault(); acceptImage(file); }
+          }} className="mt-1.5 flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] p-4 text-center transition-colors focus:border-brand-400 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10">
             {imagePreview ? (
               <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
                 <div
@@ -365,6 +387,16 @@ export function ProductoFormModal({
                     <span className="text-gray-300 dark:text-gray-700">|</span>
                     <button
                       type="button"
+                      onClick={() => void pasteImage()}
+                      disabled={isSaving || uploadingImage}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 cursor-pointer"
+                    >
+                      <Icon name="mdi:content-paste" size={16} />
+                      <span>Pegar</span>
+                    </button>
+                    <span className="text-gray-300 dark:text-gray-700">|</span>
+                    <button
+                      type="button"
                       onClick={() => setShowConfirmRemoveImage(true)}
                       disabled={isSaving || uploadingImage}
                       className="inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 cursor-pointer"
@@ -376,18 +408,38 @@ export function ProductoFormModal({
                 </div>
               </div>
             ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center py-3 cursor-pointer group w-full"
-              >
-                <div className="rounded-full bg-brand-50 dark:bg-brand-500/10 p-3 text-brand-600 dark:text-brand-400 group-hover:scale-110 transition-transform">
-                  <Icon name="mdi:cloud-upload-outline" size={26} />
+              <div className="flex w-full flex-col items-center justify-center py-2">
+                <div className="rounded-full bg-brand-50 dark:bg-brand-500/10 p-3 text-brand-600 dark:text-brand-400">
+                  <Icon name="mdi:image-plus-outline" size={26} />
                 </div>
                 <span className="mt-2 text-xs font-semibold text-gray-800 dark:text-gray-200">
-                  Haz clic para subir una foto
+                  Sube o pega una foto del producto
                 </span>
                 <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  Formatos admitidos: JPG, PNG o WEBP (Máx. 5 MB)
+                  JPG, PNG o WEBP (máx. 5 MB)
+                </span>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSaving || uploadingImage}
+                    startIcon={<Icon name="mdi:upload-outline" size={18} />}
+                  >
+                    Subir foto
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void pasteImage()}
+                    disabled={isSaving || uploadingImage}
+                    startIcon={<Icon name="mdi:content-paste" size={18} />}
+                  >
+                    Pegar imagen
+                  </Button>
+                </div>
+                <span className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
+                  También con Ctrl + V · Windows + V abre el historial del portapapeles
                 </span>
               </div>
             )}
@@ -417,37 +469,34 @@ export function ProductoFormModal({
                   defaultValue={
                     values.tipo_producto ? String(values.tipo_producto) : ""
                   }
-                  placeholder="Seleccione tipo..."
+                  placeholder="Seleccione tipo"
                   disabled={isSaving || isTipoOpen}
                   onChange={handleTipoProductoChange}
                 />
               </div>
-              <button
-                type="button"
-                aria-label="Añadir tipo de producto"
-                title="Añadir tipo de producto"
+              <AddOptionButton
+                label="Añadir tipo de producto"
                 disabled={isSaving || uploadingImage || isTipoOpen}
                 onClick={() => setIsTipoOpen(true)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100 disabled:opacity-50 dark:bg-brand-500/10"
-              >
-                <Icon name="mdi:plus" size={22} />
-              </button>
+              />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="codigo_interno">Código Interno *</Label>
-            <Input
-              id="codigo_interno"
-              value={values.codigo_interno}
-              onChange={(e) =>
-                setValues((p) => ({
-                  ...p,
-                  codigo_interno: e.target.value.toUpperCase(),
-                }))
+            <Label>Unidad de Medida Base *</Label>
+            <Select
+              options={unidadOptions}
+              onOpen={() => void cat.unidades.load()}
+              isLoading={cat.unidades.isLoading}
+              loadError={cat.unidades.error}
+              defaultValue={
+                values.id_unidad_medida ? String(values.id_unidad_medida) : ""
               }
-              placeholder="PROD-001"
+              placeholder="Seleccione unidad"
               disabled={isSaving}
+              onChange={(val) =>
+                setValues((p) => ({ ...p, id_unidad_medida: Number(val) }))
+              }
             />
           </div>
         </div>
@@ -468,64 +517,69 @@ export function ProductoFormModal({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label>Categoría *</Label>
-            <Select
-              options={categoriaOptions}
-              onOpen={() => void cat.categorias.load()}
-              isLoading={cat.categorias.isLoading}
-              loadError={cat.categorias.error}
-              defaultValue={
-                selectedCategoriaId ? String(selectedCategoriaId) : ""
-              }
-              placeholder="-- Seleccione Categoría --"
-              disabled={isSaving}
-              onChange={(val) => {
-                const catId = val ? Number(val) : null;
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <Select
+                  options={categoriaOptions}
+                  onOpen={() => void cat.categorias.load()}
+                  isLoading={cat.categorias.isLoading}
+                  loadError={cat.categorias.error}
+                  defaultValue={
+                    selectedCategoriaId ? String(selectedCategoriaId) : ""
+                  }
+                  placeholder="Seleccione categoría"
+                  disabled={isSaving}
+                  onChange={(val) => {
+                    const catId = val ? Number(val) : null;
 
-                setSelectedCategoriaId(catId);
-                setValues((p) => ({ ...p, id_subcategoria: 0 }));
-              }}
-            />
+                    setSelectedCategoriaId(catId);
+                    setValues((p) => ({ ...p, id_subcategoria: 0 }));
+                  }}
+                />
+              </div>
+              {clasificacion.canCategory && (
+                <AddOptionButton
+                  label="Añadir categoría"
+                  disabled={isSaving}
+                  onClick={() => clasificacion.setModal("categoria")}
+                />
+              )}
+            </div>
           </div>
 
           <div>
             <Label>Subcategoría *</Label>
-            <Select
-              options={subcategoriaOptions}
-              onOpen={() => void cat.subcategorias.load()}
-              isLoading={cat.subcategorias.isLoading}
-              loadError={cat.subcategorias.error}
-              defaultValue={
-                values.id_subcategoria ? String(values.id_subcategoria) : ""
-              }
-              placeholder={
-                !selectedCategoriaId
-                  ? "Seleccione categoría primero"
-                  : "-- Seleccione Subcategoría --"
-              }
-              disabled={isSaving || !selectedCategoriaId}
-              onChange={(val) =>
-                setValues((p) => ({ ...p, id_subcategoria: Number(val) }))
-              }
-            />
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <Select
+                  options={subcategoriaOptions}
+                  onOpen={() => void cat.subcategorias.load()}
+                  isLoading={cat.subcategorias.isLoading}
+                  loadError={cat.subcategorias.error}
+                  defaultValue={
+                    values.id_subcategoria ? String(values.id_subcategoria) : ""
+                  }
+                  placeholder={
+                    !selectedCategoriaId
+                      ? "Seleccione una categoría primero"
+                      : "Seleccione subcategoría"
+                  }
+                  disabled={isSaving || !selectedCategoriaId}
+                  onChange={(val) =>
+                    setValues((p) => ({ ...p, id_subcategoria: Number(val) }))
+                  }
+                />
+              </div>
+              {clasificacion.canSubcategory && (
+                <AddOptionButton
+                  label="Añadir subcategoría"
+                  disabledReason="Selecciona una categoría primero"
+                  disabled={isSaving || !selectedCategoriaId}
+                  onClick={() => clasificacion.setModal("subcategoria")}
+                />
+              )}
+            </div>
           </div>
-        </div>
-
-        <div>
-          <Label>Unidad de Medida Base *</Label>
-          <Select
-            options={unidadOptions}
-            onOpen={() => void cat.unidades.load()}
-            isLoading={cat.unidades.isLoading}
-            loadError={cat.unidades.error}
-            defaultValue={
-              values.id_unidad_medida ? String(values.id_unidad_medida) : ""
-            }
-            placeholder="Seleccione unidad..."
-            disabled={isSaving}
-            onChange={(val) =>
-              setValues((p) => ({ ...p, id_unidad_medida: Number(val) }))
-            }
-          />
         </div>
 
         {(permiteVenta || requiereReceta) && (
@@ -554,6 +608,10 @@ export function ProductoFormModal({
               <div>
                 <Label htmlFor="costo_receta">
                   Costo Receta Calculado (S/)
+                  <InfoTooltip
+                    label="Información del costo de receta"
+                    text="Este costo de elaboración del producto se obtiene a través de su receta. Si quieres saber cuánto cuesta elaborar este producto, inicia su receta."
+                  />
                 </Label>
                 <Input
                   id="costo_receta"
@@ -577,7 +635,7 @@ export function ProductoFormModal({
               defaultValue={
                 values.id_almacen_stock ? String(values.id_almacen_stock) : ""
               }
-              placeholder="Seleccione almacén..."
+              placeholder="Seleccione almacén"
               disabled={isSaving}
               onChange={(val) =>
                 setValues((p) => ({
@@ -670,7 +728,7 @@ export function ProductoFormModal({
                   defaultValue={
                     values.id_estacion ? String(values.id_estacion) : ""
                   }
-                  placeholder="Seleccione estación..."
+                  placeholder="Seleccione estación"
                   disabled={isSaving}
                   onChange={(val) =>
                     setValues((p) => ({
@@ -759,6 +817,8 @@ export function ProductoFormModal({
         </div>
       </FormModal>
 
+      <CategoriaFormModal isOpen={isOpen && clasificacion.modal === "categoria"} categoria={null} isSaving={clasificacion.saving} onClose={() => { if (!clasificacion.saving) clasificacion.setModal(null); }} onSubmit={clasificacion.saveCategory} />
+      <SubCategoriaFormModal isOpen={isOpen && clasificacion.modal === "subcategoria"} subcategoria={null} categorias={categorias.filter(c => Number(c.id) === Number(selectedCategoriaId))} filtroCategoria={selectedCategoriaId ?? undefined} isSaving={clasificacion.saving} onClose={() => { if (!clasificacion.saving) clasificacion.setModal(null); }} onSubmit={clasificacion.saveSubcategory} />
       {isOpen && isTipoOpen && (
         <TipoProductoFormModal
           onClose={() => setIsTipoOpen(false)}

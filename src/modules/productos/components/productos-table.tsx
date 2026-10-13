@@ -39,12 +39,13 @@ export function ProductosTable({
             <Table>
               <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
                 <TableRow>
-                  <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Ítem / Código</TableCell>
+                  <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Producto</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subcategoría</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Tipo</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Precio Venta</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Disponible</TableCell>
+                  <TableCell isHeader className="px-5 py-3.5 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Stock / Almacén</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Estado</TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Acciones</TableCell>
                 </TableRow>
@@ -52,11 +53,11 @@ export function ProductosTable({
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="px-5 py-8 text-center text-sm text-gray-500">Cargando productos...</TableCell>
+                    <TableCell colSpan={9} className="px-5 py-8 text-center text-sm text-gray-500">Cargando productos...</TableCell>
                   </TableRow>
                 ) : safeProductos.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="px-5 py-8 text-center text-sm text-gray-500">No se encontraron productos.</TableCell>
+                    <TableCell colSpan={9} className="px-5 py-8 text-center text-sm text-gray-500">No se encontraron productos.</TableCell>
                   </TableRow>
                 ) : (
                   safeProductos.map((prod) => {
@@ -93,7 +94,6 @@ export function ProductosTable({
                               </div>
                             )}
                             <div>
-                              <span className="block text-xs font-bold text-brand-600 dark:text-brand-400">{prod.codigo_interno}</span>
                               <span className="block text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{prod.nombre}</span>
                             </div>
                           </div>
@@ -141,6 +141,25 @@ export function ProductosTable({
                           </button>
                         </TableCell>
 
+                        <TableCell className="px-5 py-4 text-end">
+                          {!prod.controla_stock ? (
+                            <span className="text-xs text-gray-400">No aplica</span>
+                          ) : aceptaReceta && !(Number(prod.stock_actual) > 0) ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                              <Icon name="mdi:chef-hat" size={14} />
+                              Gestionado por cocina
+                            </span>
+                          ) : prod.stock_actual == null ? (
+                            <span className="text-xs text-gray-400">Sin registro</span>
+                          ) : (
+                            <>
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                {Number(prod.stock_actual).toLocaleString("es-PE", { maximumFractionDigits: 4 })} {prod.simbolo_unidad ?? ""}
+                              </span>
+                              <span className="block text-xs text-gray-500 dark:text-gray-400">{prod.nombre_almacen ?? "Sin almacén"}</span>
+                            </>
+                          )}
+                        </TableCell>
                         <TableCell className="px-5 py-4 text-center">
                           <Badge size="sm" color={isActivo ? "success" : "error"}>{isActivo ? "Activo" : "Inactivo"}</Badge>
                         </TableCell>

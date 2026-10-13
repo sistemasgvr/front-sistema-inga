@@ -12,11 +12,15 @@ import { useSubCategorias } from "../hooks/use-subcategorias";
 import { SubCategoriasTable } from "./subcategorias-table";
 import { SubCategoriaFormModal } from "./subcategoria-form-modal";
 import { useEffect, useState } from "react";
+import { CategoriaFormModal } from "../../categorias/components/categoria-form-modal";
+import { useCategorias } from "../../categorias/hooks/use-categorias";
 import { listCategorias } from "../../categorias/services/categorias.service";
-import type { CategoriaItem } from "../../categorias/types/categorias.types";
+import type { CategoriaFormValues, CategoriaItem } from "../../categorias/types/categorias.types";
 
 export function SubCategoriasView() {
   const {
+    reload,
+    categoriasVacias,
     registros,
     total,
     pagina,
@@ -50,18 +54,41 @@ export function SubCategoriasView() {
     confirmToggleStatus,
   } = useSubCategorias();
 
+  const categoriaActions = useCategorias();
   const [categoriasList, setCategoriasList] = useState<CategoriaItem[]>([]);
 
+  async function loadCats() {
+    try {
+      const res = await listCategorias({ pagina: 1, limite: 100, estado: "activos" });
+      setCategoriasList(res.registros ?? []);
+    } catch {
+    }
+  }
+
   useEffect(() => {
-    async function loadCats() {
+    async function loadInitialCats() {
       try {
         const res = await listCategorias({ pagina: 1, limite: 100, estado: "activos" });
         setCategoriasList(res.registros ?? []);
       } catch {
       }
     }
-    void loadCats();
+    void loadInitialCats();
   }, []);
+
+  const handleEditCategoria = (idCategoria: number) => {
+    const categoria = [...categoriasVacias, ...categoriasList].find((cat) => cat.id === idCategoria);
+    if (categoria) void categoriaActions.openEditModal(categoria);
+  };
+
+  const handleSaveCategoria = async (values: CategoriaFormValues) => {
+    const esNueva = !categoriaActions.editingCategoria;
+    await categoriaActions.saveCategoria(values);
+    // Una categoría nueva aparece en la primera página; si ya estoy ahí, recargo.
+    if (esNueva && pagina !== 1) setPagina(1);
+    else await reload();
+    await loadCats();
+  };
 
   const isDesactivar = confirmSubCategoria?.estado === 1;
 
@@ -77,6 +104,9 @@ export function SubCategoriasView() {
     isSuper ||
     userPermisos.includes(PermisoBanderas.CATEGORIAS_CREAR) ||
     userPermisos.includes(PermisoBanderas.SUBCATEGORIAS_CREAR);
+
+  const canCreateCategoria =
+    isSuper || userPermisos.includes(PermisoBanderas.CATEGORIAS_CREAR);
 
   if (hasLoadedSession && currentUser && !hasListPermission) {
     return (
@@ -107,7 +137,7 @@ export function SubCategoriasView() {
 
   return (
     <div>
-      <PageBreadcrumb pageTitle="Gestión de Subcategorías de Producto" />
+      <PageBreadcrumb pageTitle="Gestión de Categorías y Subcategorías de Producto" />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <button
@@ -188,17 +218,31 @@ export function SubCategoriasView() {
           </div>
         </div>
 
-        {canCreate && (
-          <Button
-            size="sm"
-            type="button"
-            className="w-full sm:w-auto"
-            onClick={() => openCreateModal()}
-            startIcon={<Icon name="mdi:plus" size={18} />}
-          >
-            Nueva Subcategoría
-          </Button>
-        )}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          {canCreateCategoria && (
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => void categoriaActions.openCreateModal()}
+              startIcon={<Icon name="mdi:plus" size={18} />}
+            >
+              Añadir Categoría
+            </Button>
+          )}
+          {canCreate && (
+            <Button
+              size="sm"
+              type="button"
+              className="w-full sm:w-auto"
+              onClick={() => openCreateModal()}
+              startIcon={<Icon name="mdi:plus" size={18} />}
+            >
+              Nueva Subcategoría
+            </Button>
+          )}
+        </div>
       </div>
 
       <SubCategoriasTable
@@ -211,6 +255,20 @@ export function SubCategoriasView() {
         onAddSubCategoriaToCat={(idCategoria) => {
           openCreateModal(idCategoria);
         }}
+        categoriasVacias={categoriasVacias}
+        canEditCategoria={(idCategoria) =>
+          categoriasVacias.some((cat) => cat.id === idCategoria) ||
+          categoriasList.some((cat) => cat.id === idCategoria)
+        }
+        onEditCategoria={handleEditCategoria}
+      />
+
+      <CategoriaFormModal
+        isOpen={categoriaActions.isFormOpen}
+        onClose={categoriaActions.closeFormModal}
+        onSubmit={handleSaveCategoria}
+        categoria={categoriaActions.editingCategoria}
+        isSaving={categoriaActions.isSaving}
       />
 
       <div className="mt-5">

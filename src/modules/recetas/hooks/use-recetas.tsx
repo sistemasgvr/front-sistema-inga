@@ -230,13 +230,13 @@ export function useRecetas(producto: ProductoItem | null) {
       }
 
       await cargarRecetaProducto();
-      toast("success", "Receta inicializada", "Se creó la nueva versión de la receta.");
+      toast("success", "Receta inicializada", "Ya puedes registrar ingredientes o sub-platos.");
       return res;
     } catch (error) {
       toast(
         "error",
         "Error al crear receta",
-        error instanceof Error ? error.message : "No se pudo versionar la receta."
+        error instanceof Error ? error.message : "No se pudo iniciar la receta."
       );
       return null;
     } finally {
@@ -249,10 +249,16 @@ export function useRecetas(producto: ProductoItem | null) {
     setIsSaving(true);
     try {
       await guardarInsumoRecetaApi(recetaActiva.id, payload);
-      toast("success", "Receta actualizada", "Se guardó el ingrediente en la receta.");
+
       
       const detalleActualizado = await getRecetaDetalleApi(recetaActiva.id);
       setRecetaActiva(detalleActualizado);
+      const costo = Number(detalleActualizado.costo_total_calculado ?? 0);
+      const precio = Number(producto?.precio_venta ?? 0);
+      const margen = precio - costo;
+      toast(margen < 0 ? "warning" : "success", "Receta guardada", producto?.permite_venta
+        ? precio > 0 ? "Margen estimado " + (margen > 0 ? "positivo" : margen < 0 ? "negativo" : "cero") + ": S/ " + margen.toFixed(2) + ". Precio S/ " + precio.toFixed(2) + " − costo de receta S/ " + costo.toFixed(2) : "Configura un precio de venta para evaluar el margen."
+        : "Costo de receta: S/ " + costo.toFixed(2) + ". Este producto no está habilitado para venta.");
     } catch (error) {
       toast(
         "error",

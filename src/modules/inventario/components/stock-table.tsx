@@ -63,7 +63,6 @@ export function StockTable({
                       {item.producto_nombre || "Producto"}
                     </h4>
                     <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400">
-                      {item.producto_codigo || `PROD-${item.id_producto}`}
                     </span>
                   </div>
                   <Badge size="sm" color={isBajoStock ? "error" : "success"}>
@@ -187,7 +186,6 @@ export function StockTable({
                             {item.producto_nombre || "Producto"}
                           </span>
                           <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400 mt-0.5">
-                            {item.producto_codigo || `PROD-${item.id_producto}`}
                           </span>
                         </TableCell>
 

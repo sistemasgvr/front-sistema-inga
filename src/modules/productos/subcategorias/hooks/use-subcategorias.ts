@@ -12,6 +12,8 @@ import {
   updateSubCategoria,
   toggleSubCategoriaStatus,
 } from "../services/subcategorias.service";
+import { listCategorias } from "../../categorias/services/categorias.service";
+import type { CategoriaItem } from "../../categorias/types/categorias.types";
 import type {
   SubCategoriaItem,
   SubCategoriaFormValues,
@@ -27,6 +29,9 @@ export function useSubCategorias() {
   const searchParams = useSearchParams();
 
   const [registros, setRegistros] = useState<SubCategoriaItem[]>([]);
+  // Categorías activas sin subcategorías: la tabla se arma desde las
+  // subcategorías, así que sin esto una categoría recién creada no se vería.
+  const [categoriasVacias, setCategoriasVacias] = useState<CategoriaItem[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
@@ -161,15 +166,28 @@ export function useSubCategorias() {
 
     setIsLoading(true);
     try {
-      const result = await listSubCategorias({
-        buscar: debouncedSearch.trim(),
-        pagina,
-        limite: pageSize,
-        estado: estadoFiltro,
-        id_categoria: filtroCategoria,
-      });
+      const incluirVacias = pagina === 1 && estadoFiltro !== "inactivos";
+      const [result, categoriasResult] = await Promise.all([
+        listSubCategorias({
+          buscar: debouncedSearch.trim(),
+          pagina,
+          limite: pageSize,
+          estado: estadoFiltro,
+          id_categoria: filtroCategoria,
+        }),
+        incluirVacias
+          ? listCategorias({ buscar: debouncedSearch.trim(), pagina: 1, limite: 100, estado: "activos" })
+          : Promise.resolve(null),
+      ]);
 
       setRegistros(result.registros ?? []);
+      setCategoriasVacias(
+        (categoriasResult?.registros ?? []).filter(
+          (cat) =>
+            Number(cat.total_subcategorias ?? 0) === 0 &&
+            (!filtroCategoria || Number(cat.id) === Number(filtroCategoria))
+        )
+      );
       setTotal(result.total ?? 0);
       if (result.resumen) setResumen(result.resumen);
     } catch (error) {
@@ -371,6 +389,8 @@ export function useSubCategorias() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
+    reload: loadSubCategorias,
+    categoriasVacias,
     registros,
     total,
     pagina,

@@ -1,11 +1,13 @@
 "use client";
 
+import { useUnidadesReceta } from "../hooks/use-unidades-receta";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import { Combobox } from "@/components/form/Combobox";
 import Select from "@/components/form/Select";
 import Alert from "@/components/ui/alert/Alert";
 import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
@@ -65,6 +67,7 @@ export function RecetaFormModal({
   const [editingMerma, setEditingMerma] = useState<number>(0);
 
   const [itemToDelete, setItemToDelete] = useState<{ id: number; nombre: string } | null>(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   useEffect(() => {
     if (isOpen && producto?.id) {
@@ -82,6 +85,10 @@ export function RecetaFormModal({
 // este estado solo existe cuando el usuario compone platos con platos.
   const insumoSeleccionado = insumosBusqueda.find((i) => i.id === selectedInsumoId);
 
+  const unidadesReceta = useUnidadesReceta(isOpen, insumoSeleccionado?.id_unidad_medida);
+  const unidadCantidad = unidadesReceta.compatibles.find(u => Number(u.id) === Number(unidadInputId));
+  const factorCantidad = unidadCantidad?.factor ?? (Number(unidadInputId) === Number(insumoSeleccionado?.id_unidad_medida) ? 1 : 0);
+  const validarInputs = () => Array.from(document.querySelectorAll<HTMLInputElement>('[data-receta] input')).every(input => input.reportValidity());
   const hayFiltrosActivos = Boolean(
     filtroTipo || filtroCategoria || filtroSubcategoria
   );
@@ -109,6 +116,7 @@ export function RecetaFormModal({
   };
 
   const handleCloseModal = () => {
+    if (isSaving) return;
     if (onRecetaUpdated) {
       onRecetaUpdated();
     }
@@ -120,12 +128,12 @@ export function RecetaFormModal({
   }
 
   async function handleAgregarInsumo() {
-    if (!selectedInsumoId || cantidadInput <= 0 || !unidadInputId) return;
+    if (isSaving || !selectedInsumoId || !Number.isFinite(cantidadInput) || cantidadInput <= 0 || !unidadInputId || !factorCantidad || !validarInputs()) return;
 
     await agregarInsumoAEnlace({
       id_producto_insumo: selectedInsumoId,
-      cantidad: cantidadInput,
-      id_unidad_medida: unidadInputId,
+      cantidad: Number((cantidadInput * factorCantidad).toFixed(4)),
+      id_unidad_medida: Number(insumoSeleccionado!.id_unidad_medida),
       porcentaje_merma: mermaInput,
     });
 
@@ -142,7 +150,7 @@ export function RecetaFormModal({
   };
 
   const handleSaveCantidadInline = async (item: any) => {
-    if (editingCantidad <= 0) return;
+    if (isSaving || !Number.isFinite(editingCantidad) || editingCantidad <= 0 || !validarInputs()) return;
 
     await agregarInsumoAEnlace({
       id_producto_insumo: item.id_producto_insumo,
@@ -174,7 +182,6 @@ export function RecetaFormModal({
     value: String(i.id),
     label: i.tiene_receta ? `${i.nombre}  ·  sub-plato` : i.nombre,
     sublabel: [
-      `Código: ${i.codigo_interno || "N/A"}`,
       i.simbolo_unidad ? `Porción UM: ${i.simbolo_unidad}` : null,
       i.nombre_tipo_producto ? `Tipo: ${i.nombre_tipo_producto}` : null,
     ]
@@ -186,401 +193,476 @@ export function RecetaFormModal({
 
   const costoTotalReceta = Number(recetaActiva?.costo_total_calculado || 0);
   const precioVentaPlato = Number(producto?.precio_venta || 0);
-  const margenEstimado = precioVentaPlato > 0 ? precioVentaPlato - costoTotalReceta : 0;
+  const margenEstimado = precioVentaPlato - costoTotalReceta;
+  const margenPorcentaje = precioVentaPlato > 0 ? (margenEstimado / precioVentaPlato) * 100 : 0;
+  const tienePrecio = Boolean(producto?.permite_venta) && precioVentaPlato > 0;
+  const totalFiltrosActivos = [filtroTipo, filtroCategoria, filtroSubcategoria].filter(Boolean).length;
+  const insumos = recetaActiva?.insumos ?? [];
+
+  const unidadOptions = unidadesReceta.compatibles.length
+    ? unidadesReceta.compatibles.map((u) => ({ value: String(u.id), label: `${u.nombre} (${u.simbolo})` }))
+    : [{ value: String(unidadInputId), label: unidadSimbolo || "Unidad" }];
 
   return (
     <>
       <Modal
         isOpen={isOpen}
         onClose={handleCloseModal}
-        className="max-w-[840px] p-6"
+        className="max-w-[900px] p-0"
         showCloseButton={true}
       >
-        <div className="pb-4 border-b border-gray-100 dark:border-white/[0.05] pr-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Icon name="mdi:receipt-text-outline" size={20} className="text-brand-600 dark:text-brand-400" />
-              <span>Ficha de Receta: {producto?.nombre ?? ""}</span>
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Gestiona las porciones e insumos procesados vinculados a este plato.
-            </p>
+        <div data-receta className="flex max-h-[90vh] flex-col">
+          {/* Encabezado */}
+          <div className="border-b border-gray-100 px-6 pt-6 pb-4 pr-16 dark:border-white/[0.05]">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                <Icon name="mdi:receipt-text-outline" size={22} />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                  Registra tus ingredientes o sub-platos para: {producto?.nombre ?? ""}
+                </h3>
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  El costo de la receta se recalcula cada vez que agregas o editas un ingrediente.
+                </p>
+              </div>
+            </div>
           </div>
 
-          {recetaActiva && (
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="text-left sm:text-right">
-                <span className="block text-[10px] font-bold uppercase text-gray-400">Costo Receta</span>
-                <span className="text-sm font-extrabold text-brand-600 dark:text-brand-400">S/ {costoTotalReceta.toFixed(2)}</span>
-              </div>
-              {precioVentaPlato > 0 && (
-                <div className="text-left sm:text-right border-l border-gray-200 dark:border-white/[0.08] pl-3">
-                  <span className="block text-[10px] font-bold uppercase text-gray-400">Margen Estimado</span>
-                  <span className={`text-sm font-extrabold ${margenEstimado >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600"}`}>
-                    S/ {margenEstimado.toFixed(2)}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="pt-4 space-y-4">
-          {isLoading ? (
-            <div className="p-8 text-center text-sm text-gray-500">Cargando receta...</div>
-          ) : !recetaActiva ? (
-            <div className="p-8 text-center space-y-3">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Este producto no cuenta con una versión de receta activa.
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleInicializar}
-                disabled={isSaving}
-              >
-                Inicializar Receta v1
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-500 dark:text-gray-400">
-                  Versión actual: <strong className="text-gray-900 dark:text-white">v{recetaActiva.version} — {recetaActiva.nombre || "Receta Estándar"}</strong>
+          <div className="custom-scrollbar flex-1 space-y-5 overflow-y-auto px-6 py-5">
+            {isLoading ? (
+              <div className="py-10 text-center text-sm text-gray-500">Cargando receta...</div>
+            ) : !recetaActiva ? (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center dark:border-gray-700">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                  <Icon name="mdi:chef-hat" size={26} />
                 </span>
-                <Badge size="sm" color="success">Vigente</Badge>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    Este producto todavía no tiene una receta
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Iníciala para registrar sus ingredientes y conocer cuánto cuesta elaborarlo.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleInicializar}
+                  disabled={isSaving}
+                  startIcon={<Icon name="mdi:plus" size={18} />}
+                >
+                  Iniciar receta
+                </Button>
               </div>
-
-              {/* Filtros del recetario, en fila propia de ancho completo: el selector
-                      admite insumos crudos y sub-platos, así que tipo, categoría
-                      y subcategoría acotan el universo igual que en el catálogo.
-                      Cada uno ocupa la misma columna para que ninguno quede
-                      apretado dentro del campo del selector. */}
-                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <Label>Tipo</Label>
-                    <Select
-                      options={[
-                        { value: "", label: "Todos" },
-                        ...tiposProducto.map((t) => ({
-                          value: String(t.id),
-                          label: t.nombre,
-                        })),
-                      ]}
-                      defaultValue={filtroTipo ? String(filtroTipo) : ""}
-                      onChange={(v) => void aplicarFiltroTipo(v ? Number(v) : null)}
-                      onOpen={() => void cargarFiltros()}
-                      isLoading={isLoadingFiltros}
-                      loadError={filtrosError}
-                    />
+            ) : (
+              <>
+                {/* Resumen de costo y margen */}
+                <div className="grid grid-cols-1 divide-y divide-gray-200 rounded-xl border border-gray-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-white/[0.05] dark:border-white/[0.05]">
+                  <div className="px-4 py-3">
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">Costo de receta</span>
+                    <span className="mt-0.5 block text-lg font-bold text-gray-900 dark:text-white">
+                      S/ {costoTotalReceta.toFixed(2)}
+                    </span>
                   </div>
-                  <div>
-                    <Label>Categoría</Label>
-                    <Select
-                      options={[
-                        { value: "", label: "Todas" },
-                        ...categorias.map((c) => ({
-                          value: String(c.id),
-                          label: c.nombre,
-                        })),
-                      ]}
-                      defaultValue={filtroCategoria ? String(filtroCategoria) : ""}
-                      onChange={(v) =>
-                        void aplicarFiltroCategoria(v ? Number(v) : null)
-                      }
-                      onOpen={() => void cargarFiltros()}
-                      isLoading={isLoadingFiltros}
-                      loadError={filtrosError}
-                    />
+                  <div className="px-4 py-3">
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">Precio de venta</span>
+                    <span className="mt-0.5 block text-lg font-bold text-gray-900 dark:text-white">
+                      {tienePrecio ? `S/ ${precioVentaPlato.toFixed(2)}` : "—"}
+                    </span>
                   </div>
-                  <div>
-                    <Label>Subcategoría</Label>
-                    <Select
-                      options={[
-                        { value: "", label: "Todas" },
-                        ...subcategorias.map((s) => ({
-                          value: String(s.id),
-                          label: s.nombre,
-                        })),
-                      ]}
-                      defaultValue={
-                        filtroSubcategoria ? String(filtroSubcategoria) : ""
-                      }
-                      onChange={(v) =>
-                        void aplicarFiltroSubcategoria(v ? Number(v) : null)
-                      }
-                      onOpen={() => void cargarFiltros()}
-                      isLoading={isLoadingFiltros}
-                      loadError={filtrosError}
-                      // Sin categoría no hay subcategorías que ofrecer.
-                      disabled={!filtroCategoria}
-                    />
+                  <div className="px-4 py-3">
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">Margen estimado</span>
+                    {tienePrecio ? (
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`text-lg font-bold ${
+                            margenEstimado >= 0
+                              ? "text-success-600 dark:text-success-400"
+                              : "text-error-600 dark:text-error-400"
+                          }`}
+                        >
+                          S/ {margenEstimado.toFixed(2)}
+                        </span>
+                        <Badge size="sm" color={margenEstimado >= 0 ? "success" : "error"}>
+                          {margenEstimado >= 0 ? "Positivo" : "Negativo"} · {margenPorcentaje.toFixed(0)}%
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="mt-1 block text-xs text-gray-400">
+                        {producto?.permite_venta ? "Configura un precio de venta" : "Producto no destinado a la venta"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {hayFiltrosActivos && (
-                  <button
-                    type="button"
-                    onClick={limpiarFiltros}
-                    className="mb-3 inline-flex items-center gap-1 text-xs text-brand-600 hover:underline"
-                  >
-                    <Icon name="mdi:filter-remove-outline" size={14} />
-                    Limpiar filtros
-                  </button>
-                )}
+                {/* Agregar ingrediente */}
+                <section className="space-y-4 rounded-xl border border-gray-200 p-4 dark:border-white/[0.05] dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Agregar ingrediente</h4>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarFiltros((v) => !v)}
+                      aria-expanded={mostrarFiltros}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-white/[0.05]"
+                    >
+                      <Icon name="mdi:filter-variant" size={16} />
+                      Filtros
+                      {totalFiltrosActivos > 0 && (
+                        <span className="rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">
+                          {totalFiltrosActivos}
+                        </span>
+                      )}
+                      <Icon name={mostrarFiltros ? "mdi:chevron-up" : "mdi:chevron-down"} size={16} />
+                    </button>
+                  </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12 items-end">
-                  <div className="sm:col-span-5">
-                  <Label>Insumo o sub-plato *</Label>
-                  <Combobox
-                    options={comboboxOptions}
-                    placeholder={
-                      comboboxOptions.length === 0 && insumosBusqueda.length > 0
-                        ? "Sin insumos disponibles"
-                        : "Buscar insumo o plato..."
-                    }
-                    searchPlaceholder="Buscar por código o nombre..."
-                    onChange={handleSelectInsumo}
-                    onSearchChange={(term) => void buscarInsumos(term)}
-                    defaultValue={selectedInsumoId ? String(selectedInsumoId) : ""}
-                    isLoading={isSearchingInsumos}
-                    disabled={isSaving || comboboxOptions.length === 0}
-                  />
-
-                  {/* Aviso de producción anticipada: se muestra al seleccionar,
-                      para que la restricción se conozca antes de guardar. */}
-                  {avisoSustitucion && (
-                    <div className="mt-2">
-                      <Alert
-                        variant="warning"
-                        title="Preparación solo por pedido"
-                        message={avisoSustitucion}
-                      />
+                  {/* Los filtros acotan el buscador: admite insumos crudos y
+                      sub-platos, así que tipo, categoría y subcategoría reducen
+                      el universo igual que en el catálogo. */}
+                  {mostrarFiltros && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div>
+                          <Label>Tipo</Label>
+                          <Select
+                            options={[
+                              { value: "", label: "Todos" },
+                              ...tiposProducto.map((t) => ({ value: String(t.id), label: t.nombre })),
+                            ]}
+                            defaultValue={filtroTipo ? String(filtroTipo) : ""}
+                            onChange={(v) => void aplicarFiltroTipo(v ? Number(v) : null)}
+                            onOpen={() => void cargarFiltros()}
+                            isLoading={isLoadingFiltros}
+                            loadError={filtrosError}
+                          />
+                        </div>
+                        <div>
+                          <Label>Categoría</Label>
+                          <Select
+                            options={[
+                              { value: "", label: "Todas" },
+                              ...categorias.map((c) => ({ value: String(c.id), label: c.nombre })),
+                            ]}
+                            defaultValue={filtroCategoria ? String(filtroCategoria) : ""}
+                            onChange={(v) => void aplicarFiltroCategoria(v ? Number(v) : null)}
+                            onOpen={() => void cargarFiltros()}
+                            isLoading={isLoadingFiltros}
+                            loadError={filtrosError}
+                          />
+                        </div>
+                        <div>
+                          <Label>Subcategoría</Label>
+                          <Select
+                            options={[
+                              { value: "", label: "Todas" },
+                              ...subcategorias.map((s) => ({ value: String(s.id), label: s.nombre })),
+                            ]}
+                            defaultValue={filtroSubcategoria ? String(filtroSubcategoria) : ""}
+                            onChange={(v) => void aplicarFiltroSubcategoria(v ? Number(v) : null)}
+                            onOpen={() => void cargarFiltros()}
+                            isLoading={isLoadingFiltros}
+                            loadError={filtrosError}
+                            // Sin categoría no hay subcategorías que ofrecer.
+                            disabled={!filtroCategoria}
+                          />
+                        </div>
+                      </div>
+                      {hayFiltrosActivos && (
+                        <button
+                          type="button"
+                          onClick={limpiarFiltros}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                        >
+                          <Icon name="mdi:filter-remove-outline" size={14} />
+                          Limpiar filtros
+                        </button>
+                      )}
                     </div>
                   )}
-                </div>
 
-                <div className="sm:col-span-3">
-                  <Label>Cantidad {unidadSimbolo ? `(${unidadSimbolo})` : ""}</Label>
-                  <Input
-                    type="number"
-                    step={0.001}
-                    min="0.001"
-                    value={cantidadInput}
-                    onChange={(e) => setCantidadInput(Math.max(0.001, Number(e.target.value)))}
-                    placeholder="1.00"
-                    disabled={isSaving || !selectedInsumoId}
-                  />
-                </div>
+                  <div>
+                    <Label>Insumo o sub-plato *</Label>
+                    <Combobox
+                      options={comboboxOptions}
+                      placeholder={
+                        comboboxOptions.length === 0 && insumosBusqueda.length > 0
+                          ? "Sin insumos disponibles"
+                          : "Buscar insumo o plato..."
+                      }
+                      searchPlaceholder="Buscar por nombre..."
+                      onChange={handleSelectInsumo}
+                      onSearchChange={(term) => void buscarInsumos(term)}
+                      defaultValue={selectedInsumoId ? String(selectedInsumoId) : ""}
+                      isLoading={isSearchingInsumos}
+                      disabled={isSaving || comboboxOptions.length === 0}
+                    />
 
-                <div className="sm:col-span-2">
-                  <Label>% Merma</Label>
-                  <Input
-                    type="number"
-                    step={0.1}
-                    min="0"
-                    max="100"
-                    value={mermaInput}
-                    onChange={(e) => setMermaInput(Math.max(0, Math.min(100, Number(e.target.value))))}
-                    placeholder="0 %"
-                    disabled={isSaving || !selectedInsumoId}
-                  />
-                </div>
+                    {/* Aviso de producción anticipada: se muestra al seleccionar,
+                        para que la restricción se conozca antes de guardar. */}
+                    {avisoSustitucion && (
+                      <div className="mt-2">
+                        <Alert
+                          variant="warning"
+                          title="Preparación solo por pedido"
+                          message={avisoSustitucion}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-                <div className="sm:col-span-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-full"
-                    onClick={handleAgregarInsumo}
-                    disabled={isAddDisabled}
-                    startIcon={<Icon name="mdi:plus" size={16} />}
-                  >
-                    Agregar
-                  </Button>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-12 sm:items-start">
+                    <div className="sm:col-span-3">
+                      <Label>Cantidad *</Label>
+                      <Input
+                        type="number"
+                        step={0.001}
+                        min="0.001"
+                        value={cantidadInput}
+                        onChange={(e) => setCantidadInput(Number(e.target.value))}
+                        placeholder="Ej. 200"
+                        disabled={isSaving || !selectedInsumoId}
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <Label>Unidad</Label>
+                      <Select
+                        options={unidadOptions}
+                        defaultValue={String(unidadInputId)}
+                        placeholder="Unidad"
+                        onChange={(value) => setUnidadInputId(Number(value))}
+                        onOpen={() => void unidadesReceta.load()}
+                        isLoading={unidadesReceta.isLoading}
+                        loadError={unidadesReceta.error}
+                        disabled={!selectedInsumoId || isSaving}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>% Merma</Label>
+                      <Input
+                        type="number"
+                        step={0.1}
+                        min="0"
+                        max="100"
+                        value={mermaInput}
+                        onChange={(e) => setMermaInput(Number(e.target.value))}
+                        placeholder="0"
+                        disabled={isSaving || !selectedInsumoId}
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-3 sm:pt-[26px]">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full"
+                        onClick={handleAgregarInsumo}
+                        disabled={isAddDisabled}
+                        startIcon={<Icon name="mdi:plus" size={18} />}
+                      >
+                        Agregar
+                      </Button>
+                    </div>
+                  </div>
 
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-                <Table>
-                  <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
-                    <TableRow>
-                      <TableCell isHeader className="px-4 py-3 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Ingrediente</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Cantidad</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Unidad</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo Est.</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subtotal</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">% Merma</TableCell>
-                      <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Acciones</TableCell>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                    {(!recetaActiva.insumos || recetaActiva.insumos.length === 0) ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="px-4 py-6 text-center text-xs text-gray-400">
-                          No hay ingredientes registrados en esta versión.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      recetaActiva.insumos.map((item) => {
-                        const isEditingThis = editingItemId === item.id;
+                  {selectedInsumoId && factorCantidad > 0 && factorCantidad !== 1 && (
+                    <p className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                      <Icon name="mdi:swap-horizontal" size={14} />
+                      Equivale a{" "}
+                      <strong className="text-gray-700 dark:text-gray-300">
+                        {(cantidadInput * factorCantidad).toLocaleString("es-PE", { maximumFractionDigits: 4 })} {unidadSimbolo}
+                      </strong>{" "}
+                      del stock.
+                    </p>
+                  )}
+                </section>
 
-                        return (
-                          <TableRow key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                            <TableCell className="px-4 py-3 text-start font-semibold text-xs text-gray-900 dark:text-white">
-                              {item.nombre_insumo || `Insumo #${item.id_producto_insumo}`}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-center font-bold text-xs text-brand-600 dark:text-brand-400">
-                              {isEditingThis ? (
-                                <input
-                                  type="number"
-                                  step={0.001}
-                                  min="0.001"
-                                  value={editingCantidad}
-                                  onChange={(e) => setEditingCantidad(Math.max(0.001, Number(e.target.value)))}
-                                  className="w-20 rounded-lg border border-brand-500 bg-white px-2 py-1 text-center text-xs text-gray-900 focus:outline-hidden dark:bg-gray-800 dark:text-white"
-                                  autoFocus
-                                />
-                              ) : (
-                                <span>{item.cantidad}</span>
-                              )}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-center text-xs text-gray-500">
-                              {item.simbolo_unidad || "und"}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-center text-xs">
-                              {item.costo_unitario_estimado && Number(item.costo_unitario_estimado) > 0 ? (
-                                <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                  S/ {Number(item.costo_unitario_estimado).toFixed(2)}
-                                </span>
-                              ) : (
-                                <div className="inline-flex items-center justify-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                                  <span>S/ 0.00</span>
-                                  <Icon name="mdi:alert-circle-outline" size={15} />
-                                </div>
-                              )}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-end text-xs font-semibold text-gray-700 dark:text-gray-300">
-                              S/ {Number(item.monto_subtotal ?? 0).toFixed(2)}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-center text-xs text-gray-600 dark:text-gray-400">
-                              {isEditingThis ? (
-                                <input
-                                  type="number"
-                                  step={0.1}
-                                  min="0"
-                                  max="100"
-                                  value={editingMerma}
-                                  onChange={(e) => setEditingMerma(Math.max(0, Math.min(100, Number(e.target.value))))}
-                                  className="w-16 rounded-lg border border-brand-500 bg-white px-2 py-1 text-center text-xs text-gray-900 focus:outline-hidden dark:bg-gray-800 dark:text-white"
-                                />
-                              ) : (
-                                <span>{Number(item.porcentaje_merma || 0)}%</span>
-                              )}
-                            </TableCell>
-
-                            <TableCell className="px-4 py-3 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                {isEditingThis ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveCantidadInline(item)}
-                                      disabled={isSaving || editingCantidad <= 0}
-                                      className="text-success-600 hover:text-success-700 cursor-pointer"
-                                      title="Guardar"
-                                    >
-                                      <Icon name="mdi:check" size={18} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingItemId(null)}
-                                      disabled={isSaving}
-                                      className="text-gray-400 hover:text-gray-600 cursor-pointer"
-                                      title="Cancelar"
-                                    >
-                                      <Icon name="mdi:close" size={18} />
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => startEditCantidad(item.id, Number(item.cantidad), Number(item.porcentaje_merma || 0))}
-                                      disabled={isSaving}
-                                      className="text-gray-400 hover:text-brand-600 cursor-pointer"
-                                      title="Editar cantidad"
-                                    >
-                                      <Icon name="mdi:pencil-outline" size={16} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setItemToDelete({ id: item.id, nombre: item.nombre_insumo || `Insumo #${item.id_producto_insumo}` })}
-                                      disabled={isSaving}
-                                      className="text-gray-400 hover:text-error-600 cursor-pointer"
-                                      title="Eliminar ingrediente"
-                                    >
-                                      <Icon name="mdi:trash-can-outline" size={16} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
+                {/* Ingredientes de la receta */}
+                <section className="space-y-2">
+                  <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Ingredientes <span className="font-normal text-gray-400">({insumos.length})</span>
+                  </h4>
+                  <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                    <Table>
+                      <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
+                        <TableRow>
+                          <TableCell isHeader className="px-4 py-3 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Ingrediente</TableCell>
+                          <TableCell isHeader className="px-4 py-3 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Cantidad</TableCell>
+                          <TableCell isHeader className="px-4 py-3 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Costo unit.</TableCell>
+                          <TableCell isHeader className="px-4 py-3 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Merma</TableCell>
+                          <TableCell isHeader className="px-4 py-3 text-end text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Subtotal</TableCell>
+                          <TableCell isHeader className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">Acciones</TableCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                        {insumos.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
+                              Aún no hay ingredientes. Búscalos arriba y agrégalos a la receta.
                             </TableCell>
                           </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
-          )}
+                        ) : (
+                          insumos.map((item) => {
+                            const isEditingThis = editingItemId === item.id;
+                            const sinCosto = !(Number(item.costo_unitario_estimado) > 0);
+                            const simbolo = item.simbolo_unidad || "und";
+
+                            return (
+                              <TableRow key={item.id} className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
+                                <TableCell className="px-4 py-3 text-start text-sm font-medium text-gray-900 dark:text-white">
+                                  {item.nombre_insumo || `Insumo #${item.id_producto_insumo}`}
+                                </TableCell>
+
+                                <TableCell className="px-4 py-3 text-end text-sm text-gray-700 dark:text-gray-300">
+                                  {isEditingThis ? (
+                                    <div className="ml-auto flex w-32 items-center gap-1.5">
+                                      <Input
+                                        type="number"
+                                        step={0.001}
+                                        min="0.001"
+                                        value={editingCantidad}
+                                        onChange={(e) => setEditingCantidad(Number(e.target.value))}
+                                      />
+                                      <span className="text-xs text-gray-500">{simbolo}</span>
+                                    </div>
+                                  ) : (
+                                    <span>
+                                      {Number(item.cantidad).toLocaleString("es-PE", { maximumFractionDigits: 4 })}{" "}
+                                      <span className="text-xs text-gray-500">{simbolo}</span>
+                                    </span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-4 py-3 text-end text-sm">
+                                  {sinCosto ? (
+                                    <span
+                                      className="inline-flex items-center gap-1 text-warning-600 dark:text-warning-400"
+                                      title="Este insumo aún no tiene costo registrado"
+                                    >
+                                      <Icon name="mdi:alert-circle-outline" size={15} />
+                                      S/ 0.00
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-700 dark:text-gray-300">
+                                      S/ {Number(item.costo_unitario_estimado).toFixed(2)}
+                                    </span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-4 py-3 text-end text-sm text-gray-600 dark:text-gray-400">
+                                  {isEditingThis ? (
+                                    <div className="ml-auto w-20">
+                                      <Input
+                                        type="number"
+                                        step={0.1}
+                                        min="0"
+                                        max="100"
+                                        value={editingMerma}
+                                        onChange={(e) => setEditingMerma(Number(e.target.value))}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span>{Number(item.porcentaje_merma || 0)}%</span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-4 py-3 text-end text-sm font-semibold text-gray-900 dark:text-white">
+                                  S/ {Number(item.monto_subtotal ?? 0).toFixed(2)}
+                                </TableCell>
+
+                                <TableCell className="px-4 py-3 text-center">
+                                  <div className="flex items-center justify-center gap-2">
+                                    {isEditingThis ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSaveCantidadInline(item)}
+                                          disabled={isSaving || editingCantidad <= 0}
+                                          className="cursor-pointer text-success-600 hover:text-success-700 disabled:opacity-40"
+                                          title="Guardar"
+                                        >
+                                          <Icon name="mdi:check" size={18} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setEditingItemId(null)}
+                                          disabled={isSaving}
+                                          className="cursor-pointer text-gray-400 hover:text-gray-600"
+                                          title="Cancelar"
+                                        >
+                                          <Icon name="mdi:close" size={18} />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => startEditCantidad(item.id, Number(item.cantidad), Number(item.porcentaje_merma || 0))}
+                                          disabled={isSaving}
+                                          className="cursor-pointer text-gray-400 hover:text-brand-600"
+                                          title="Editar cantidad y merma"
+                                        >
+                                          <Icon name="mdi:pencil-outline" size={18} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setItemToDelete({ id: item.id, nombre: item.nombre_insumo || `Insumo #${item.id_producto_insumo}` })}
+                                          disabled={isSaving}
+                                          className="cursor-pointer text-gray-400 hover:text-error-600"
+                                          title="Quitar ingrediente"
+                                        >
+                                          <Icon name="mdi:trash-can-outline" size={18} />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                        {insumos.length > 0 && (
+                          <TableRow className="bg-gray-50/60 dark:bg-white/[0.02]">
+                            <TableCell colSpan={4} className="px-4 py-3 text-end text-sm font-semibold text-gray-600 dark:text-gray-300">
+                              Costo total de la receta
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-end text-sm font-bold text-gray-900 dark:text-white">
+                              S/ {costoTotalReceta.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">{null}</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+
+          {/* Pie */}
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/[0.05]">
+            <p className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <Icon name="mdi:content-save-check-outline" size={16} />
+              Cada cambio se guarda al momento.
+            </p>
+            <Button type="button" size="sm" variant="outline" onClick={handleCloseModal} disabled={isSaving}>
+              Listo
+            </Button>
+          </div>
         </div>
       </Modal>
 
-      {itemToDelete && (
-        <Modal
-          isOpen={Boolean(itemToDelete)}
-          onClose={() => setItemToDelete(null)}
-          className="max-w-[380px] p-5 text-center"
-          showCloseButton={false}
-        >
-          <div className="space-y-3">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30">
-              <Icon name="mdi:alert-circle-outline" size={24} />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
-                ¿Quitar ingrediente?
-              </h4>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Se removerá <strong className="text-gray-700 dark:text-gray-300">{itemToDelete.nombre}</strong> de la receta.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setItemToDelete(null)}
-                className="rounded-xl border border-gray-300 px-3.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="rounded-xl bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 cursor-pointer"
-              >
-                Sí, Eliminar
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      <ConfirmDialog
+        isOpen={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isSaving}
+        variant="danger"
+        title="¿Quitar ingrediente?"
+        description={`Se quitará '${itemToDelete?.nombre ?? ""}' de la receta y se recalculará su costo.`}
+        confirmText="Sí, quitar"
+        cancelText="Cancelar"
+      />
     </>
   );
 }

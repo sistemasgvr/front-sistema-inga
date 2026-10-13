@@ -25,7 +25,6 @@ type ConvenioFormModalProps = {
 };
 
 const VALORES_INICIALES: ConvenioFormValues = {
-  codigo: "",
   nombre: "",
   id_condicion_pago: null,
   limite_credito: 0,
@@ -57,7 +56,6 @@ export function ConvenioFormModal({
 
     if (convenio) {
       setValues({
-        codigo: convenio.codigo,
         nombre: convenio.nombre,
         id_condicion_pago: convenio.id_condicion_pago,
         limite_credito: Number(convenio.limite_credito) || 0,
@@ -84,11 +82,6 @@ export function ConvenioFormModal({
   function validate(current: ConvenioFormValues) {
     const next: Partial<Record<keyof ConvenioFormValues, string>> = {};
 
-    if (!current.codigo.trim()) {
-      next.codigo = "El código es obligatorio.";
-    } else if (!/^[A-Za-z0-9_-]+$/.test(current.codigo.trim())) {
-      next.codigo = "Usa solo letras, números, guion o guion bajo.";
-    }
 
     if (!current.nombre.trim()) next.nombre = "El nombre es obligatorio.";
     if (!current.id_condicion_pago) {
@@ -156,24 +149,9 @@ export function ConvenioFormModal({
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label htmlFor="codigo">Código *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) => {
 
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
-            }}
-            onBlur={() => setTouched((p) => ({ ...p, codigo: true }))}
-            placeholder="GVR"
-            error={Boolean(showError("codigo"))}
-            hint={showError("codigo")}
-            disabled={isSaving}
-          />
-        </div>
 
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-3">
           <Label htmlFor="nombre">Nombre del convenio *</Label>
           <Input
             id="nombre"

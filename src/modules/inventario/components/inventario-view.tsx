@@ -66,89 +66,17 @@ export function InventarioView() {
     ...availableAlmacenes.map((a) => ({ value: String(a.id), label: a.nombre })),
   ];
 
-  const unidadesTotales = registros.reduce((acc, item) => acc + Number(item.stock_actual || 0), 0);
 
   return (
     <div>
       <PageBreadcrumb pageTitle="Control de Stock" />
 
-      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div
-          onClick={() => handleFilterStatus("todos")}
-          className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all ${
-            estadoFiltro === "todos"
-              ? "border-brand-500 bg-brand-50/20 dark:bg-brand-500/10 shadow-xs"
-              : "border-gray-200 bg-white hover:border-gray-300 dark:border-white/[0.05] dark:bg-white/[0.03]"
-          }`}
-        >
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Ítems en stock
-            </span>
-            <h4 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-              {resumen.total}
-            </h4>
-          </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-            <Icon name="mdi:package-variant-closed" size={24} />
-          </div>
-        </div>
-
-        <div
-          onClick={() => handleFilterStatus("alertas")}
-          className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all ${
-            estadoFiltro === "alertas"
-              ? "border-rose-500 bg-rose-50/20 dark:bg-rose-500/10 shadow-xs"
-              : "border-gray-200 bg-white hover:border-gray-300 dark:border-white/[0.05] dark:bg-white/[0.03]"
-          }`}
-        >
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Bajo mínimo
-            </span>
-            <h4 className="mt-1 text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {resumen.alertas}
-            </h4>
-          </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
-            <Icon name="mdi:alert-circle-outline" size={24} />
-          </div>
-        </div>
-
-        <div
-          onClick={() => handleFilterStatus("normales")}
-          className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-all ${
-            estadoFiltro === "normales"
-              ? "border-emerald-500 bg-emerald-50/20 dark:bg-emerald-500/10 shadow-xs"
-              : "border-gray-200 bg-white hover:border-gray-300 dark:border-white/[0.05] dark:bg-white/[0.03]"
-          }`}
-        >
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Stock OK
-            </span>
-            <h4 className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {resumen.normales}
-            </h4>
-          </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-            <Icon name="mdi:check-circle-outline" size={24} />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.05] dark:bg-white/[0.03]">
-          <div>
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-              Unidades totales
-            </span>
-            <h4 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-              {unidadesTotales.toLocaleString("es-PE", { maximumFractionDigits: 2 })}
-            </h4>
-          </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-            <Icon name="mdi:archive-outline" size={24} />
-          </div>
-        </div>
+      <div className="mb-5 flex flex-wrap gap-2" aria-label="Indicadores de stock">
+        {([{ estado: "todos", label: "Ítems en stock", valor: resumen.total }, { estado: "alertas", label: "Bajo mínimo", valor: resumen.alertas }, { estado: "normales", label: "Stock OK", valor: resumen.normales }] as const).map(item => (
+          <button key={item.estado} type="button" aria-pressed={estadoFiltro === item.estado} onClick={() => handleFilterStatus(item.estado)} className={"rounded-full border px-3 py-1.5 text-sm " + (estadoFiltro === item.estado ? "bg-brand-600 text-white border-brand-600" : "border-gray-200 text-gray-600 dark:text-gray-300")}>
+            {item.label} <strong className="ml-2">{item.valor}</strong>
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

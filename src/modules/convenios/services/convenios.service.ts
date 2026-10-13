@@ -60,7 +60,6 @@ export async function createConvenio(
   values: ConvenioFormValues,
 ): Promise<ConvenioItem> {
   return apiPost<ConvenioItem>("/convenios", {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     id_condicion_pago: values.id_condicion_pago,
     limite_credito: values.limite_credito,
@@ -73,7 +72,6 @@ export async function updateConvenio(
   values: ConvenioFormValues,
 ): Promise<ConvenioItem> {
   return apiPatch<ConvenioItem>(`/convenios/${id}`, {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     id_condicion_pago: values.id_condicion_pago,
     limite_credito: values.limite_credito,

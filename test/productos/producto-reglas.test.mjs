@@ -9,7 +9,7 @@ const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKi
 const compiled = { exports: {} };
 vm.runInNewContext(code, { module: compiled, exports: compiled.exports });
 const { aplicarReglasTipo } = compiled.exports;
-const producto = { nombre: 'Prueba', codigo_interno: 'P1', tipo_producto: 3, precio_venta: 20,
+const producto = { nombre: 'Prueba', tipo_producto: 3, precio_venta: 20,
   disponible_venta: true, controla_stock: true, id_almacen_stock: 4, id_estacion: 2,
   tiempo_prep_min: 15, stock_inicial: 10, costo_inicial: 5, stock_minimo: 3 };
 
@@ -45,4 +45,12 @@ test('desactivar stock limpia todos los datos de inventario aunque el tipo permi
   assert.equal(result.stock_inicial, 0);
   assert.equal(result.costo_inicial, 0);
   assert.equal(result.stock_minimo, 0);
+});
+
+test('postre con receta no acepta costo o saldo inicial aunque el tipo antiguo lo permita', () => {
+  const result = aplicarReglasTipo({ ...producto, nombre: 'Postre marino' }, { id: 99, permite_venta: true, requiere_receta: true, requiere_estacion: false, permite_stock_inicial: true });
+  assert.equal(result.stock_inicial, 0);
+  assert.equal(result.costo_inicial, 0);
+  assert.equal(result.controla_stock, true);
+  assert.equal(result.id_almacen_stock, 4);
 });

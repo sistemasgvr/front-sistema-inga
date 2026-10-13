@@ -17,10 +17,7 @@ import { AbrirTurnoCard } from "./abrir-turno-card";
 import { CierreTurnoModal } from "./cierre-turno-modal";
 import { MovimientoFormModal } from "./movimiento-form-modal";
 import { TurnoPendienteModal } from "./turno-pendiente-modal";
-
-// Turno de un día anterior con el que el cajero ya eligió seguir. Va en
-// sessionStorage para no volver a preguntar en cada navegación de la sesión.
-const CLAVE_CONTINUAR = "caja:turno-anterior-continuado";
+import { guardarTurnoContinuado, leerTurnoContinuado } from "../utils/turno-continuado";
 
 export function MiTurnoView() {
   const {
@@ -44,16 +41,7 @@ export function MiTurnoView() {
   const movimientos = resumen?.movimientos ?? [];
   const efectivoEsperado = Number(turno?.efectivo_esperado ?? 0);
 
-  const [turnoContinuado, setTurnoContinuado] = useState<number | null>(() => {
-    try {
-      const guardado =
-        typeof window === "undefined" ? null : sessionStorage.getItem(CLAVE_CONTINUAR);
-      return guardado ? Number(guardado) : null;
-    } catch {
-      // Sin storage: se vuelve a preguntar, que es lo seguro.
-      return null;
-    }
-  });
+  const [turnoContinuado, setTurnoContinuado] = useState<number | null>(leerTurnoContinuado);
 
   // La alerta solo se va con uno de sus botones: si abre el cierre y lo
   // cancela, vuelve a aparecer.
@@ -63,11 +51,7 @@ export function MiTurnoView() {
   function continuarConTurno() {
     if (!turno) return;
     setTurnoContinuado(turno.id);
-    try {
-      sessionStorage.setItem(CLAVE_CONTINUAR, String(turno.id));
-    } catch {
-      // Queda en memoria hasta recargar la página.
-    }
+    guardarTurnoContinuado(turno.id);
   }
 
   return (

@@ -10,6 +10,7 @@ export function listTiposProducto(signal?: AbortSignal) {
 export function createTipoProducto(values: TipoProductoFormValues) {
   return apiPost<TipoProducto>("/tipos-producto", {
     ...values,
+    permite_stock_inicial: values.permite_stock_inicial && !values.requiere_receta,
     nombre: values.nombre.trim(),
   });
 }

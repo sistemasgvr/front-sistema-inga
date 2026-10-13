@@ -12,6 +12,8 @@ export function useProductoCatalogos(open:boolean,categoria:number|null) {
  const subcategorias=useLazyOptions(useCallback(async()=> categoria ? (await listSubCategorias({pagina:1,limite:100,estado:'activos',id_categoria:categoria})).registros : [],[categoria]));
  const almacenes=useLazyOptions(useCallback(async()=> (await listAlmacenes({pagina:1,limite:100,estado:'activos'})).registros,[]));
  const estaciones=useLazyOptions(useCallback(async()=> (await listEstaciones({pagina:1,limite:100,estado:'activos'})).registros,[]));
+ const {load:loadUnidades}=unidades, {load:loadCategorias}=categorias, {load:loadAlmacenes}=almacenes, {load:loadEstaciones}=estaciones;
+ useEffect(()=>{if(open){void loadUnidades();void loadCategorias();void loadAlmacenes();void loadEstaciones();}},[open,loadUnidades,loadCategorias,loadAlmacenes,loadEstaciones]);
  const {load:loadSub}=subcategorias;
  useEffect(()=>{if(open)void loadSub();},[open,categoria,loadSub]);
  return {unidades,categorias,subcategorias,almacenes,estaciones};

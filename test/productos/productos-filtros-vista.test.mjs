@@ -19,7 +19,7 @@ test('los cuatro campos comparten una grilla uniforme', () => {
 });
 
 test('el "+" crea un tipo de producto y abre su formulario', () => {
-  assert.match(vista, /title="Crear un tipo de producto"/);
+  assert.match(vista, /<AddOptionButton\s+label="Crear un tipo de producto"/);
   assert.match(vista, /setIsTipoModalOpen\(true\)/);
   assert.match(vista, /<TipoProductoFormModal/);
 });

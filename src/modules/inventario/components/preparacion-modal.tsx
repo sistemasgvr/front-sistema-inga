@@ -3,6 +3,7 @@
 import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import Label from "@/components/form/Label";
+import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { usePreparacion } from "../hooks/use-preparacion";
@@ -27,7 +28,7 @@ export function PreparacionModal({sucursal,item,onClose,onSaved}:{sucursal:numbe
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th>Ingrediente</th><th>Necesario</th><th>Disponible</th><th>Falta</th></tr></thead>
         <tbody>{p.disponibilidad.ingredientes.map(x=><tr key={x.id_producto} className="border-t border-gray-200 dark:border-gray-800">
           <td className="py-2">{x.nombre}</td><td>{x.requerido} {x.simbolo}</td><td>{x.disponible}</td><td>{x.faltante}</td></tr>)}</tbody></table></div>
-      {item&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={p.insumosConfirmados} disabled={p.saving||p.loading} onChange={e=>p.setInsumosConfirmados(e.target.checked)}/>Confirmo que ya tengo los insumos y autorizo descontarlos del almacén.</label>}
+      {item&&<Checkbox id="preparacion_confirmar_insumos" label="Confirmo que ya tengo los insumos y autorizo descontarlos del almacén." checked={p.insumosConfirmados} disabled={p.saving||p.loading} onChange={p.setInsumosConfirmados}/>}
     </>}
   </FormModal>;
 }

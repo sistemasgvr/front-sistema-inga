@@ -1,5 +1,2 @@
-import { CategoriasView } from "@/modules/productos/categorias";
-
-export default function CategoriasPage() {
-  return <CategoriasView />;
-}
+import { redirect } from "next/navigation";
+export default function CategoriasPage() { redirect("/productos/subcategorias"); }

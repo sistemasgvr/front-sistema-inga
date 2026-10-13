@@ -3,6 +3,7 @@ import { useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
+import Checkbox from "@/components/form/input/Checkbox";
 import Button from "@/components/ui/button/Button";
 import {
   Table,
@@ -176,15 +177,12 @@ export function AmbientesView() {
           <h3 className="font-semibold text-gray-900 dark:text-white">
             Administrar ambientes
           </h3>
-          <label className="flex items-center gap-2 text-sm text-gray-500">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(e) => setShowInactive(e.target.checked)}
-              className="accent-brand-500"
-            />
-            Mostrar inactivos
-          </label>
+          <Checkbox
+            id="ambientes_mostrar_inactivos"
+            label="Mostrar inactivos"
+            checked={showInactive}
+            onChange={setShowInactive}
+          />
         </div>
         <div className="mb-5 flex flex-wrap gap-2">
           {visibleSalones.map((s) => (

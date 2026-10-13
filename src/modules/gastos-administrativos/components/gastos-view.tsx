@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
 import Alert from "@/components/ui/alert/Alert";
@@ -54,6 +55,7 @@ export function GastosView() {
     abrirConfirmAnular,
     cerrarConfirmAnular,
     confirmarAnular,
+    turnoPendiente,
   } = useGastos();
 
   const anioActual = new Date().getFullYear();
@@ -463,6 +465,8 @@ export function GastosView() {
         confirmText="Sí, anular"
         cancelText="Cancelar"
       />
+
+      <TurnoPendienteGuard control={turnoPendiente} />
     </div>
   );
 }

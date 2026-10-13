@@ -13,7 +13,7 @@ type SubNavItem = {
   name: string;
   path: string;
   icon?: string;
-  permission?: string;
+  permission?: string | string[];
   pro?: boolean;
   new?: boolean;
 };
@@ -22,7 +22,7 @@ type NavItem = {
   name: string;
   icon: string;
   path?: string;
-  permission?: string;
+  permission?: string | string[];
   subItems?: SubNavItem[];
 };
 
@@ -44,15 +44,9 @@ const navItems: NavItem[] = [
       },
       {
         name: "Categorías",
-        path: "/productos/categorias",
-        icon: "mdi:shape-outline",
-        permission: PermisoBanderas.CATEGORIAS_LISTAR,
-      },
-      {
-        name: "Subcategorías",
         path: "/productos/subcategorias",
         icon: "mdi:file-tree-outline",
-        permission: PermisoBanderas.SUBCATEGORIAS_LISTAR,
+        permission: [PermisoBanderas.CATEGORIAS_LISTAR, PermisoBanderas.SUBCATEGORIAS_LISTAR],
       },
       {
         name: "Cocina y preparaciones",
@@ -251,10 +245,10 @@ const AppSidebar: React.FC = () => {
     currentUser?.sesion?.permisos ?? 
     [];
 
-  function hasAccess(permission?: string): boolean {
+  function hasAccess(permission?: string | string[]): boolean {
     if (!permission) return true;
     if (isSuperAdmin) return true;
-    return userPermisos.includes(permission);
+    return Array.isArray(permission) ? permission.some(p => userPermisos.includes(p)) : userPermisos.includes(permission);
   }
 
   // Filtrado recursivo de la navegación

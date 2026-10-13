@@ -65,19 +65,21 @@ test('cada desplegable muestra lo elegido', () => {
 });
 
 test('los filtros ocupan una fila propia de ancho completo', () => {
-  // La fila de filtros debe cerrar antes de abrir la celda sm:col-span-5 del
-  // selector; si quedara dentro, los tres desplegables se apretarían.
+  // Los filtros van en su propia grilla de tres columnas, antes del selector,
+  // y el selector ocupa todo el ancho: si quedaran en la misma fila, los tres
+  // desplegables se apretarían.
   const grillaFiltros = modal.indexOf('grid grid-cols-1 gap-3 sm:grid-cols-3');
-  const celdaSelector = modal.indexOf('<div className="sm:col-span-5">');
   const etiquetaSelector = modal.indexOf('<Label>Insumo o sub-plato');
+  const filaCantidad = modal.indexOf('grid grid-cols-2 gap-3 sm:grid-cols-12');
 
   assert.ok(grillaFiltros !== -1, 'falta la grilla de tres columnas del filtro');
-  assert.ok(celdaSelector !== -1, 'falta la celda del selector');
+  assert.ok(etiquetaSelector !== -1, 'falta el selector de insumos');
+  assert.ok(grillaFiltros < etiquetaSelector, 'los filtros van antes del selector');
   assert.ok(
-    grillaFiltros < celdaSelector,
-    'los filtros deben vivir fuera de sm:col-span-5',
+    etiquetaSelector < filaCantidad,
+    'el selector va en su propia fila, fuera de la grilla de cantidad',
   );
-  assert.ok(celdaSelector < etiquetaSelector, 'el Label va dentro de su celda');
+  assert.doesNotMatch(modal, /sm:col-span-5/);
 });
 
 test('el servicio envía los tres filtros al backend', () => {

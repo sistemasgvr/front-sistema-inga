@@ -55,7 +55,6 @@ export type GuardarInsumoPayload = {
 
 export type InsumoProcesadoBusquedaItem = {
   id: number;
-  codigo_interno: string;
   nombre: string;
   id_unidad_medida: number;
   simbolo_unidad: string;

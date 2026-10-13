@@ -1,4 +1,6 @@
-import React, { FC } from "react";
+"use client";
+import React, { FC, useState, useEffect } from "react";
+import { normalizarDecimal, validarDecimal } from "@/shared/utils/decimal";
 
 interface InputProps {
   type?: "text" | "number" | "email" | "password" | "date" | "time" | string;
@@ -41,6 +43,24 @@ const Input: FC<InputProps> = ({
   error = false,
   hint,
 }) => {
+  const numeric = type === "number";
+  const [draft, setDraft] = useState(String(value ?? defaultValue ?? ""));
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!focused) setDraft(String(value ?? defaultValue ?? ""));
+  }, [value, defaultValue, focused]);
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!numeric) { onChange?.(event); return; }
+    const raw = event.target.value;
+    setDraft(raw);
+    const message = validarDecimal(raw, min, max, step);
+    event.target.setCustomValidity(message);
+    const normalized = normalizarDecimal(raw);
+    if (normalized === "" || /^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) {
+      const target = new Proxy(event.target, { get: (node, key) => key === "value" ? normalized : Reflect.get(node, key, node) });
+      onChange?.({ ...event, target, currentTarget: target });
+    }
+  }
   let inputClasses = `h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 ${className}`;
 
   if (disabled) {
@@ -56,14 +76,19 @@ const Input: FC<InputProps> = ({
   return (
     <div className="relative">
       <input
-        type={type}
+        type={numeric ? "text" : type}
+        inputMode={numeric ? "decimal" : undefined}
         id={id}
         name={name}
         placeholder={placeholder}
-        value={value}
-        defaultValue={defaultValue}
-        onChange={onChange}
-        onBlur={onBlur}
+        value={numeric ? draft : value}
+        defaultValue={numeric ? undefined : defaultValue}
+        onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={(event) => {
+          if (numeric && !validarDecimal(draft, min, max, step)) setFocused(false);
+          onBlur?.(event);
+        }}
         onKeyDown={onKeyDown}
         min={min}
         max={max}

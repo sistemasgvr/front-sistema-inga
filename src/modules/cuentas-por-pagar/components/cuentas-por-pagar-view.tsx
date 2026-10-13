@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
 import Alert from "@/components/ui/alert/Alert";
@@ -67,6 +68,7 @@ export function CuentasPorPagarView() {
     abrirConfirmAnular,
     cerrarConfirmAnular,
     confirmarAnular,
+    turnoPendiente,
   } = useCuentasPorPagar();
 
   const anioActual = new Date().getFullYear();
@@ -494,6 +496,8 @@ export function CuentasPorPagarView() {
         confirmText="Sí, anular"
         cancelText="Cancelar"
       />
+
+      <TurnoPendienteGuard control={turnoPendiente} />
     </div>
   );
 }

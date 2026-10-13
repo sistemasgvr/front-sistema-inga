@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
 import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
@@ -53,6 +54,7 @@ export function GastosDiariosView() {
     abrirConfirmAnular,
     cerrarConfirmAnular,
     confirmarAnular,
+    turnoPendiente,
   } = useGastosDiarios();
 
   const lineas = dia?.detalle ?? [];
@@ -436,6 +438,8 @@ export function GastosDiariosView() {
         confirmText="Sí, anular"
         cancelText="Cancelar"
       />
+
+      <TurnoPendienteGuard control={turnoPendiente} />
     </div>
   );
 }

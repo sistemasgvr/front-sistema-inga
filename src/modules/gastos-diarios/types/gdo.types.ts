@@ -105,7 +105,6 @@ export type StockAlmacen = {
 /** Producto del inventario que se puede comprar. */
 export type ProductoInventario = {
   id: number;
-  codigo_interno: string | null;
   nombre: string;
   /** Unidad base: la compra entra en esta unidad, no se elige. */
   id_unidad_medida: number;

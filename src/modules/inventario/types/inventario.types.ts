@@ -5,7 +5,6 @@ export type StockItem = {
   id_producto: number;
   tiene_receta?: boolean;
   id_unidad_medida: number;
-  producto_codigo?: string;
   producto_nombre?: string;
   simbolo_unidad?: string;
   stock_actual: number;

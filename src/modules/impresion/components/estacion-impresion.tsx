@@ -1,5 +1,6 @@
 "use client";
 
+import Checkbox from "@/components/form/input/Checkbox";
 import type { EstacionItem } from "@/modules/estaciones/types/estaciones.types";
 import { useEstacionImpresion } from "../hooks/use-estacion-impresion";
 
@@ -7,11 +8,13 @@ export function EstacionImpresion({ estacion }: { estacion: EstacionItem }) {
   const { busy, pendientes, selected, seleccionar, probar, imprimirHojaPrueba, resolver, verCola, cerrarCola } = useEstacionImpresion(estacion);
   const disponible = estacion.estado === 1 && !!estacion.impresora_ip;
   return <div className="mt-3 space-y-2 text-left text-xs">
-    <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-      <input type="checkbox" checked={selected} disabled={!selected && !disponible}
-        onChange={(event) => seleccionar(event.target.checked)} />
-      Imprimir comandas en esta PC
-    </label>
+    <Checkbox
+      id={`estacion_imprimir_${estacion.id}`}
+      label="Imprimir comandas en esta PC"
+      checked={selected}
+      disabled={!selected && !disponible}
+      onChange={seleccionar}
+    />
     <div className="flex flex-wrap gap-3">
       <button type="button" disabled={busy || !disponible}
         className="text-brand-600 underline disabled:opacity-40"

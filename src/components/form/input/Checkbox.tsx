@@ -33,7 +33,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
         />
-        {checked && (
+        {checked && !disabled && (
           <svg
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             xmlns="http://www.w3.org/2000/svg"
@@ -51,7 +51,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
             />
           </svg>
         )}
-        {disabled && (
+        {checked && disabled && (
           <svg
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
             xmlns="http://www.w3.org/2000/svg"

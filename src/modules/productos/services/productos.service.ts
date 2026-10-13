@@ -64,7 +64,6 @@ export async function getProductoById(id: number): Promise<ProductoItem> {
 export async function createProducto(values: ProductoFormValues): Promise<ProductoItem> {
   const response = await apiPost<ProductoItem>("/productos", {
     ...values,
-    codigo_interno: values.codigo_interno.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
@@ -79,7 +78,6 @@ export async function updateProducto(
   void stock_inicial; void stock_minimo; void costo_inicial;
   const response = await apiPatch<ProductoItem>(`/productos/${id}`, {
     ...datos,
-    codigo_interno: values.codigo_interno.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });

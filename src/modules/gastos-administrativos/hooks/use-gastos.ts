@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import {
   anularGasto,
@@ -63,6 +64,8 @@ export function useGastos() {
   const [reporte, setReporte] = useState<ReporteMensual | null>(null);
   const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
+  // Antes de mover dinero se revisa si la caja abierta es de un día anterior.
+  const turnoPendiente = useTurnoPendiente();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -165,6 +168,16 @@ export function useGastos() {
   }
 
   async function save(values: GastoFormValues) {
+    // Solo el registro nuevo mueve dinero; editar no vuelve a pagar.
+    if (!editing && !(await turnoPendiente.confirmar())) {
+      const user = getStoredUser();
+      if (user) {
+        getTurnoAbierto(user.id)
+          .then(setTurnoAbierto)
+          .catch(() => undefined);
+      }
+      return;
+    }
     setIsSaving(true);
     try {
       if (editing) {
@@ -243,6 +256,7 @@ export function useGastos() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
+    turnoPendiente,
     anio,
     mes,
     cambiarPeriodo,

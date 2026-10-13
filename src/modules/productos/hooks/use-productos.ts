@@ -426,6 +426,7 @@ export function useProductos() {
   function closeRecetasModal() {
     setIsRecetaOpen(false);
     setRecetaProducto(null);
+    void loadProductos();
   }
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

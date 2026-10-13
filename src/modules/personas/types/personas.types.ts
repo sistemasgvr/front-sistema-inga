@@ -11,7 +11,7 @@ export type PersonaStatus = 1 | 0;
 export const TIPO_PERSONA = { NATURAL: 1, JURIDICA: 2 } as const;
 
 /** Catálogo DOCUMENTO_TIPO. Los números son los códigos de SUNAT. */
-export const TIPO_DOCUMENTO = { DNI: 1, CE: 4, RUC: 6 } as const;
+export const TIPO_DOCUMENTO = { DNI: 1, CE: 4, RUC: 6, PASAPORTE: 7 } as const;
 
 /**
  * Reglas de cada documento en un solo lugar.
@@ -25,6 +25,9 @@ export const REGLAS_DOCUMENTO: Record<
   number,
   { etiqueta: string; longitud: number | null; soloNumeros: boolean; ayuda: string }
 > = {
+  [TIPO_DOCUMENTO.PASAPORTE]: {
+    etiqueta: "Pasaporte", longitud: null, soloNumeros: false, ayuda: "Entre 1 y 20 caracteres alfanuméricos",
+  },
   [TIPO_DOCUMENTO.DNI]: {
     etiqueta: "DNI",
     longitud: 8,

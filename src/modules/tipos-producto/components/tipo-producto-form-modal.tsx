@@ -65,9 +65,9 @@ export function TipoProductoFormModal({
           id={`tipo_${key}`}
           label={label}
           checked={form.values[key]}
-          disabled={form.isSaving}
+          disabled={form.isSaving || (key === "permite_stock_inicial" && form.values.requiere_receta)}
           onChange={(checked) =>
-            form.setValues((values) => ({ ...values, [key]: checked }))
+            form.setValues((values) => ({ ...values, [key]: checked, ...(key === "requiere_receta" && checked ? { permite_stock_inicial: false } : {}) }))
           }
         />
       ))}

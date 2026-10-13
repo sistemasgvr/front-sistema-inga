@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { buscarPersonas } from "@/modules/personas/services/personas.service";
 import type { PersonaBusquedaItem } from "@/modules/personas/types/personas.types";
@@ -64,6 +65,8 @@ export function useCuentasPorPagar() {
   const [reporte, setReporte] = useState<ReporteCxp | null>(null);
 
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
+  // Antes de mover dinero se revisa si la caja abierta es de un día anterior.
+  const turnoPendiente = useTurnoPendiente();
   const [proveedores, setProveedores] = useState<PersonaBusquedaItem[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -189,6 +192,10 @@ export function useCuentasPorPagar() {
   }
 
   async function guardarAbono(values: AbonoFormValues) {
+    if (!(await turnoPendiente.confirmar())) {
+      refrescarTurno();
+      return;
+    }
     setIsSaving(true);
     try {
       await registrarAbono(values);
@@ -297,6 +304,7 @@ export function useCuentasPorPagar() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
+    turnoPendiente,
     registros,
     total,
     pagina,

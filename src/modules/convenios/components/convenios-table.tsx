@@ -43,7 +43,7 @@ export function ConveniosTable({
             <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
               <TableRow>
                 <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">
-                  Código / Nombre
+                  Convenio
                 </TableCell>
                 <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold text-gray-600 uppercase dark:text-gray-300">
                   Condición de pago
@@ -102,9 +102,6 @@ export function ConveniosTable({
                       className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
                     >
                       <TableCell className="px-5 py-4 text-start">
-                        <span className="block text-xs font-bold text-brand-600 dark:text-brand-400">
-                          {item.codigo}
-                        </span>
                         <span className="mt-0.5 block text-sm font-semibold text-gray-900 dark:text-white">
                           {item.nombre}
                         </span>

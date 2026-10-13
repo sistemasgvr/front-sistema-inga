@@ -5,6 +5,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { buscarPersonas } from "@/modules/personas/services/personas.service";
 import type { PersonaBusquedaItem } from "@/modules/personas/types/personas.types";
@@ -57,6 +58,8 @@ export function useGastosDiarios() {
   const [unidades, setUnidades] = useState<UnidadMedidaItem[]>([]);
   const [proveedores, setProveedores] = useState<PersonaBusquedaItem[]>([]);
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);
+  // Antes de mover dinero se revisa si la caja abierta es de un día anterior.
+  const turnoPendiente = useTurnoPendiente();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -181,6 +184,14 @@ export function useGastosDiarios() {
 
   async function guardarLinea(values: LineaFormValues) {
     if (!dia) return;
+    if (!(await turnoPendiente.confirmar())) {
+      // Si cerró esa caja, el día queda vinculado a la caja que siga abierta (o a ninguna).
+      const user = getStoredUser();
+      const turno = user ? await getTurnoAbierto(user.id).catch(() => null) : null;
+      setTurnoAbierto(turno);
+      await cargarDia(fecha, turno?.id);
+      return;
+    }
     setIsSaving(true);
     try {
       const actualizado = await agregarLinea(dia.dia.id, values);
@@ -290,6 +301,7 @@ export function useGastosDiarios() {
   }
 
   return {
+    turnoPendiente,
     fecha,
     cambiarFecha,
     dia,

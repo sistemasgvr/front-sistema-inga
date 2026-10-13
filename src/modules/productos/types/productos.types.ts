@@ -13,7 +13,6 @@ export type ProductoItem = {
   nombre_estacion?: string | null;
   id_almacen_stock?: number | null;
   nombre_almacen?: string | null;
-  codigo_interno: string;
   nombre: string;
   descripcion?: string | null;
   tipo_producto: number;
@@ -25,6 +24,7 @@ export type ProductoItem = {
   precio_venta: number;
   costo_receta_calculado?: number;
   costo_unitario?: number;
+  stock_actual?: number | null;
   afecto_igv: boolean;
   controla_stock: boolean;
   disponible_venta: boolean;
@@ -77,7 +77,6 @@ export type ProductoFormValues = {
   id_unidad_medida: number;
   id_estacion?: number | null;
   id_almacen_stock?: number | null;
-  codigo_interno: string;
   nombre: string;
   descripcion?: string | null;
   tipo_producto: number;
@@ -115,7 +114,6 @@ export type ListProductosResult = {
 
 export type InsumoProcesadoItem = {
   id: number;
-  codigo_interno: string;
   nombre: string;
   id_unidad_medida: number;
   simbolo_unidad: string;

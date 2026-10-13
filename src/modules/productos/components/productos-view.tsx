@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { useState } from "react";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
+import AddOptionButton from "@/components/form/AddOptionButton";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
@@ -158,14 +159,11 @@ export function ProductosView() {
                 onChange={(val) => handleFilterTipo(val ? Number(val) : undefined)}
               />
             </div>
-            <button
-              type="button"
+            <AddOptionButton
+              label="Crear un tipo de producto"
               onClick={() => setIsTipoModalOpen(true)}
-              title="Crear un tipo de producto"
-              className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:text-brand-500"
-            >
-              <Icon name="mdi:plus" size={20} />
-            </button>
+              className="mb-0.5"
+            />
           </div>
 
           <div>
@@ -228,7 +226,6 @@ export function ProductosView() {
         onClose={closeRecetasModal}
         producto={recetaProducto}
         unidades={unidades}
-        onRecetaUpdated={() => setPagina((p) => p)}
       />
 
       {/* Se recarga el catálogo de tipos para que el nuevo quede disponible

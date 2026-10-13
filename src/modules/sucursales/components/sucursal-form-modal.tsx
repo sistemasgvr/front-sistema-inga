@@ -1,6 +1,7 @@
 "use client";
 
 import Label from "@/components/form/Label";
+import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { FormEvent, useEffect, useState } from "react";
@@ -138,18 +139,13 @@ export function SucursalFormModal({
         </div>
 
         <div className="flex items-center pt-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={values.esPrincipal}
-              onChange={(e) => setValues((p) => ({ ...p, esPrincipal: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-              disabled={isSaving}
-            />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Es sede principal
-            </span>
-          </label>
+          <Checkbox
+            id="sucursal_es_principal"
+            label="Es sede principal"
+            checked={Boolean(values.esPrincipal)}
+            onChange={(checked) => setValues((p) => ({ ...p, esPrincipal: checked }))}
+            disabled={isSaving}
+          />
         </div>
       </div>
     </FormModal>
