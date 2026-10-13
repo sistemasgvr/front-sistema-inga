@@ -4,12 +4,23 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
+import { useState } from "react";
 import { useMiTurno } from "../hooks/use-mi-turno";
 import { TIPO_MOVIMIENTO } from "../types/caja.types";
-import { formatearFechaHora, formatearSoles, tiempoTranscurrido } from "../utils/formato";
+import {
+  esDeDiaAnterior,
+  formatearFechaHora,
+  formatearSoles,
+  tiempoTranscurrido,
+} from "../utils/formato";
 import { AbrirTurnoCard } from "./abrir-turno-card";
 import { CierreTurnoModal } from "./cierre-turno-modal";
 import { MovimientoFormModal } from "./movimiento-form-modal";
+import { TurnoPendienteModal } from "./turno-pendiente-modal";
+
+// Turno de un día anterior con el que el cajero ya eligió seguir. Va en
+// sessionStorage para no volver a preguntar en cada navegación de la sesión.
+const CLAVE_CONTINUAR = "caja:turno-anterior-continuado";
 
 export function MiTurnoView() {
   const {
@@ -32,6 +43,32 @@ export function MiTurnoView() {
 
   const movimientos = resumen?.movimientos ?? [];
   const efectivoEsperado = Number(turno?.efectivo_esperado ?? 0);
+
+  const [turnoContinuado, setTurnoContinuado] = useState<number | null>(() => {
+    try {
+      const guardado =
+        typeof window === "undefined" ? null : sessionStorage.getItem(CLAVE_CONTINUAR);
+      return guardado ? Number(guardado) : null;
+    } catch {
+      // Sin storage: se vuelve a preguntar, que es lo seguro.
+      return null;
+    }
+  });
+
+  // La alerta solo se va con uno de sus botones: si abre el cierre y lo
+  // cancela, vuelve a aparecer.
+  const turnoDeOtroDia =
+    !!turno && esDeDiaAnterior(turno.fecha_apertura) && turnoContinuado !== turno.id;
+
+  function continuarConTurno() {
+    if (!turno) return;
+    setTurnoContinuado(turno.id);
+    try {
+      sessionStorage.setItem(CLAVE_CONTINUAR, String(turno.id));
+    } catch {
+      // Queda en memoria hasta recargar la página.
+    }
+  }
 
   return (
     <div>
@@ -352,6 +389,13 @@ export function MiTurnoView() {
             onSubmit={handleRegistrarMovimiento}
             efectivoDisponible={efectivoEsperado}
             isSaving={isSaving}
+          />
+
+          <TurnoPendienteModal
+            isOpen={turnoDeOtroDia && !isCierreOpen}
+            turno={turno}
+            onCerrar={openCierre}
+            onContinuar={continuarConTurno}
           />
 
           <CierreTurnoModal
