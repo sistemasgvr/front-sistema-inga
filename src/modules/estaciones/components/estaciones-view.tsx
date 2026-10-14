@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
@@ -10,7 +11,7 @@ import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import { useEstaciones } from "../hooks/use-estaciones";
 import { EstacionesTable } from "./estaciones-table";
 import { EstacionFormModal } from "./estacion-form-modal";
-import { PanelImpresion } from "@/modules/impresion";
+import { PanelImpresion, ConfiguracionQzModal } from "@/modules/impresion";
 
 export function EstacionesView() {
   const {
@@ -49,6 +50,7 @@ export function EstacionesView() {
     confirmToggleStatus,
   } = useEstaciones();
 
+  const [qzOpen, setQzOpen] = useState(false);
   const isDesactivar = confirmEstacion?.estado === 1;
 
   const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
@@ -56,6 +58,7 @@ export function EstacionesView() {
   const hasListPermission = isSuper || userPermisos.includes(PermisoBanderas.ESTACIONES_LISTAR);
 
   const canCreateEstacion = isSuper || userPermisos.includes(PermisoBanderas.ESTACIONES_CREAR);
+  const canEditEstacion = isSuper || userPermisos.includes(PermisoBanderas.ESTACIONES_EDITAR);
   const defaultSucursalId = currentUser?.id_sucursal_default ?? 1;
 
   if (currentUser && !isSuper && !hasListPermission) {
@@ -80,11 +83,7 @@ export function EstacionesView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Gestión de Estaciones" />
-      {(isSuper||userPermisos.includes(PermisoBanderas.ESTACIONES_EDITAR))&&<section className="mb-4 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
-        <h2 className="font-semibold">Estación principal de caja y cobros</h2>
-        <p className="mb-2 text-sm text-gray-500">Crea o edita una estación con impresora y márcala como principal. Se permite una por sucursal.</p>
-        <div className="flex flex-wrap gap-2">{registros.filter(e=>e.estado===1).map(e=><Button key={e.id} size="sm" variant="outline" disabled={e.es_caja_principal||!e.impresora_ip} onClick={()=>void marcarPrincipal(e.id)}>{e.nombre}{e.es_caja_principal?' · Principal':' · Usar para caja'}</Button>)}</div>
-      </section>}
+
       {(isSuper || userPermisos.includes("pedidos.comandar")) && <PanelImpresion />}
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -147,17 +146,31 @@ export function EstacionesView() {
           />
         </div>
 
-        {canCreateEstacion && (
-          <Button
-            size="sm"
-            type="button"
-            className="w-full sm:w-auto"
-            onClick={openCreateModal}
-            startIcon={<Icon name="mdi:plus" size={18} />}
-          >
-            Nueva estación
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canEditEstacion && (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              className="flex-1 sm:flex-none"
+              onClick={() => setQzOpen(true)}
+              startIcon={<Icon name="mdi:certificate-outline" size={18} />}
+            >
+              Certificado QZ
+            </Button>
+          )}
+          {canCreateEstacion && (
+            <Button
+              size="sm"
+              type="button"
+              className="flex-1 sm:flex-none"
+              onClick={openCreateModal}
+              startIcon={<Icon name="mdi:plus" size={18} />}
+            >
+              Nueva estación
+            </Button>
+          )}
+        </div>
       </div>
 
       <EstacionesTable
@@ -167,6 +180,7 @@ export function EstacionesView() {
         loadingEstacionId={loadingEstacionId}
         onEdit={openEditModal}
         onToggleStatus={openConfirmModal}
+        onMarcarPrincipal={(id) => void marcarPrincipal(id)}
       />
 
       <div className="mt-5">
@@ -189,6 +203,8 @@ export function EstacionesView() {
         isSaving={isSaving}
         defaultSucursalId={defaultSucursalId}
       />
+
+      {canEditEstacion && <ConfiguracionQzModal isOpen={qzOpen} onClose={() => setQzOpen(false)} />}
 
       <ConfirmDialog
         isOpen={isConfirmOpen}

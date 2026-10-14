@@ -1,42 +1,47 @@
 "use client";
 
-import Checkbox from "@/components/form/input/Checkbox";
+import Switch from "@/components/form/input/Switch";
+import Button from "@/components/ui/button/Button";
+import { Modal } from "@/components/ui/modal";
 import type { EstacionItem } from "@/modules/estaciones/types/estaciones.types";
+import type { PendienteImpresion } from "../types/impresion.types";
 import { useEstacionImpresion } from "../hooks/use-estacion-impresion";
 
-export function EstacionImpresion({ estacion }: { estacion: EstacionItem }) {
-  const { busy, pendientes, selected, seleccionar, probar, imprimirHojaPrueba, resolver, verCola, cerrarCola } = useEstacionImpresion(estacion);
+/** Activa o desactiva la impresión de comandas de la estación en esta PC. */
+export function ImprimirAquiSwitch({ estacion }: { estacion: EstacionItem }) {
+  const { selected, seleccionar } = useEstacionImpresion(estacion);
   const disponible = estacion.estado === 1 && !!estacion.impresora_ip;
-  return <div className="mt-3 space-y-2 text-left text-xs">
-    <Checkbox
-      id={`estacion_imprimir_${estacion.id}`}
-      label="Imprimir comandas en esta PC"
-      checked={selected}
-      disabled={!selected && !disponible}
-      onChange={seleccionar}
-    />
-    <div className="flex flex-wrap gap-3">
-      <button type="button" disabled={busy || !disponible}
-        className="text-brand-600 underline disabled:opacity-40"
-        onClick={() => void probar()}>{busy ? 'Procesando…' : 'Probar conexión'}</button>
-      <button type="button" disabled={busy || !disponible}
-        className="text-brand-600 underline disabled:opacity-40"
-        onClick={() => void imprimirHojaPrueba()}>Imprimir hoja de prueba</button>
-      <button type="button" disabled={busy} className="text-brand-600 underline disabled:opacity-40"
-        onClick={() => void verCola()}>Ver cola</button>
-    </div>
-    {pendientes && <div className="max-h-64 max-w-sm overflow-y-auto rounded border border-gray-200 p-2 dark:border-gray-700">
-      <div className="mb-2 flex justify-between gap-3"><span>Cola de impresión</span>
-        <button type="button" onClick={cerrarCola} aria-label="Cerrar cola">Cerrar</button></div>
-      {!pendientes.length && <p>Sin comandas pendientes.</p>}
-      {pendientes.map((item) => <div key={item.id} className="mb-2 border-t border-gray-200 pt-2 dark:border-gray-700">
-        <p>#{item.id} · {item.pedido} · {item.estado}</p>
-        {item.error && <p className="text-error-600">{item.error}</p>}
-        {item.estado !== 'pendiente' && <div className="mt-1 flex gap-3">
-          <button type="button" disabled={busy} className="text-brand-600 underline" onClick={() => void resolver(item, false)}>Reintentar envío</button>
-          <button type="button" disabled={busy} className="text-brand-600 underline" onClick={() => void resolver(item, true)}>Ya salió en papel</button>
+  return <Switch
+    id={`estacion_imprimir_${estacion.id}`}
+    checked={selected}
+    disabled={!selected && !disponible}
+    onChange={seleccionar}
+    title={disponible || selected ? "Imprimir comandas de esta estación en esta PC" : "La estación necesita una impresora con IP"}
+  />;
+}
+
+type ColaImpresionModalProps = {
+  estacion: EstacionItem;
+  pendientes: PendienteImpresion[] | null;
+  busy: boolean;
+  onClose: () => void;
+  onResolver: (item: PendienteImpresion, enviado: boolean) => void;
+};
+
+export function ColaImpresionModal({ estacion, pendientes, busy, onClose, onResolver }: ColaImpresionModalProps) {
+  return <Modal isOpen={pendientes !== null} onClose={onClose} className="max-w-[520px] p-6">
+    <h4 className="pr-12 text-lg font-bold text-gray-900 dark:text-white">Cola de impresión</h4>
+    <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{estacion.nombre}</p>
+    {!pendientes?.length && <p className="rounded-lg bg-gray-50 p-4 text-center text-sm text-gray-500 dark:bg-white/[0.03]">Sin comandas pendientes.</p>}
+    <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
+      {pendientes?.map((item) => <li key={item.id} className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
+        <p className="text-gray-800 dark:text-gray-200">#{item.id} · {item.pedido} · <span className="font-medium">{item.estado}</span></p>
+        {item.error && <p className="mt-1 text-xs text-error-600">{item.error}</p>}
+        {item.estado !== 'pendiente' && <div className="mt-2 flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="!py-1.5" disabled={busy} onClick={() => onResolver(item, false)}>Reintentar envío</Button>
+          <Button size="sm" variant="outline" className="!py-1.5" disabled={busy} onClick={() => onResolver(item, true)}>Ya salió en papel</Button>
         </div>}
-      </div>)}
-    </div>}
-  </div>;
+      </li>)}
+    </ul>
+  </Modal>;
 }

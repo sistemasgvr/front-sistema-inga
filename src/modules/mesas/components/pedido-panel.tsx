@@ -98,6 +98,7 @@ export function PedidoPanel({
   const [numeroDocumento, setNumeroDocumento] = useState("");
   const [tienePermisoAnular, setTienePermisoAnular] = useState(false);
   const [tienePermisoEntregar, setTienePermisoEntregar] = useState(false);
+  const [tienePermisoCobrar, setTienePermisoCobrar] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +108,9 @@ export function PedidoPanel({
       ));
       if (active) setTienePermisoAnular(Boolean(
         usuario?.es_super_admin || usuario?.permisos?.includes(PermisoBanderas.PEDIDOS_ANULAR),
+      ));
+      if (active) setTienePermisoCobrar(Boolean(
+        usuario?.es_super_admin || usuario?.permisos?.includes(PermisoBanderas.PEDIDOS_COBRAR),
       ));
     }).catch(() => {});
     return () => { active = false; };
@@ -264,7 +268,7 @@ export function PedidoPanel({
         )}
       </div>
 
-      {pedido && [1,2,3].includes(pedido.estado_pedido) && <CierrePedido key={pedido.id} pedido={pedido} saving={saving} feedback={feedback} onConfirmar={onCerrarPedido}/>}
+      {pedido && [1,2,3].includes(pedido.estado_pedido) && <CierrePedido key={pedido.id} pedido={pedido} saving={saving} feedback={feedback} puedeCobrar={tienePermisoCobrar} onConfirmar={onCerrarPedido}/>}
       </div>
 
       <FormModal isOpen={showAnularConfirm && puedeAnular} onClose={()=>{if(!saving)setShowAnularConfirm(false);}}

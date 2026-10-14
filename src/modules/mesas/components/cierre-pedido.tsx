@@ -22,7 +22,8 @@ const DNI_CLIENTES_VARIOS='00000000';
 
 const ICONO_MEDIO:Record<string,string>={EFECTIVO:'mdi:cash',YAPE:'mdi:cellphone',PLIN:'mdi:cellphone',TARJETA:'mdi:credit-card-outline',TRANSFERENCIA:'mdi:bank-transfer'};
 
-export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido;saving:boolean;feedback:Feedback|null;
+/** Sin `puedeCobrar` (permiso pedidos.cobrar) solo se muestra la precuenta: el mozo la pide y el cajero cobra. */
+export function CierrePedido({pedido,saving,feedback,puedeCobrar,onConfirmar}:{pedido:Pedido;saving:boolean;feedback:Feedback|null;puedeCobrar:boolean;
   onConfirmar:(accion:'precuenta'|'cobrar'|'credito',datos:CierrePedidoDatos)=>Promise<boolean>}){
   const f=useCierrePedido(pedido.id_sucursal);
   const [aperturasCredito,setAperturasCredito]=useState(0);
@@ -45,6 +46,7 @@ export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido
 
   return <>
     <div className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-800">
+      {puedeCobrar&&<>
       {/* Comprobante */}
       <div role="radiogroup" aria-label="Tipo de comprobante" className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
         {COMPROBANTES.map(c=>{const activo=f.tipo===c.value;return(
@@ -92,13 +94,14 @@ export function CierrePedido({pedido,saving,feedback,onConfirmar}:{pedido:Pedido
         startIcon={<Icon name="mdi:cash-register" size={18}/>}>
         Cobrar S/ {Number(pedido.monto_total).toFixed(2)}
       </Button>
-      <div className="grid grid-cols-2 gap-2">
+      </>}
+      <div className={`grid gap-2 ${puedeCobrar?'grid-cols-2':'grid-cols-1'}`}>
         <Button size="sm" variant="outline" disabled={saving} onClick={()=>void enviarPrecuenta()} startIcon={<Icon name="mdi:receipt-text-outline" size={16}/>}>Precuenta</Button>
-        <Button size="sm" variant="outline" disabled={saving} onClick={()=>{setAperturasCredito(n=>n+1);f.abrirCredito();}} startIcon={<Icon name="mdi:account-credit-card-outline" size={16}/>}>Crédito</Button>
+        {puedeCobrar&&<Button size="sm" variant="outline" disabled={saving} onClick={()=>{setAperturasCredito(n=>n+1);f.abrirCredito();}} startIcon={<Icon name="mdi:account-credit-card-outline" size={16}/>}>Crédito</Button>}
       </div>
     </div>
 
-    <CreditoPedidoModal key={aperturasCredito} isOpen={f.creditoAbierto} total={total} saving={saving} feedback={feedback}
+    <CreditoPedidoModal key={aperturasCredito} isOpen={puedeCobrar&&f.creditoAbierto} total={total} saving={saving} feedback={feedback}
       documento={f.documento} onDocumento={f.setDocumento} cliente={f.cliente} buscando={f.busqueda.isLoading} errorBusqueda={f.busqueda.error}
       efectivoConfirmado={f.efectivoConfirmado} onEfectivoConfirmado={f.setEfectivoConfirmado} onRegistrarCliente={f.abrirCliente}
       onClose={()=>{if(!saving)f.cerrarCredito();}}
