@@ -104,6 +104,8 @@ export type ProductoOption = {
   nombre_subcategoria: string;
   controla_stock: boolean;
   simbolo_unidad?: string;
+  stock_actual?: number | null;
+  /** Unidades listas sin reservar (stock_actual - stock_reservado). */
   stock_disponible?: number | null;
 };
 

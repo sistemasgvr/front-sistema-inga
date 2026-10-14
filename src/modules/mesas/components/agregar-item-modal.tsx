@@ -22,6 +22,7 @@ import { NavTabs } from "@/components/ui/table/NavTabs";
 import { useTiposProducto } from "@/modules/tipos-producto";
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 import { useCarta, useAdicionalesCarta } from "../hooks/use-carta";
+import { unidadesListas } from "../utils/disponibilidad.utils";
 import {
   listarCategoriasCarta,
   listarSubcategoriasCarta,
@@ -340,7 +341,7 @@ function CartaContent({
                       ? "Consultando carta..."
                       : `${carta.productos.length} productos`}
                   </span>
-                  <span>Stock informativo</span>
+                  <span>Disponibilidad al momento de consultar</span>
                 </div>
                 <div className="max-h-[440px] overflow-y-auto pr-1 lg:min-h-0 lg:max-h-none lg:flex-1 lg:overscroll-contain">
                   {carta.isLoading ? (
@@ -459,12 +460,11 @@ function CartaContent({
                           </p>
                         )}
                       </div>
-                      {seleccionado.stock_disponible != null &&
-                        Number(cantidad) >
-                          Number(seleccionado.stock_disponible) && (
+                      {unidadesListas(seleccionado) > 0 &&
+                        Number(cantidad) > unidadesListas(seleccionado) && (
                           <p className="text-xs text-warning-600">
-                            La cantidad supera el stock informado. Se validará
-                            al comandar.
+                            Hay {unidadesListas(seleccionado)} para entrega
+                            inmediata; el resto se enviará a preparación.
                           </p>
                         )}
                       <div>
@@ -693,7 +693,7 @@ function ProductoCartaCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const stock = producto.stock_disponible;
+  const listas = unidadesListas(producto);
   return (
     <button
       type="button"
@@ -711,11 +711,15 @@ function ProductoCartaCard({
         <span className="font-semibold text-brand-600">
           {money(producto.precio_venta)}
         </span>
-        <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-          {stock == null
-            ? "Stock: sin información"
-            : `Stock: ${stock} ${producto.simbolo_unidad ?? ""}`}
-        </span>
+        {listas > 0 ? (
+          <span className="rounded-md bg-success-50 px-2 py-1 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
+            Entrega inmediata · {listas} {producto.simbolo_unidad ?? ""}
+          </span>
+        ) : (
+          <span className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+            Para preparación
+          </span>
+        )}
       </span>
     </button>
   );
