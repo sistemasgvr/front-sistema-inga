@@ -48,7 +48,6 @@ function AbrirPedidoContent({
     if (
       isSaving ||
       !idMozo ||
-      !turnoActivo ||
       Number(numComensales) <= 0
     )
       return;
@@ -57,7 +56,7 @@ function AbrirPedidoContent({
       tipo_pedido: 1,
       id_mesa: mesa.id,
       id_mozo: Number(idMozo),
-      id_turno: turnoActivo.id,
+      id_turno: turnoActivo?.id,
       num_comensales: Number(numComensales) || undefined,
       observacion: observacion.trim() || undefined,
     };
@@ -76,7 +75,7 @@ function AbrirPedidoContent({
       title={`Abrir pedido - Mesa ${mesa.codigo}`}
       subtitle="Completa los datos para abrir un nuevo pedido"
       isSaving={isSaving}
-      submitDisabled={!idMozo || !turnoActivo}
+      submitDisabled={!idMozo}
       submitText="Abrir pedido"
     >
       <div className="space-y-4">
@@ -123,13 +122,6 @@ function AbrirPedidoContent({
             placeholder="Ej: Mesa cerca de la ventana"
           />
         </div>
-
-        {!turnoActivo && (
-          <div className="rounded-xl border border-warning-300 bg-warning-50 p-3 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">
-            No tienes un turno abierto. Debes abrir un turno en caja antes de
-            crear pedidos.
-          </div>
-        )}
 
       </div>
     </FormModal>

@@ -78,7 +78,6 @@ function NuevoPedidoExternoContent({
   const ocupado = isSaving || creando;
   const valido =
     !!usuario &&
-    !!turnoActivo &&
     !!idSucursal &&
     !!tipoPedido &&
     clienteListo &&
@@ -98,7 +97,7 @@ function NuevoPedidoExternoContent({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (ocupado || !valido || !usuario || !turnoActivo) return;
+    if (ocupado || !valido || !usuario) return;
 
     let elegido = cliente;
     if (modo === "nuevo") {
@@ -142,7 +141,7 @@ function NuevoPedidoExternoContent({
       tipo_pedido: Number(tipoPedido) as 2 | 3,
       id_sucursal: idSucursal,
       id_mozo: usuario.id,
-      id_turno: turnoActivo.id,
+      id_turno: turnoActivo?.id,
       id_persona: elegido.id,
       num_comensales: 1,
       observacion: observacion || undefined,
@@ -286,12 +285,6 @@ function NuevoPedidoExternoContent({
           <TextArea value={observaciones} onChange={setObservaciones} rows={3} disabled={ocupado}
             placeholder={esDelivery ? "Ej: Frente al parque, puerta verde. Pagará con S/ 100" : "Ej: Recoge a las 8 p. m., sin cubiertos"} />
         </div>
-
-        {!turnoActivo && (
-          <div className="rounded-xl border border-warning-300 bg-warning-50 p-3 text-sm text-warning-700 dark:border-warning-800 dark:bg-warning-500/10 dark:text-warning-400">
-            No tienes un turno abierto. Debes abrir un turno en caja antes de crear pedidos.
-          </div>
-        )}
 
       </div>
     </FormModal>

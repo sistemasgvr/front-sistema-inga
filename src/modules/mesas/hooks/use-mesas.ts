@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
+import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import * as api from "../services/mesas.service";
 import type {
   Feedback,
@@ -227,7 +228,9 @@ export function useMesas() {
   const loadTurnoActivo = useCallback(async () => {
     setTurnoActivo(null);
     const user = getStoredUser();
-    if (!user) return;
+    // El turno propio solo lo tiene quien abre caja. El mozo no lo necesita:
+    // el backend usa un turno abierto de la sucursal al abrir el pedido.
+    if (!user || (!user.es_super_admin && !user.permisos?.includes(PermisoBanderas.TURNOS_VER))) return;
     try {
       const t = await api.getTurnoActivo(user.id);
       setTurnoActivo(t);

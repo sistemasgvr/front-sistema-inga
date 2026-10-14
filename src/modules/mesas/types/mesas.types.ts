@@ -126,7 +126,8 @@ export type AbrirPedidoValues = {
   id_mesa?: number;
   id_sucursal?: number;
   id_mozo: number;
-  id_turno: number;
+  /** Turno preferido; sin él, el backend usa un turno abierto de la sucursal. */
+  id_turno?: number;
   id_persona?: number;
   num_comensales?: number;
   observacion?: string;
