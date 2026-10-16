@@ -1,13 +1,19 @@
 "use client";
 
 import Button from "@/components/ui/button/Button";
+import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
+import { useEnvioUnico } from "@/shared/hooks/use-envio-unico";
 import { FormEvent, ReactNode } from "react";
 
 type FormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: FormEvent) => void;
+  /**
+   * Debe devolver la promesa del guardado y resolverse cuando responda el
+   * backend: mientras tanto el modal ignora nuevos envíos.
+   */
+  onSubmit: (e: FormEvent) => Promise<unknown>;
   title: string;
   subtitle?: string;
   isSaving: boolean;
@@ -34,11 +40,23 @@ export function FormModal({
   cancelText = "Cancelar",
   panelScroll = false,
 }: FormModalProps) {
+  const { enviando, ejecutar } = useEnvioUnico();
+  const ocupado = isSaving || enviando;
+
+  function handleSubmit(e: FormEvent) {
+    // Siempre se cancela el envío nativo, también cuando se descarta por estar ocupado.
+    e.preventDefault();
+    // El submit no se propaga por el árbol de React: con el portal, un formulario abierto
+    // desde otro modal (p. ej. el panel del pedido junto a la carta) dispararía también el del padre.
+    e.stopPropagation();
+    if (isSaving) return;
+    // Un segundo clic, Enter o doble clic mientras responde el backend no vuelve a llamar a onSubmit.
+    void ejecutar(() => onSubmit(e));
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} className={`${maxWidth} p-0 overflow-hidden flex flex-col`}>
-      {/* El submit no se propaga por el árbol de React: con el portal, un formulario abierto
-          desde otro modal (p. ej. el panel del pedido junto a la carta) dispararía también el del padre. */}
-      <form onSubmit={(e) => { e.stopPropagation(); onSubmit(e); }} className={`flex flex-col max-h-[85vh] ${panelScroll ? "lg:h-[85vh]" : ""}`}>
+      <form onSubmit={handleSubmit} aria-busy={ocupado} className={`flex flex-col max-h-[85vh] ${panelScroll ? "lg:h-[85vh]" : ""}`}>
         {/* Cabecera fija */}
         <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
@@ -52,16 +70,16 @@ export function FormModal({
         </div>
 
         {/* Cuerpo scrolleable con el hover arreglado exclusivamente para el thumb */}
-        <div 
+        <div
           className={`px-6 lg:px-8 py-6 overflow-y-auto space-y-4 flex-1 min-h-0 ${panelScroll ? "lg:overflow-hidden" : ""}
-          [&::-webkit-scrollbar]:w-3 
-          [&::-webkit-scrollbar-track]:bg-gray-50 dark:[&::-webkit-scrollbar-track]:bg-gray-950/50 
+          [&::-webkit-scrollbar]:w-3
+          [&::-webkit-scrollbar-track]:bg-gray-50 dark:[&::-webkit-scrollbar-track]:bg-gray-950/50
           [&::-webkit-scrollbar-track]:my-1
-          [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 
-          [&::-webkit-scrollbar-thumb]:rounded-full 
-          [&::-webkit-scrollbar-thumb]:border-[2px] 
-          [&::-webkit-scrollbar-thumb]:border-solid 
-          [&::-webkit-scrollbar-thumb]:border-transparent 
+          [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:border-[2px]
+          [&::-webkit-scrollbar-thumb]:border-solid
+          [&::-webkit-scrollbar-thumb]:border-transparent
           [&::-webkit-scrollbar-thumb]:bg-clip-padding
           [&::-webkit-scrollbar-thumb:hover]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb:hover]:bg-gray-600
           [&::-webkit-scrollbar-thumb:active]:bg-gray-500 dark:[&::-webkit-scrollbar-thumb:active]:bg-gray-500`}
@@ -71,11 +89,16 @@ export function FormModal({
 
         {/* Pie de página fijo */}
         <div className="px-6 py-4 lg:px-8 flex w-full items-center justify-end gap-3 border-t border-gray-100 bg-white dark:bg-gray-900 dark:border-gray-800 shrink-0">
-          <Button size="sm" variant="outline" type="button" onClick={onClose} disabled={isSaving}>
+          <Button size="sm" variant="outline" type="button" onClick={onClose} disabled={ocupado}>
             {cancelText}
           </Button>
-          <Button size="sm" type="submit" disabled={isSaving || submitDisabled}>
-            {isSaving ? "Guardando..." : submitText}
+          <Button
+            size="sm"
+            type="submit"
+            disabled={ocupado || submitDisabled}
+            startIcon={ocupado ? <Icon name="mdi:loading" size={16} className="animate-spin" /> : undefined}
+          >
+            {ocupado ? "Guardando..." : submitText}
           </Button>
         </div>
       </form>

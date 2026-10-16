@@ -168,7 +168,7 @@ export function GastoFormModal({
         <Alert
           variant="warning"
           title="Sin turno de caja abierto"
-          message="No puedes pagar en efectivo porque el egreso no tendría contra qué cuadrar. Abre un turno en Caja, o registra el gasto por Yape o transferencia."
+          message="No puedes pagar en efectivo porque el egreso no tendría contra qué cuadrar. Abre una caja, o registra el gasto por Yape o transferencia."
         />
       )}
 

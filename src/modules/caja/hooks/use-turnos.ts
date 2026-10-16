@@ -3,13 +3,21 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
-import { getResumenTurno, listTurnos } from "../services/caja.service";
+import { getStoredUser } from "@/modules/auth/services/auth.service";
+import {
+  cerrarTurno,
+  getResumenTurno,
+  guardarArqueo,
+  listTurnos,
+} from "../services/caja.service";
 import type {
+  ArqueoLinea,
   ListTurnosParams,
   ResumenTurno,
   TurnoItem,
   TurnosResumen,
 } from "../types/caja.types";
+import { puedeCerrarTurno } from "../utils/permisos-cierre";
 
 const PAGE_SIZE = 10;
 
@@ -44,6 +52,16 @@ export function useTurnos() {
   const [detalle, setDetalle] = useState<ResumenTurno | null>(null);
   const [isDetalleOpen, setIsDetalleOpen] = useState(false);
   const [isLoadingDetalle, setIsLoadingDetalle] = useState(false);
+
+  // Cierre desde el detalle: así el administrador puede cerrar la caja de otro
+  // cajero. Solo se ofrece a quien la abrió o a un administrador.
+  const [isCierreOpen, setIsCierreOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // El detalle solo existe en el cliente, así que leer el usuario aquí no
+  // afecta al render del servidor.
+  const usuario = detalle ? getStoredUser() : null;
+  const puedeCerrar = puedeCerrarTurno(detalle?.turno, usuario);
 
   const loadTurnos = useCallback(async () => {
     setIsLoading(true);
@@ -96,6 +114,46 @@ export function useTurnos() {
     }
   }
 
+  function abrirCierre() {
+    if (!puedeCerrar) return;
+    setIsDetalleOpen(false);
+    setIsCierreOpen(true);
+  }
+
+  // Cancelar el arqueo vuelve al detalle del mismo turno.
+  function cancelarCierre() {
+    setIsCierreOpen(false);
+    setIsDetalleOpen(true);
+  }
+
+  async function handleCerrarTurno(detalleArqueo: ArqueoLinea[], montoContado: number, observacion?: string) {
+    const turno = detalle?.turno;
+    if (!turno || !puedeCerrar) return;
+    setIsSaving(true);
+    try {
+      // Mismo orden que en "Mi turno": el arqueo queda aunque el cierre falle.
+      await guardarArqueo(turno.id, detalleArqueo);
+      await cerrarTurno(turno.id, montoContado, observacion);
+      setIsCierreOpen(false);
+      setDetalle(null);
+      setFeedback({
+        variant: "success",
+        title: "Turno cerrado",
+        message: `Se cerró ${turno.nombre_caja} de ${turno.nombre_cajero}.`,
+      });
+      await loadTurnos();
+    } catch (error) {
+      setFeedback({
+        variant: "error",
+        title: "No se pudo cerrar el turno",
+        message: error instanceof Error ? error.message : "Error inesperado.",
+      });
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return {
@@ -123,5 +181,11 @@ export function useTurnos() {
       setIsDetalleOpen(false);
       setDetalle(null);
     },
+    puedeCerrar,
+    isCierreOpen,
+    isSaving,
+    abrirCierre,
+    cancelarCierre,
+    handleCerrarTurno,
   };
 }

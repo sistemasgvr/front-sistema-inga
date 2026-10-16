@@ -119,6 +119,21 @@ export async function getTurnoAbierto(
   return response?.registro ?? null;
 }
 
+/**
+ * Caja abierta contra la que se registran cobros, pagos y gastos. No exige que
+ * la haya abierto el usuario: si él tiene turno se usa el suyo, si no, el de
+ * la caja abierta más reciente. `null` significa que no hay ninguna caja abierta.
+ */
+export async function getTurnoVigente(
+  idSucursal?: number,
+): Promise<TurnoItem | null> {
+  const response = await apiGet<{ registro: TurnoItem | null }>(
+    "/caja/turnos/vigente",
+    { params: { id_sucursal: idSucursal } },
+  );
+  return response?.registro ?? null;
+}
+
 export async function getResumenTurno(idTurno: number): Promise<ResumenTurno> {
   return apiGet<ResumenTurno>(`/caja/turnos/${idTurno}/resumen`);
 }

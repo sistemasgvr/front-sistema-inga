@@ -25,7 +25,7 @@ interface PedidoPanelProps {
   onEntregarItem: (idItem: number) => void;
   onCancelarItem: (idItem: number, motivo: string) => Promise<boolean>;
   onCambiarEstado: (estado: number) => void;
-  onAnular: (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) => void;
+  onAnular: (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) => Promise<unknown>;
   onActualizar?: () => void;
   onAgregarItem: () => void;
   onGenerarComprobante: (tipo: string, documento: string) => void;
@@ -274,7 +274,7 @@ export function PedidoPanel({
       <FormModal isOpen={showAnularConfirm && puedeAnular} onClose={()=>{if(!saving)setShowAnularConfirm(false);}}
         title="Cancelar pedido" isSaving={saving} submitText="Confirmar cancelación"
         submitDisabled={!motivoAnular.trim() || (hayPreparados && !destinoAnular) || (hayEnPreparacion && !destinoInsumosAnular)}
-        onSubmit={e=>{e.preventDefault();onAnular({motivo:motivoAnular,
+        onSubmit={async e=>{e.preventDefault();await onAnular({motivo:motivoAnular,
           destino_preparado:hayPreparados&&destinoAnular?(destinoAnular as "DISPONIBLE"|"MERMA"):undefined,
           destino_insumos:hayEnPreparacion&&destinoInsumosAnular?(destinoInsumosAnular as "LIBERAR"|"MERMA"):undefined});}}>
         <Label>Motivo</Label><InputField value={motivoAnular} disabled={saving} onChange={e=>setMotivoAnular(e.target.value)}/>

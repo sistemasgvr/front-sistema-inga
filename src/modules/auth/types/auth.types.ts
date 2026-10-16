@@ -13,6 +13,8 @@ export type AuthUser = {
   telefono?: string | null;
   id_sucursal_default?: number | null;
   es_super_admin?: boolean;
+  /** Roles activos; llegan en el login (no en /auth/me). */
+  roles?: { id: number; codigo: string; nombre: string }[];
   permisos: string[];
   sesion?: {
     id: number;

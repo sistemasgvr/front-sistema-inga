@@ -4,7 +4,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { buscarPersonas } from "@/modules/personas/services/personas.service";
@@ -109,7 +109,7 @@ export function useGastosDiarios() {
       return;
     }
 
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then((t) => {
         setTurnoAbierto(t);
         void cargarDia(fecha, t?.id);
@@ -177,7 +177,7 @@ export function useGastosDiarios() {
   function refrescarTurno() {
     const user = getStoredUser();
     if (!user) return;
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then(setTurnoAbierto)
       .catch(() => undefined);
   }
@@ -187,7 +187,7 @@ export function useGastosDiarios() {
     if (!(await turnoPendiente.confirmar())) {
       // Si cerró esa caja, el día queda vinculado a la caja que siga abierta (o a ninguna).
       const user = getStoredUser();
-      const turno = user ? await getTurnoAbierto(user.id).catch(() => null) : null;
+      const turno = user ? await getTurnoVigente().catch(() => null) : null;
       setTurnoAbierto(turno);
       await cargarDia(fecha, turno?.id);
       return;

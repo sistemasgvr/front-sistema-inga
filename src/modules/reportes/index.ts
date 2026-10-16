@@ -1,0 +1,14 @@
+export { ReporteGeneralView } from "./components/reporte-general-view";
+export { ReporteVentasView } from "./components/reporte-ventas-view";
+export { ReporteGastosView } from "./components/reporte-gastos-view";
+export { ReporteCajaView } from "./components/reporte-caja-view";
+export { ReporteCuentasView } from "./components/reporte-cuentas-view";
+export { ReportePlanillaView } from "./components/reporte-planilla-view";
+export { ReporteInventarioView } from "./components/reporte-inventario-view";
+export { Indicador } from "./components/indicador";
+export { getDashboard, getReporte } from "./services/reportes.service";
+export { REPORTES } from "./utils/catalogo";
+export * from "./utils/calculos";
+export { formatoMoneda, formatoNumero, formatoPorcentaje } from "./utils/formato";
+export { rangoHoy, rangoMesActual } from "./utils/periodo";
+export type * from "./types/reportes.types";

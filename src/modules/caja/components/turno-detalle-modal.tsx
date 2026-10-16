@@ -4,17 +4,24 @@ import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import { TIPO_MOVIMIENTO, type ResumenTurno } from "../types/caja.types";
 import { formatearFechaHora, formatearSoles } from "../utils/formato";
+import { mensajeQuienPuedeCerrar } from "../utils/permisos-cierre";
+import { ResumenFlujo, TONO_FLUJO } from "./resumen-flujo";
 
 type TurnoDetalleModalProps = {
   isOpen: boolean;
   onClose: () => void;
   detalle: ResumenTurno | null;
   isLoading: boolean;
+  /** El usuario abrió la caja o es administrador. */
+  puedeCerrar?: boolean;
+  /** Si llega, un turno abierto ofrece cerrarse desde el detalle. */
+  onCerrarTurno?: () => void;
 };
 
 /**
- * Detalle de un turno cerrado: es el "comprobante" que revisa el administrador
- * cuando quiere entender por qué una caja no cuadró.
+ * Detalle de un turno: es el "comprobante" que revisa el administrador
+ * cuando quiere entender por qué una caja no cuadró. Entradas en verde y
+ * salidas en rojo, con ícono y signo, para no confundir una venta con un pago.
  *
  * Uso Modal directo y no FormModal porque acá no hay nada que guardar, solo que
  * leer. Poner un botón "Guardar" en una vista de solo lectura confunde.
@@ -24,6 +31,8 @@ export function TurnoDetalleModal({
   onClose,
   detalle,
   isLoading,
+  puedeCerrar = false,
+  onCerrarTurno,
 }: TurnoDetalleModalProps) {
   const turno = detalle?.turno;
   // `monto_diferencia` viene del backend como `sistema − declarado`:
@@ -31,6 +40,25 @@ export function TurnoDetalleModal({
   const diferencia = Number(turno?.monto_diferencia ?? 0);
   const cuadra = Math.abs(diferencia) < 0.01;
   const faltante = diferencia > 0;
+  const abierto = turno?.estado_turno !== 2 && !turno?.fecha_cierre;
+
+  // Mismo cálculo que el backend (caj_calcular_totales_turno); se usa su
+  // efectivo_esperado y solo se recalcula si no llegó.
+  type LineaCajon = { etiqueta: string; valor: number; tipo?: "entrada" | "salida" };
+  const cuentaCajon: LineaCajon[] = turno
+    ? ([
+        { etiqueta: "Apertura", valor: Number(turno.monto_apertura ?? 0) },
+        { etiqueta: "Ventas en efectivo", valor: Number(turno.ventas_efectivo ?? 0), tipo: "entrada" },
+        { etiqueta: "Cobranzas en efectivo", valor: Number(turno.cobranzas_efectivo ?? 0), tipo: "entrada" },
+        { etiqueta: "Ingresos manuales", valor: Number(turno.ingresos_caja ?? 0), tipo: "entrada" },
+        { etiqueta: "Pagos y gastos en efectivo", valor: Number(turno.pagos_efectivo ?? 0), tipo: "salida" },
+        { etiqueta: "Egresos manuales", valor: Number(turno.egresos_caja ?? 0), tipo: "salida" },
+      ] satisfies LineaCajon[]).filter((l: LineaCajon) => !l.tipo || l.valor !== 0 || l.etiqueta === "Ventas en efectivo")
+    : [];
+  const esperado = Number(
+    turno?.efectivo_esperado ??
+      cuentaCajon.reduce((s, l) => s + (l.tipo === "salida" ? -l.valor : l.valor), 0),
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[760px] p-0">
@@ -55,7 +83,27 @@ export function TurnoDetalleModal({
             </p>
           ) : (
             <>
-              {/* Cierre */}
+              {/* Cierre. Un turno abierto todavía no tiene montos de cierre:
+                  mostrar "Cuadró S/ 0.00" ahí haría creer que ya se contó. */}
+              {abierto ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3.5 dark:border-blue-500/30 dark:bg-blue-500/10">
+                  <div className="flex items-center gap-2.5">
+                    <Icon name="mdi:lock-open-variant-outline" size={20} className="text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-white/90">Turno abierto</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        El cuadre (declarado y diferencia) se calcula al cerrar el turno.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Efectivo esperado ahora</p>
+                    <p className={`text-lg font-bold ${esperado < 0 ? "text-error-600" : "text-gray-800 dark:text-white"}`}>
+                      {formatearSoles(esperado)}
+                    </p>
+                  </div>
+                </div>
+              ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border border-gray-200 p-3.5 dark:border-gray-700">
                   <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -98,94 +146,86 @@ export function TurnoDetalleModal({
                   </p>
                 </div>
               </div>
+              )}
 
-              {/* Ventas por medio */}
-              <div>
-                <h5 className="mb-2 text-sm font-semibold text-gray-800 dark:text-white/90">
-                  Ventas por medio de pago
+              {/* Cuenta del cajón: de dónde sale el efectivo esperado. */}
+              <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-white/90">
+                  <Icon name="mdi:cash-register" size={18} className="text-gray-500" />
+                  Efectivo del cajón
                 </h5>
-                <div className="grid grid-cols-2 gap-3 rounded-xl border border-gray-200 p-4 sm:grid-cols-4 dark:border-gray-700">
-                  {[
-                    { etiqueta: "Efectivo", valor: turno.ventas_efectivo ?? 0 },
-                    { etiqueta: "Yape", valor: turno.ventas_yape ?? 0 },
-                    { etiqueta: "Tarjeta", valor: turno.ventas_tarjeta ?? 0 },
-                    { etiqueta: "Crédito", valor: turno.ventas_credito ?? 0 },
-                  ].map((m) => (
-                    <div key={m.etiqueta}>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {m.etiqueta}
-                      </p>
-                      <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                        {formatearSoles(m.valor)}
-                      </p>
+                <dl className="space-y-1.5 text-sm">
+                  {cuentaCajon.map((linea) => (
+                    <div key={linea.etiqueta} className="flex items-center justify-between gap-3">
+                      <dt className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        {linea.tipo && (
+                          <Icon name={TONO_FLUJO[linea.tipo].icono} size={14} className={TONO_FLUJO[linea.tipo].texto} />
+                        )}
+                        {linea.etiqueta}
+                      </dt>
+                      <dd className={`font-medium ${linea.tipo && linea.valor ? TONO_FLUJO[linea.tipo].texto : "text-gray-700 dark:text-gray-300"}`}>
+                        {linea.tipo && linea.valor ? `${TONO_FLUJO[linea.tipo].signo} ` : ""}
+                        {formatearSoles(linea.valor)}
+                      </dd>
                     </div>
                   ))}
-                </div>
+                  <div className="flex items-center justify-between gap-3 border-t border-gray-200 pt-2 dark:border-gray-700">
+                    <dt className="font-semibold text-gray-800 dark:text-white">
+                      {abierto ? "Debería haber ahora" : "Esperado al cierre"}
+                    </dt>
+                    <dd className={`font-bold ${esperado < 0 ? "text-error-600" : "text-gray-900 dark:text-white"}`}>
+                      {formatearSoles(esperado)}
+                    </dd>
+                  </div>
+                </dl>
+                {esperado < 0 && (
+                  <p className="mt-2 text-xs text-error-600 dark:text-error-400">
+                    Salió más efectivo del que entró: revisa si algún pago debió registrarse por Yape o transferencia.
+                  </p>
+                )}
               </div>
 
-              {/* Cobranzas de CxC */}
+              <ResumenFlujo
+                tipo="entrada"
+                titulo="Entradas · ventas"
+                descripcion="Lo cobrado en el turno, por medio de pago"
+                filas={[
+                  { etiqueta: "Efectivo", valor: turno.ventas_efectivo ?? 0 },
+                  { etiqueta: "Yape", valor: turno.ventas_yape ?? 0 },
+                  { etiqueta: "Tarjeta", valor: turno.ventas_tarjeta ?? 0 },
+                  { etiqueta: "Crédito", valor: turno.ventas_credito ?? 0, neutro: true, nota: "Queda por cobrar, no entra a caja" },
+                ]}
+                etiquetaTotal="Total cobrado"
+                pie="Solo el efectivo entra al cajón."
+              />
+
               {(turno.total_cobranzas ?? 0) > 0 && (
-                <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                  <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
-                    Cobranzas de cuentas por cobrar
-                  </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { etiqueta: "Efectivo", valor: turno.cobranzas_efectivo ?? 0 },
-                      { etiqueta: "Yape", valor: turno.cobranzas_yape ?? 0 },
-                      { etiqueta: "Transferencia", valor: turno.cobranzas_tarjeta ?? 0 },
-                    ].map((m) => (
-                      <div key={m.etiqueta}>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {m.etiqueta}
-                        </p>
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                          {formatearSoles(m.valor)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                    Total cobrado:{" "}
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
-                      {formatearSoles(turno.total_cobranzas ?? 0)}
-                    </span>
-                    {" "}· Solo el efectivo entra al cajón.
-                  </p>
-                </div>
+                <ResumenFlujo
+                  tipo="entrada"
+                  titulo="Entradas · cobranzas"
+                  descripcion="Abonos de cuentas por cobrar recibidos en el turno"
+                  filas={[
+                    { etiqueta: "Efectivo", valor: turno.cobranzas_efectivo ?? 0 },
+                    { etiqueta: "Yape", valor: turno.cobranzas_yape ?? 0 },
+                    { etiqueta: "Transferencia", valor: turno.cobranzas_tarjeta ?? 0 },
+                  ]}
+                  etiquetaTotal="Total cobrado"
+                  pie="Solo el efectivo entra al cajón."
+                />
               )}
 
-              {/* Pagos de otros módulos (proveedores, gastos, planilla, compras) */}
-              {(turno.total_pagos ?? 0) > 0 && (
-                <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                  <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
-                    Pagos por medio de pago
-                  </h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { etiqueta: "Efectivo", valor: turno.pagos_efectivo ?? 0 },
-                      { etiqueta: "Yape", valor: turno.pagos_yape ?? 0 },
-                      { etiqueta: "Transferencia", valor: turno.pagos_tarjeta ?? 0 },
-                    ].map((m) => (
-                      <div key={m.etiqueta}>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {m.etiqueta}
-                        </p>
-                        <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                          {formatearSoles(m.valor)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                    Total pagado:{" "}
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">
-                      {formatearSoles(turno.total_pagos ?? 0)}
-                    </span>
-                    {" "}· Solo el efectivo sale del cajón.
-                  </p>
-                </div>
-              )}
+              <ResumenFlujo
+                tipo="salida"
+                titulo="Salidas · pagos y gastos"
+                descripcion="Compras del día, gastos, proveedores y planilla pagados en el turno"
+                filas={[
+                  { etiqueta: "Efectivo", valor: turno.pagos_efectivo ?? 0 },
+                  { etiqueta: "Yape", valor: turno.pagos_yape ?? 0 },
+                  { etiqueta: "Transferencia", valor: turno.pagos_tarjeta ?? 0 },
+                ]}
+                etiquetaTotal="Total pagado"
+                pie="Solo el efectivo sale del cajón."
+              />
 
               {/* Movimientos */}
               <div>
@@ -201,12 +241,20 @@ export function TurnoDetalleModal({
                     {detalle.movimientos.map((mov) => {
                       const esIngreso = mov.tipo_movimiento === TIPO_MOVIMIENTO.INGRESO;
                       const tocaCajon = (mov.medio_pago ?? 1) === 1;
+                      const tono = TONO_FLUJO[esIngreso ? "entrada" : "salida"];
                       return (
                         <li
                           key={mov.clave ?? mov.id}
-                          className="flex items-center justify-between px-4 py-2.5"
+                          className="flex items-center justify-between gap-3 px-4 py-2.5"
                         >
-                          <div>
+                          <div className="flex min-w-0 items-center gap-3">
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tono.insignia}`}
+                            title={esIngreso ? "Entrada" : "Salida"}
+                          >
+                            <Icon name={tono.icono} size={16} />
+                          </span>
+                          <div className="min-w-0">
                             <p className="text-sm text-gray-800 dark:text-gray-200">
                               {mov.motivo}
                             </p>
@@ -214,10 +262,12 @@ export function TurnoDetalleModal({
                               {formatearFechaHora(mov.fecha_creacion)}
                               {mov.origen_nombre && ` · ${mov.origen_nombre}`}
                               {mov.medio_pago_nombre && ` · ${mov.medio_pago_nombre}`}
+                              {!tocaCajon && " · No toca el cajón"}
                             </p>
                           </div>
+                          </div>
                           <span
-                            className={`text-sm font-semibold ${
+                            className={`shrink-0 text-sm font-semibold ${
                               !tocaCajon
                                 ? "text-gray-500 dark:text-gray-400"
                                 : esIngreso
@@ -295,7 +345,24 @@ export function TurnoDetalleModal({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-end border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+          {turno && abierto && onCerrarTurno && (
+            puedeCerrar ? (
+              <button
+                type="button"
+                onClick={onCerrarTurno}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+              >
+                <Icon name="mdi:lock-outline" size={17} />
+                Cerrar turno
+              </button>
+            ) : (
+              <p className="mr-auto flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Icon name="mdi:lock-outline" size={15} className="shrink-0" />
+                {mensajeQuienPuedeCerrar(turno)}
+              </p>
+            )
+          )}
           <button
             type="button"
             onClick={onClose}

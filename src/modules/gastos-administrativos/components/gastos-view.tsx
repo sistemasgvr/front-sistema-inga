@@ -141,8 +141,8 @@ export function GastosView() {
         <div className="mb-5">
           <Alert
             variant="info"
-            title="No tienes un turno de caja abierto"
-            message="Puedes registrar gastos por Yape o transferencia. Para pagar en efectivo, abre un turno en Caja para que el egreso cuadre con el cajón."
+            title="No hay ninguna caja abierta"
+            message="Puedes registrar gastos por Yape o transferencia. Para pagar en efectivo, debe haber una caja abierta para que el egreso cuadre con el cajón."
           />
         </div>
       )}

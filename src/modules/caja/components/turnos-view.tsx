@@ -14,6 +14,7 @@ import {
 import { useTurnos } from "../hooks/use-turnos";
 import { ESTADO_TURNO } from "../types/caja.types";
 import { formatearFechaHora, formatearSoles } from "../utils/formato";
+import { CierreTurnoModal } from "./cierre-turno-modal";
 import { TurnoDetalleModal } from "./turno-detalle-modal";
 
 export function TurnosView() {
@@ -34,6 +35,12 @@ export function TurnosView() {
     isLoadingDetalle,
     verDetalle,
     cerrarDetalle,
+    puedeCerrar,
+    isCierreOpen,
+    isSaving,
+    abrirCierre,
+    cancelarCierre,
+    handleCerrarTurno,
   } = useTurnos();
 
   return (
@@ -261,7 +268,19 @@ export function TurnosView() {
         onClose={cerrarDetalle}
         detalle={detalle}
         isLoading={isLoadingDetalle}
+        puedeCerrar={puedeCerrar}
+        onCerrarTurno={abrirCierre}
       />
+
+      {detalle?.turno && puedeCerrar && (
+        <CierreTurnoModal
+          isOpen={isCierreOpen}
+          onClose={cancelarCierre}
+          onSubmit={handleCerrarTurno}
+          turno={detalle.turno}
+          isSaving={isSaving}
+        />
+      )}
     </div>
   );
 }

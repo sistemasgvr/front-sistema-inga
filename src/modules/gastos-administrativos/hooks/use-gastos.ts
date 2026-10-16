@@ -5,7 +5,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import {
@@ -131,7 +131,7 @@ export function useGastos() {
     if (!user) return;
     // Si falla no rompo la pantalla: el modal avisa que no hay turno abierto y
     // solo permite Yape o transferencia.
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then(setTurnoAbierto)
       .catch(() => setTurnoAbierto(null));
   }, []);
@@ -172,7 +172,7 @@ export function useGastos() {
     if (!editing && !(await turnoPendiente.confirmar())) {
       const user = getStoredUser();
       if (user) {
-        getTurnoAbierto(user.id)
+        getTurnoVigente()
           .then(setTurnoAbierto)
           .catch(() => undefined);
       }
@@ -202,7 +202,7 @@ export function useGastos() {
       // del cajón acaba de cambiar.
       const user = getStoredUser();
       if (user) {
-        getTurnoAbierto(user.id)
+        getTurnoVigente()
           .then(setTurnoAbierto)
           .catch(() => undefined);
       }

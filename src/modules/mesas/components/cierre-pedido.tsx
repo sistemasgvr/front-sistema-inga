@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { useEnvioUnico } from '@/shared/hooks/use-envio-unico';
 import Button from '@/components/ui/button/Button';
 import { Icon } from '@/components/ui/icon';
 import Input from '@/components/form/input/InputField';
@@ -27,6 +28,9 @@ export function CierrePedido({pedido,saving,feedback,puedeCobrar,onConfirmar}:{p
   onConfirmar:(accion:'precuenta'|'cobrar'|'credito',datos:CierrePedidoDatos)=>Promise<boolean>}){
   const f=useCierrePedido(pedido.id_sucursal);
   const [aperturasCredito,setAperturasCredito]=useState(0);
+  // Cobrar o pedir la precuenta dos veces seguidas no repite la operación mientras responde el backend.
+  const {enviando,ejecutar}=useEnvioUnico();
+  const ocupado=saving||enviando;
   const esFactura=f.tipo==='2',sinDocumento=f.tipo==='3',clientesVarios=f.tipo==='1'&&f.documentoCobro===DNI_CLIENTES_VARIOS;
   const documentoValido=esFactura?/^\d{11}$/.test(f.documentoCobro):f.tipo==='1'?f.documentoCobro===''||/^\d{8}$/.test(f.documentoCobro):true;
   const cobroValido=!!f.medio&&documentoValido;
@@ -90,13 +94,13 @@ export function CierrePedido({pedido,saving,feedback,puedeCobrar,onConfirmar}:{p
         </div>}
       </div>
 
-      <Button className="w-full" disabled={saving||!cobroValido||sinItems} onClick={()=>void cobrar()}
+      <Button className="w-full" disabled={ocupado||!cobroValido||sinItems} onClick={()=>void ejecutar(cobrar)}
         startIcon={<Icon name="mdi:cash-register" size={18}/>}>
         Cobrar S/ {Number(pedido.monto_total).toFixed(2)}
       </Button>
       </>}
       <div className={`grid gap-2 ${puedeCobrar?'grid-cols-2':'grid-cols-1'}`}>
-        <Button size="sm" variant="outline" disabled={saving} onClick={()=>void enviarPrecuenta()} startIcon={<Icon name="mdi:receipt-text-outline" size={16}/>}>Precuenta</Button>
+        <Button size="sm" variant="outline" disabled={ocupado} onClick={()=>void ejecutar(enviarPrecuenta)} startIcon={<Icon name="mdi:receipt-text-outline" size={16}/>}>Precuenta</Button>
         {puedeCobrar&&<Button size="sm" variant="outline" disabled={saving} onClick={()=>{setAperturasCredito(n=>n+1);f.abrirCredito();}} startIcon={<Icon name="mdi:account-credit-card-outline" size={16}/>}>Crédito</Button>}
       </div>
     </div>

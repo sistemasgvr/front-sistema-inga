@@ -9,3 +9,4 @@ export { useTurnoPendiente } from "./hooks/use-turno-pendiente";
 export * from "./services/caja.service";
 export * from "./types/caja.types";
 export * from "./utils/formato";
+export * from "./utils/permisos-cierre";

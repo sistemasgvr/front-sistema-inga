@@ -13,6 +13,7 @@ import Button from "@/components/ui/button/Button";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { useRecetas } from "../hooks/use-recetas";
 import { Icon } from "@/components/ui/icon";
+import { useEnvioUnico } from "@/shared/hooks/use-envio-unico";
 import { useEffect, useState } from "react";
 import type { ProductoItem, UnidadMedidaItem } from "@/modules/productos/types/productos.types";
 
@@ -55,6 +56,8 @@ export function RecetaFormModal({
     aplicarFiltroSubcategoria,
     limpiarFiltros,
   } = useRecetas(producto);
+  // Las acciones que escriben la receta ignoran un segundo clic mientras responde el backend.
+  const { ejecutar } = useEnvioUnico();
 
   const [selectedInsumoId, setSelectedInsumoId] = useState<number | null>(null);
   const [cantidadInput, setCantidadInput] = useState<number>(1);
@@ -248,7 +251,7 @@ export function RecetaFormModal({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={handleInicializar}
+                  onClick={() => void ejecutar(handleInicializar)}
                   disabled={isSaving}
                   startIcon={<Icon name="mdi:plus" size={18} />}
                 >
@@ -455,7 +458,7 @@ export function RecetaFormModal({
                         type="button"
                         size="sm"
                         className="w-full"
-                        onClick={handleAgregarInsumo}
+                        onClick={() => void ejecutar(handleAgregarInsumo)}
                         disabled={isAddDisabled}
                         startIcon={<Icon name="mdi:plus" size={18} />}
                       >
@@ -575,7 +578,7 @@ export function RecetaFormModal({
                                       <>
                                         <button
                                           type="button"
-                                          onClick={() => handleSaveCantidadInline(item)}
+                                          onClick={() => void ejecutar(() => handleSaveCantidadInline(item))}
                                           disabled={isSaving || editingCantidad <= 0}
                                           className="cursor-pointer text-success-600 hover:text-success-700 disabled:opacity-40"
                                           title="Guardar"

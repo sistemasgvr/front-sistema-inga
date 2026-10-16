@@ -6,6 +6,7 @@ import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
+import { useEnvioUnico } from "@/shared/hooks/use-envio-unico";
 import { FormEvent, useEffect, useState } from "react";
 import type { PermisoItem, RoleItem } from "../types/roles.types";
 
@@ -32,6 +33,8 @@ export function RolePermissionsModal({
 }: RolePermissionsModalProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const { enviando, ejecutar } = useEnvioUnico();
+  const ocupado = isSaving || enviando;
 
   useEffect(() => {
     if (isOpen) {
@@ -100,14 +103,16 @@ function handleTogglePermission(permiso: PermisoItem) {
     });
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    await onSubmit(selectedIds);
+    if (ocupado || isLoading) return;
+    // Un segundo clic mientras responde el backend no vuelve a sincronizar los permisos.
+    void ejecutar(() => onSubmit(selectedIds));
   }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[780px] p-6 lg:p-8">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} aria-busy={ocupado}>
         <div className="mb-5 border-b border-gray-100 pb-4 dark:border-gray-800">
           <h4 className="text-2xl font-bold text-gray-900 dark:text-white">
             Permisos del rol
@@ -202,12 +207,17 @@ function handleTogglePermission(permiso: PermisoItem) {
               variant="outline"
               type="button"
               onClick={onClose}
-              disabled={isSaving}
+              disabled={ocupado}
             >
               Cerrar
             </Button>
-            <Button size="sm" type="submit" disabled={isSaving || isLoading}>
-              {isSaving ? "Guardando..." : "Guardar permisos"}
+            <Button
+              size="sm"
+              type="submit"
+              disabled={ocupado || isLoading}
+              startIcon={ocupado ? <Icon name="mdi:loading" size={16} className="animate-spin" /> : undefined}
+            >
+              {ocupado ? "Guardando..." : "Guardar permisos"}
             </Button>
           </div>
         </div>

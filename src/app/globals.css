@@ -307,6 +307,22 @@
   }
 }
 
+/* Componentes propios del sistema */
+/* Entrada del panel de fechas (DateRangePicker). */
+.app-date-range-enter {
+  animation: app-date-range-in 0.15s ease;
+}
+@keyframes app-date-range-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* third-party libraries CSS */
 .apexcharts-legend-text {
   @apply !text-gray-700 dark:!text-gray-400;
@@ -766,3 +782,147 @@ span.flatpickr-weekday,
   cursor: grabbing; /* Changes the cursor to indicate dragging */
 }
 
+
+/*
+ * Impresión de reportes (Imprimir / PDF).
+ * Solo se aplica a las páginas con [data-imprimir-reporte]: oculta el menú y la
+ * cabecera, usa A4 horizontal con numeración de páginas, y fuerza colores de
+ * papel aunque la app esté en modo oscuro.
+ */
+@page reporte {
+  size: A4 landscape;
+  margin: 12mm 10mm 14mm;
+
+  @bottom-left {
+    content: "Restaurante Ingá";
+    font-size: 8pt;
+    color: #667085;
+  }
+
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 8pt;
+    color: #667085;
+  }
+}
+
+@media print {
+  body:has([data-imprimir-reporte]) aside,
+  body:has([data-imprimir-reporte]) header {
+    display: none !important;
+  }
+
+  html:has([data-imprimir-reporte]),
+  body:has([data-imprimir-reporte]) {
+    background: #fff !important;
+  }
+
+  .reporte-imprimible {
+    page: reporte;
+    color: #101828;
+    font-size: 9pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Colores de papel también en modo oscuro. */
+  .reporte-imprimible :is(h1, h2, h3, p, span, td, th, dt, dd) {
+    color: #101828 !important;
+  }
+
+  .reporte-imprimible :is(.nota-reporte, .titulo-seccion p, .encabezado-impresion p) {
+    color: #475467 !important;
+  }
+
+  .reporte-imprimible .nota-reporte {
+    font-size: 8pt;
+    font-style: italic;
+  }
+
+  /* Encabezado del reporte. */
+  .reporte-imprimible .encabezado-impresion {
+    border-bottom: 2px solid #e51b23 !important;
+  }
+
+  .reporte-imprimible .encabezado-impresion h1 {
+    font-size: 16pt;
+  }
+
+  /* Indicadores (KPI) compactos con borde. */
+  .reporte-imprimible .indicador {
+    background: #fff !important;
+    border: 1px solid #d0d5dd !important;
+    border-radius: 6px;
+    padding: 6px 10px;
+    break-inside: avoid;
+  }
+
+  .reporte-imprimible .indicador .text-xl {
+    font-size: 13pt;
+  }
+
+  .reporte-imprimible .indicador.negativo .valor-indicador {
+    color: #b42318 !important;
+  }
+
+  /* Secciones: el título queda pegado a su tabla. */
+  .reporte-imprimible .seccion-reporte {
+    background: none !important;
+    margin-top: 10px;
+  }
+
+  .reporte-imprimible .titulo-seccion {
+    padding: 0 0 4px !important;
+    break-after: avoid;
+  }
+
+  .reporte-imprimible .titulo-seccion h3 {
+    border-left: 3px solid #e51b23;
+    padding-left: 6px;
+    font-size: 11pt;
+    font-weight: 600;
+  }
+
+  /* Tablas. */
+  .reporte-imprimible .tabla-reporte {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 8pt;
+  }
+
+  .reporte-imprimible .tabla-reporte thead {
+    display: table-header-group; /* se repite en cada página */
+  }
+
+  .reporte-imprimible .tabla-reporte tfoot {
+    display: table-row-group; /* el total sale una sola vez, al final */
+  }
+
+  .reporte-imprimible .tabla-reporte tr {
+    break-inside: avoid;
+  }
+
+  .reporte-imprimible .tabla-reporte th {
+    background: #344054 !important;
+    color: #fff !important;
+    border: 1px solid #344054;
+    padding: 4px 6px;
+    font-size: 7pt;
+    letter-spacing: 0.03em;
+  }
+
+  .reporte-imprimible .tabla-reporte td {
+    border: 1px solid #e4e7ec;
+    padding: 3px 6px;
+  }
+
+  .reporte-imprimible .tabla-reporte tbody tr:nth-child(even) td {
+    background: #f9fafb !important;
+  }
+
+  .reporte-imprimible .tabla-reporte tfoot td {
+    background: #f2f4f7 !important;
+    border-top: 2px solid #344054;
+    font-weight: 600;
+  }
+}

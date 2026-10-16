@@ -92,3 +92,19 @@ test('la hoja de prueba imprime directo en la IP de la estación sin pasar por l
   assert.ok(!calls.some(([name, url]) => name === 'sign' && !String(url).includes('qz')));
   await assert.rejects(service.imprimirPrueba('  ', 'Cocina'), /IP de impresora/);
 });
+test('el comprobante impreso desde Ventas lleva número, receptor, totales y medios de pago', () => {
+  const contenido = comanda.formatearComanda({ ...ticket, tipo: 'COMPROBANTE', total: 80,
+    items: [{ cantidad: 1, nombre_producto: 'Barco criollo', monto_subtotal: 80 }],
+    comprobante: { nombre_tipo: 'BOLETA DE VENTA', numero: 'B001-00000002', receptor_num_doc: '12345678',
+      receptor_razon_social: 'Ana Pérez', monto_gravado: 67.8, monto_igv: 12.2, monto_total: 80 },
+    pagos: [{ nombre_medio: 'Yape', monto: 80 }] });
+  assert.match(contenido, /BOLETA DE VENTA\nB001-00000002/);
+  assert.match(contenido, /Cliente: Ana Perez\nDoc: 12345678/);
+  assert.match(contenido, /TOTAL {8}S\/ 80\.00/);
+  assert.match(contenido, /Yape: S\/ 80\.00/);
+  assert.doesNotMatch(contenido, /COMANDA/);
+});
+test('una comanda reimpresa se marca para no confundirla con un pedido nuevo', () => {
+  assert.match(comanda.formatearComanda({ ...ticket, reimpresion: true }), /\*\*\* REIMPRESION \*\*\*\nCOMANDA 42/);
+  assert.doesNotMatch(comanda.formatearComanda(ticket), /REIMPRESION/);
+});

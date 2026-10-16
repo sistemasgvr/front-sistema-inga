@@ -28,7 +28,8 @@ type CreditoPedidoModalProps={
   onEfectivoConfirmado:(valor:boolean)=>void;
   onRegistrarCliente:()=>void;
   onClose:()=>void;
-  onSubmit:()=>void;
+  /** Resuelve cuando responde el backend: el modal no deja reenviar mientras tanto. */
+  onSubmit:()=>Promise<unknown>;
 };
 
 export function CreditoPedidoModal({isOpen,total,saving,documento,onDocumento,cliente,buscando,errorBusqueda,
@@ -56,11 +57,11 @@ export function CreditoPedidoModal({isOpen,total,saving,documento,onDocumento,cl
   const noEncontrado=dniCompleto&&!buscando&&!errorBusqueda&&!cliente;
   const valido=dniCompleto&&tieneConvenio&&(excedente===0||efectivoConfirmado);
 
-  function handleSubmit(e:FormEvent){
+  async function handleSubmit(e:FormEvent){
     e.preventDefault();
     setEnviado(true);
     if(saving||!valido)return;
-    onSubmit();
+    await onSubmit();
   }
 
   return (

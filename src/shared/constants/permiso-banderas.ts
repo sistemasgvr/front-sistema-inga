@@ -142,6 +142,21 @@ export const PermisoBanderas = {
   PRODUCCION_PREPARAR: 'produccion.preparar',
 
   PEDIDOS_ENTREGAR: 'pedidos.entregar',
+
+  VENTAS_LISTAR: 'ventas.listar',
+  VENTAS_REIMPRIMIR: 'ventas.reimprimir',
+  VENTAS_CAMBIAR_PAGO: 'ventas.cambiar_pago',
+  VENTAS_REEMITIR: 'ventas.reemitir',
+
+  // Dashboard y reportería: un permiso por reporte (ver la API).
+  DASHBOARD_VER: 'dashboard.ver',
+  REPORTES_VENTAS: 'reportes.ventas',
+  REPORTES_GASTOS: 'reportes.gastos',
+  REPORTES_CAJA: 'reportes.caja',
+  REPORTES_CUENTAS: 'reportes.cuentas',
+  REPORTES_PLANILLA: 'reportes.planilla',
+  REPORTES_INVENTARIO: 'reportes.inventario',
+  REPORTES_GENERAL: 'reportes.general',
 } as const;
 
 export type PermisoBandera =

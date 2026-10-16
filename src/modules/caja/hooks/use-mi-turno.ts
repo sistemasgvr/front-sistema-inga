@@ -4,6 +4,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
+import type { AuthUser } from "@/modules/auth/types/auth.types";
 import {
   abrirTurno,
   cerrarTurno,
@@ -20,6 +21,7 @@ import type {
   ResumenTurno,
   TurnoItem,
 } from "../types/caja.types";
+import { puedeCerrarTurno } from "../utils/permisos-cierre";
 
 /**
  * Maneja la pantalla "Mi turno", que es la que usa el cajero todo el día.
@@ -35,6 +37,7 @@ import type {
 export function useMiTurno() {
   const [idCajero, setIdCajero] = useState<number | null>(null);
   const [nombreCajero, setNombreCajero] = useState("");
+  const [usuario, setUsuario] = useState<AuthUser | null>(null);
 
   const [turno, setTurno] = useState<TurnoItem | null>(null);
   const [resumen, setResumen] = useState<ResumenTurno | null>(null);
@@ -54,6 +57,7 @@ export function useMiTurno() {
   useEffect(() => {
     const user = getStoredUser();
     if (user) {
+      setUsuario(user);
       setIdCajero(user.id);
       setNombreCajero(`${user.nombres} ${user.apellidos}`.trim());
     } else {
@@ -156,8 +160,12 @@ export function useMiTurno() {
    * cerrar. Guardo el arqueo primero para que quede el detalle del conteo aunque
    * el cierre falle por algo.
    */
+  // "Mi turno" muestra el turno propio, pero la regla es la misma del backend:
+  // el cajero del turno o un administrador.
+  const puedeCerrar = puedeCerrarTurno(turno, usuario);
+
   async function handleCerrarTurno(detalle: ArqueoLinea[], montoContado: number, observacion?: string) {
-    if (!turno) return;
+    if (!turno || !puedeCerrar) return;
     setIsSaving(true);
     try {
       await guardarArqueo(turno.id, detalle);
@@ -185,6 +193,7 @@ export function useMiTurno() {
     idCajero,
     nombreCajero,
     turno,
+    puedeCerrar,
     resumen,
     cajasDisponibles,
     isLoading,
@@ -195,7 +204,9 @@ export function useMiTurno() {
     openMovimiento: () => setIsMovimientoOpen(true),
     closeMovimiento: () => setIsMovimientoOpen(false),
     isCierreOpen,
-    openCierre: () => setIsCierreOpen(true),
+    openCierre: () => {
+      if (puedeCerrar) setIsCierreOpen(true);
+    },
     closeCierre: () => setIsCierreOpen(false),
     handleAbrirTurno,
     handleRegistrarMovimiento,

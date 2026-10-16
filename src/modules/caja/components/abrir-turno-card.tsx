@@ -6,6 +6,7 @@ import Input from "@/components/form/input/InputField";
 import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
+import { useEnvioUnico } from "@/shared/hooks/use-envio-unico";
 import { FormEvent, useState } from "react";
 import type { CajaItem } from "../types/caja.types";
 
@@ -37,12 +38,15 @@ export function AbrirTurnoCard({
   const [intentoEnviar, setIntentoEnviar] = useState(false);
 
   const sinCajas = cajasDisponibles.length === 0;
+  const { enviando, ejecutar } = useEnvioUnico();
+  const ocupado = isSaving || enviando;
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setIntentoEnviar(true);
-    if (!idCaja || isSaving) return;
-    await onAbrir(idCaja, montoApertura, observacion);
+    if (!idCaja || ocupado) return;
+    // Un segundo clic mientras responde el backend no abre otro turno.
+    void ejecutar(() => onAbrir(idCaja, montoApertura, observacion));
   }
 
   return (
@@ -123,11 +127,11 @@ export function AbrirTurnoCard({
 
             <Button
               type="submit"
-              disabled={isSaving}
+              disabled={ocupado}
               className="w-full"
-              startIcon={<Icon name="mdi:lock-open-variant-outline" size={18} />}
+              startIcon={<Icon name={ocupado ? "mdi:loading" : "mdi:lock-open-variant-outline"} size={18} className={ocupado ? "animate-spin" : ""} />}
             >
-              {isSaving ? "Abriendo..." : "Abrir turno"}
+              {ocupado ? "Abriendo..." : "Abrir turno"}
             </Button>
           </div>
         )}

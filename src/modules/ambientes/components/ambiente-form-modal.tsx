@@ -46,7 +46,7 @@ export function SalonFormModal({
       title={salon ? "Editar salón" : "Nuevo salón"}
       subtitle="Define una zona y su ubicación en el plano."
       isSaving={props.isSaving}
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         if (
           !values.codigo.trim() ||
@@ -79,7 +79,7 @@ export function SalonFormModal({
           return;
         }
         setValidation("");
-        void onSubmit(values);
+        await onSubmit(values);
       }}
     >
       {validation && (
@@ -176,7 +176,7 @@ export function MesaFormModal({
       submitDisabled={
         estados.isLoading || Boolean(estados.error) || !estadoValido
       }
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         if (estados.isLoading || estados.error || !estadoValido) return;
         if (
@@ -192,7 +192,7 @@ export function MesaFormModal({
           return;
         }
         setValidation("");
-        void onSubmit({
+        await onSubmit({
           id_salon: Number(salon.id),
           codigo: codigo.trim(),
           capacidad_personas: capacidad,

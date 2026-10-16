@@ -5,7 +5,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
@@ -191,7 +191,7 @@ export function useCuentasPorCobrar() {
   useEffect(() => {
     const user = getStoredUser();
     if (!user) return;
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then(setTurnoAbierto)
       .catch(() => setTurnoAbierto(null));
   }, []);
@@ -200,7 +200,7 @@ export function useCuentasPorCobrar() {
   function refrescarTurno() {
     const user = getStoredUser();
     if (!user) return;
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then(setTurnoAbierto)
       .catch(() => undefined);
   }

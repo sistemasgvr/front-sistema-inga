@@ -11,7 +11,7 @@ import type { CocinaItem,CocinaAccion } from "../types/cocina.types";
 export function AccionCocinaModal({item,tipo,onClose,onSaved}:{item:CocinaItem;tipo:CocinaAccion;onClose:()=>void;onSaved:()=>void}){
   const a=useAccionCocina(item,tipo,onSaved);
   return <FormModal isOpen onClose={()=>{if(!a.saving)onClose();}} title={`${tipo==="entregar"?"Entregar":"Cancelar"}: ${item.nombre_producto}`}
-    isSaving={a.saving} submitDisabled={!a.valido} onSubmit={e=>{e.preventDefault();void a.guardar();}}>
+    isSaving={a.saving} submitDisabled={!a.valido} onSubmit={async e=>{e.preventDefault();await a.guardar();}}>
     {a.error&&<ToastNotification variant="error" title="No se pudo guardar" message={a.error}/>}
     <p className="text-sm text-gray-500">Pendientes: {item.cantidad_pendiente}. Entregados: {item.cantidad_entregada}. Cancelados: {item.cantidad_cancelada}.</p>
     <Label>Cantidad que se {tipo==="entregar"?"entrega":"cancela"} ahora</Label><Input type="number" min="0.0001" max={String(item.cantidad_pendiente)} step={0.0001} value={a.cantidad} disabled={a.saving} onChange={e=>a.setCantidad(Number(e.target.value))}/>

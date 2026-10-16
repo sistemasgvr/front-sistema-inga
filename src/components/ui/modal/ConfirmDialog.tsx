@@ -2,6 +2,8 @@
 
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
+import { Icon } from "@/components/ui/icon";
+import { useEnvioUnico } from "@/shared/hooks/use-envio-unico";
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -27,6 +29,9 @@ export function ConfirmDialog({
   isLoading = false,
 }: ConfirmDialogProps) {
   const isDanger = variant === "danger";
+  // Un doble clic en "Confirmar" (p. ej. eliminar) no repite la acción mientras responde el backend.
+  const { enviando, ejecutar } = useEnvioUnico();
+  const ocupado = isLoading || enviando;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="max-w-[480px] p-6 lg:p-8">
@@ -67,7 +72,7 @@ export function ConfirmDialog({
             variant="outline"
             type="button"
             onClick={onClose}
-            disabled={isLoading}
+            disabled={ocupado}
             className="w-full sm:w-auto"
           >
             {cancelText}
@@ -75,15 +80,18 @@ export function ConfirmDialog({
           <Button
             size="sm"
             type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
+            onClick={() => {
+              if (!ocupado) void ejecutar(onConfirm);
+            }}
+            startIcon={ocupado ? <Icon name="mdi:loading" size={16} className="animate-spin" /> : undefined}
+            disabled={ocupado}
             className={`w-full sm:w-auto ${
               isDanger
                 ? "bg-error-600 hover:bg-error-700 dark:bg-error-500"
                 : ""
             }`}
           >
-            {isLoading ? "Procesando..." : confirmText}
+            {ocupado ? "Procesando..." : confirmText}
           </Button>
         </div>
       </div>

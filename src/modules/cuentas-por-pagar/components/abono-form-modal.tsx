@@ -143,7 +143,7 @@ export function AbonoFormModal({
         <Alert
           variant="warning"
           title="Sin turno de caja abierto"
-          message="No puedes abonar en efectivo porque el egreso no tendría contra qué cuadrar. Abre un turno en Caja, o registra el abono por Yape o transferencia."
+          message="No puedes abonar en efectivo porque el egreso no tendría contra qué cuadrar. Abre una caja, o registra el abono por Yape o transferencia."
         />
       )}
 

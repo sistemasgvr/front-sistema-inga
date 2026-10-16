@@ -235,7 +235,7 @@ export function MesasView() {
               onCancelarItem={m.cancelarItem}
               onCerrarPedido={cerrarPedido}
             onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
-            onAnular={(values) => void m.anular(values)}
+            onAnular={(values) => m.anular(values)}
             onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
             onAgregarItem={() => {
               m.clearError();
@@ -318,10 +318,8 @@ export function MesasView() {
               onCerrarPedido={cerrarPedido}
               onCambiarEstado={(estado) => void m.cambiarEstado(estado)}
               onActualizar={()=>{if(m.pedido)void m.loadPedido(m.pedido.id);}}
-              onAnular={(values) => {
-                void m.anular(values).then((ok) => {
-                  if (ok) setShowEditorExterno(false);
-                });
+              onAnular={async (values) => {
+                if (await m.anular(values)) setShowEditorExterno(false);
               }}
               onAgregarItem={() => undefined}
               onGenerarComprobante={handleGenerarComprobante}

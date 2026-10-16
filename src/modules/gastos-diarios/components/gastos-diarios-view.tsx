@@ -2,7 +2,7 @@
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
-import Input from "@/components/form/input/InputField";
+import { DatePicker } from "@/components/form/DatePicker";
 import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
@@ -95,13 +95,8 @@ export function GastosDiariosView() {
           </div>
         </div>
 
-        <div className="w-40">
-          <Input
-            type="date"
-            value={fecha}
-            max={hoyISO()}
-            onChange={(e) => cambiarFecha(e.target.value)}
-          />
+        <div className="w-48">
+          <DatePicker value={fecha} max={hoyISO()} onChange={cambiarFecha} />
         </div>
 
         <div className="ml-auto">
@@ -121,8 +116,8 @@ export function GastosDiariosView() {
         <div className="mb-5">
           <Alert
             variant="info"
-            title="No tienes un turno de caja abierto"
-            message="Puedes registrar compras por Yape o a crédito. Para pagar en efectivo, abre un turno en Caja para que el egreso cuadre con el cajón."
+            title="No hay ninguna caja abierta"
+            message="Puedes registrar compras por Yape o a crédito. Para pagar en efectivo, debe haber una caja abierta para que el egreso cuadre con el cajón."
           />
         </div>
       )}

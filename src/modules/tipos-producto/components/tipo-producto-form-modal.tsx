@@ -33,9 +33,9 @@ export function TipoProductoFormModal({
       subtitle="Define cómo se configurarán los productos de este tipo."
       isSaving={form.isSaving}
       maxWidth="max-w-[460px]"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        void form.save();
+        await form.save();
       }}
     >
       {form.error && (

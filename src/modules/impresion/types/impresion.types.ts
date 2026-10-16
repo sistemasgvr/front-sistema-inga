@@ -9,8 +9,22 @@ export type ContextoImpresion = {
   reanudar: () => void;
 };
 
+export interface ComprobanteImpresion {
+  nombre_tipo: string;
+  numero: string;
+  receptor_num_doc?: string | null;
+  receptor_razon_social?: string | null;
+  monto_gravado: number;
+  monto_igv: number;
+  monto_total: number;
+}
+
 export interface ComandaImpresion {
-  tipo?: 'PRECUENTA';
+  tipo?: 'PRECUENTA' | 'COMPROBANTE';
+  /** Marcado por Ventas al volver a encolar una comanda ya impresa. */
+  reimpresion?: boolean;
+  comprobante?: ComprobanteImpresion;
+  pagos?: { nombre_medio: string; monto: number }[];
   total?: number;
   id: string;
   numero: number;

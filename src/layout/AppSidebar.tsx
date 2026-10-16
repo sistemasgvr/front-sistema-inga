@@ -90,6 +90,25 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: "mdi:receipt-text-check-outline",
+    name: "Ventas",
+    path: "/ventas",
+    permission: PermisoBanderas.VENTAS_LISTAR,
+  },
+  {
+    icon: "mdi:file-chart-outline",
+    name: "Reportes",
+    subItems: [
+      { name: "Reporte general", path: "/reportes", icon: "mdi:file-chart-outline", permission: PermisoBanderas.REPORTES_GENERAL },
+      { name: "Ventas y platos", path: "/reportes/ventas", icon: "mdi:silverware-fork-knife", permission: PermisoBanderas.REPORTES_VENTAS },
+      { name: "Gastos", path: "/reportes/gastos", icon: "mdi:cash-minus", permission: PermisoBanderas.REPORTES_GASTOS },
+      { name: "Caja", path: "/reportes/caja", icon: "mdi:cash-register", permission: PermisoBanderas.REPORTES_CAJA },
+      { name: "Cuentas", path: "/reportes/cuentas", icon: "mdi:scale-balance", permission: PermisoBanderas.REPORTES_CUENTAS },
+      { name: "Planilla", path: "/reportes/planilla", icon: "mdi:account-cash-outline", permission: PermisoBanderas.REPORTES_PLANILLA },
+      { name: "Inventario", path: "/reportes/inventario", icon: "mdi:package-variant-closed", permission: PermisoBanderas.REPORTES_INVENTARIO },
+    ],
+  },
+  {
     icon: "mdi:cash-register",
     name: "Caja",
     permission: "turnos.ver",

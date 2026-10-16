@@ -18,11 +18,13 @@ import { CierreTurnoModal } from "./cierre-turno-modal";
 import { MovimientoFormModal } from "./movimiento-form-modal";
 import { TurnoPendienteModal } from "./turno-pendiente-modal";
 import { guardarTurnoContinuado, leerTurnoContinuado } from "../utils/turno-continuado";
+import { mensajeQuienPuedeCerrar } from "../utils/permisos-cierre";
 
 export function MiTurnoView() {
   const {
     nombreCajero,
     turno,
+    puedeCerrar,
     resumen,
     cajasDisponibles,
     isLoading,
@@ -103,14 +105,17 @@ export function MiTurnoView() {
               >
                 Movimiento
               </Button>
-              <Button
-                size="sm"
-                type="button"
-                onClick={openCierre}
-                startIcon={<Icon name="mdi:lock-outline" size={17} />}
-              >
-                Cerrar turno
-              </Button>
+              <span title={puedeCerrar ? undefined : mensajeQuienPuedeCerrar(turno)}>
+                <Button
+                  size="sm"
+                  type="button"
+                  onClick={openCierre}
+                  disabled={!puedeCerrar}
+                  startIcon={<Icon name="mdi:lock-outline" size={17} />}
+                >
+                  Cerrar turno
+                </Button>
+              </span>
             </div>
           </div>
 
@@ -378,6 +383,8 @@ export function MiTurnoView() {
           <TurnoPendienteModal
             isOpen={turnoDeOtroDia && !isCierreOpen}
             turno={turno}
+            puedeCerrar={puedeCerrar}
+            esPropio
             onCerrar={openCierre}
             onContinuar={continuarConTurno}
           />

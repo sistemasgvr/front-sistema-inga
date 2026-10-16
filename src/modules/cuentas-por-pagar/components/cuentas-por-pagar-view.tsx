@@ -199,8 +199,8 @@ export function CuentasPorPagarView() {
         <div className="mb-5">
           <Alert
             variant="info"
-            title="No tienes un turno de caja abierto"
-            message="Puedes abonar por Yape o transferencia. Para abonar en efectivo, abre un turno en Caja para que el egreso cuadre con el cajón."
+            title="No hay ninguna caja abierta"
+            message="Puedes abonar por Yape o transferencia. Para abonar en efectivo, debe haber una caja abierta para que el egreso cuadre con el cajón."
           />
         </div>
       )}

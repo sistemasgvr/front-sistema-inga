@@ -4,7 +4,7 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { getTurnoAbierto } from "@/modules/caja/services/caja.service";
+import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
 import {
   anularPago,
@@ -117,7 +117,7 @@ export function usePagosPlanilla() {
     if (!user) return;
     // Si falla no rompo la pantalla: el modal avisará que no hay turno abierto
     // y solo permitirá pagos por Yape o transferencia.
-    getTurnoAbierto(user.id)
+    getTurnoVigente()
       .then(setTurnoAbierto)
       .catch(() => setTurnoAbierto(null));
   }, []);
@@ -158,7 +158,7 @@ export function usePagosPlanilla() {
       // del cajón acaba de cambiar.
       const user = getStoredUser();
       if (user) {
-        getTurnoAbierto(user.id)
+        getTurnoVigente()
           .then(setTurnoAbierto)
           .catch(() => undefined);
       }
