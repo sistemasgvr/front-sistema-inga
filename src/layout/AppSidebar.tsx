@@ -3,7 +3,7 @@
 import BrandLogo from "@/components/common/BrandLogo";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
-import { getMe, getStoredUser } from "@/modules/auth/services/auth.service"; 
+import { getMe, getStoredUser } from "@/modules/auth/services/auth.service";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,6 +33,24 @@ const navItems: NavItem[] = [
     path: "/dashboard",
   },
   {
+    icon: "mdi:floor-plan",
+    name: "Ambientes",
+    permission: "ambientes.listar",
+    subItems: [
+      {
+        name: "Distribución",
+        path: "/ambientes/distribucion",
+        icon: "mdi:map-marker-radius-outline",
+      },
+      {
+        name: "Mesas",
+        path: "/ambientes/mesas",
+        icon: "ic:round-table-restaurant",
+      },
+    ],
+  },
+
+  {
     icon: "mdi:silverware-fork-knife",
     name: "Productos",
     subItems: [
@@ -46,7 +64,10 @@ const navItems: NavItem[] = [
         name: "Categorías",
         path: "/productos/subcategorias",
         icon: "mdi:file-tree-outline",
-        permission: [PermisoBanderas.CATEGORIAS_LISTAR, PermisoBanderas.SUBCATEGORIAS_LISTAR],
+        permission: [
+          PermisoBanderas.CATEGORIAS_LISTAR,
+          PermisoBanderas.SUBCATEGORIAS_LISTAR,
+        ],
       },
       {
         name: "Cocina y preparaciones",
@@ -87,25 +108,6 @@ const navItems: NavItem[] = [
         path: "/cuentas-por-pagar",
         icon: "mdi:cash-remove",
       },
-    ],
-  },
-  {
-    icon: "mdi:receipt-text-check-outline",
-    name: "Ventas",
-    path: "/ventas",
-    permission: PermisoBanderas.VENTAS_LISTAR,
-  },
-  {
-    icon: "mdi:file-chart-outline",
-    name: "Reportes",
-    subItems: [
-      { name: "Reporte general", path: "/reportes", icon: "mdi:file-chart-outline", permission: PermisoBanderas.REPORTES_GENERAL },
-      { name: "Ventas y platos", path: "/reportes/ventas", icon: "mdi:silverware-fork-knife", permission: PermisoBanderas.REPORTES_VENTAS },
-      { name: "Gastos", path: "/reportes/gastos", icon: "mdi:cash-minus", permission: PermisoBanderas.REPORTES_GASTOS },
-      { name: "Caja", path: "/reportes/caja", icon: "mdi:cash-register", permission: PermisoBanderas.REPORTES_CAJA },
-      { name: "Cuentas", path: "/reportes/cuentas", icon: "mdi:scale-balance", permission: PermisoBanderas.REPORTES_CUENTAS },
-      { name: "Planilla", path: "/reportes/planilla", icon: "mdi:account-cash-outline", permission: PermisoBanderas.REPORTES_PLANILLA },
-      { name: "Inventario", path: "/reportes/inventario", icon: "mdi:package-variant-closed", permission: PermisoBanderas.REPORTES_INVENTARIO },
     ],
   },
   {
@@ -153,55 +155,62 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: "mdi:warehouse",
-    name: "Almacenes",
-    path: "/almacenes",
-    permission: PermisoBanderas.ALMACENES_LISTAR,
-  },
-  {
-    icon: "mdi:floor-plan",
-    name: "Ambientes",
-    permission: "ambientes.listar",
+    icon: "mdi:file-chart-outline",
+    name: "Reportes",
     subItems: [
       {
-        name: "Distribución",
-        path: "/ambientes/distribucion",
-        icon: "mdi:map-marker-radius-outline",
+        icon: "mdi:receipt-text-check-outline",
+          name: "Ventas",
+          path: "/ventas",
+          permission: PermisoBanderas.VENTAS_LISTAR,
       },
       {
-        name: "Mesas",
-        path: "/ambientes/mesas",
-        icon: "ic:round-table-restaurant",
-      }
+        name: "Reporte general",
+        path: "/reportes",
+        icon: "mdi:file-chart-outline",
+        permission: PermisoBanderas.REPORTES_GENERAL,
+      },
+      {
+        name: "Ventas y platos",
+        path: "/reportes/ventas",
+        icon: "mdi:silverware-fork-knife",
+        permission: PermisoBanderas.REPORTES_VENTAS,
+      },
+      {
+        name: "Gastos",
+        path: "/reportes/gastos",
+        icon: "mdi:cash-minus",
+        permission: PermisoBanderas.REPORTES_GASTOS,
+      },
+      {
+        name: "Caja",
+        path: "/reportes/caja",
+        icon: "mdi:cash-register",
+        permission: PermisoBanderas.REPORTES_CAJA,
+      },
+      {
+        name: "Cuentas",
+        path: "/reportes/cuentas",
+        icon: "mdi:scale-balance",
+        permission: PermisoBanderas.REPORTES_CUENTAS,
+      },
+      {
+        name: "Planilla",
+        path: "/reportes/planilla",
+        icon: "mdi:account-cash-outline",
+        permission: PermisoBanderas.REPORTES_PLANILLA,
+      },
+      {
+        name: "Inventario",
+        path: "/reportes/inventario",
+        icon: "mdi:package-variant-closed",
+        permission: PermisoBanderas.REPORTES_INVENTARIO,
+      },
     ],
-  },
-    {
-    icon: "clarity:settings-solid",
-    name: "Configuración",
-    subItems: [
-      {
-        icon: "mdi:shield-key-outline",
-        name: "Roles y Permisos",
-        path: "/configuracion/roles",
-        permission: PermisoBanderas.ROLES_LISTAR, 
-      },
-      {
-        icon: "ri:file-paper-2-fill",
-        name: "Sunat",  
-        path: "/configuracion/sunat",
-        permission: PermisoBanderas.SUNAT_LISTAR,
-      },
-      {
-        icon: "mdi:printer-settings",
-        name: "Estaciones",
-        path: "/estaciones",
-        permission: PermisoBanderas.ESTACIONES_LISTAR,
-      }
-    ]
   },
   {
     icon: "clarity:employee-group-solid",
-    name: "Esclavos ",
+    name: "Personal",
     subItems: [
       {
         name: "Trabajadores",
@@ -223,10 +232,48 @@ const navItems: NavItem[] = [
       },
     ],
   },
+  
+  {
+    icon: "clarity:settings-solid",
+    name: "Configuración",
+    subItems: [
+      {
+        icon: "mdi:shield-key-outline",
+        name: "Roles y Permisos",
+        path: "/configuracion/roles",
+        permission: PermisoBanderas.ROLES_LISTAR,
+      },
+      {
+        icon: "ri:file-paper-2-fill",
+        name: "Sunat",
+        path: "/configuracion/sunat",
+        permission: PermisoBanderas.SUNAT_LISTAR,
+      },
+      {
+        icon: "mdi:printer-settings",
+        name: "Estaciones",
+        path: "/estaciones",
+        permission: PermisoBanderas.ESTACIONES_LISTAR,
+      },
+      {
+        icon: "mdi:warehouse",
+        name: "Almacenes",
+        path: "/almacenes",
+        permission: PermisoBanderas.ALMACENES_LISTAR,
+      },
+    ],
+  },
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered, openSubmenu, toggleSubmenu } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    openSubmenu,
+    toggleSubmenu,
+  } = useSidebar();
   const pathname = usePathname();
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -254,20 +301,20 @@ const AppSidebar: React.FC = () => {
   const isActive = (path: string) => path === pathname;
 
   const isSuperAdmin = Boolean(
-    currentUser?.es_super_admin || 
-    currentUser?.esSuperAdmin || 
-    currentUser?.sesion?.es_super_admin
+    currentUser?.es_super_admin ||
+    currentUser?.esSuperAdmin ||
+    currentUser?.sesion?.es_super_admin,
   );
 
-  const userPermisos: string[] = 
-    currentUser?.permisos ?? 
-    currentUser?.sesion?.permisos ?? 
-    [];
+  const userPermisos: string[] =
+    currentUser?.permisos ?? currentUser?.sesion?.permisos ?? [];
 
   function hasAccess(permission?: string | string[]): boolean {
     if (!permission) return true;
     if (isSuperAdmin) return true;
-    return Array.isArray(permission) ? permission.some(p => userPermisos.includes(p)) : userPermisos.includes(permission);
+    return Array.isArray(permission)
+      ? permission.some((p) => userPermisos.includes(p))
+      : userPermisos.includes(permission);
   }
 
   // Filtrado recursivo de la navegación
@@ -280,8 +327,10 @@ const AppSidebar: React.FC = () => {
 
       // Si tiene subítems, se filtran según los permisos del usuario
       if (item.subItems && item.subItems.length > 0) {
-        const allowedSubItems = item.subItems.filter((sub) => hasAccess(sub.permission));
-        
+        const allowedSubItems = item.subItems.filter((sub) =>
+          hasAccess(sub.permission),
+        );
+
         // Si no tiene acceso a ningún subítem, se oculta el menú padre completo
         if (allowedSubItems.length === 0) {
           return null;
@@ -339,10 +388,14 @@ const AppSidebar: React.FC = () => {
                 className={`menu-item group ${
                   isSubmenuOpen ? "menu-item-active" : "menu-item-inactive"
                 } cursor-pointer ${
-                  !isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "lg:justify-start"
                 }`}
               >
-                <span className={`${isSubmenuOpen ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}>
+                <span
+                  className={`${isSubmenuOpen ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}
+                >
                   <Icon name={nav.icon} size={22} />
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
@@ -363,10 +416,14 @@ const AppSidebar: React.FC = () => {
                 <Link
                   href={nav.path}
                   className={`menu-item group ${
-                    isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
+                    isActive(nav.path)
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
                   }`}
                 >
-                  <span className={`${isActive(nav.path) ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}>
+                  <span
+                    className={`${isActive(nav.path) ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}
+                  >
                     <Icon name={nav.icon} size={22} />
                   </span>
                   {(isExpanded || isHovered || isMobileOpen) && (
@@ -422,7 +479,9 @@ const AppSidebar: React.FC = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`flex py-8 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
+      <div
+        className={`flex py-8 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}
+      >
         <Link href="/dashboard">
           {isExpanded || isHovered || isMobileOpen ? (
             <BrandLogo priority />
@@ -438,7 +497,9 @@ const AppSidebar: React.FC = () => {
             <div>
               <h2
                 className={`mb-4 flex text-xs leading-[20px] text-gray-400 uppercase ${
-                  !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+                  !isExpanded && !isHovered
+                    ? "lg:justify-center"
+                    : "justify-start"
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
