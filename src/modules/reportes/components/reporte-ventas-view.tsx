@@ -52,6 +52,17 @@ const columnasParticipacion = <T,>(
   { clave: "pct", titulo: "% del total", valor: (f) => porcentaje(total(f), base), formato: "porcentaje" },
 ];
 
+/** Participación por mozo, con las mesas atendidas y los comensales tras el nombre. */
+function columnasMozos(totalVentas: number): ColumnaReporte<VentaPorMozo>[] {
+  const [nombre, ...resto] = columnasParticipacion<VentaPorMozo>("Mozo", (m) => m.nombre, (m) => m.total, (m) => m.cantidad, totalVentas);
+  return [
+    nombre,
+    { clave: "mesas", titulo: "Mesas atendidas", valor: (m) => m.mesas, formato: "numero" },
+    { clave: "comensales", titulo: "Comensales", valor: (m) => m.comensales, formato: "numero" },
+    ...resto,
+  ];
+}
+
 const COLUMNAS_VENTAS: ColumnaReporte<VentaListado>[] = [
   { clave: "codigo", titulo: "Pedido", valor: (v) => v.codigo },
   { clave: "fecha", titulo: "Cobro", valor: (v) => v.fecha, formato: "fecha" },
@@ -118,9 +129,14 @@ function armarSecciones(d: ReporteVentas) {
     ),
     mozos: seccion(
       "Ventas por mozo",
-      columnasParticipacion<VentaPorMozo>("Mozo", (m) => m.nombre, (m) => m.total, (m) => m.cantidad, totalVentas),
+      columnasMozos(totalVentas),
       d.por_mozo,
-      { cantidad: r.cantidad, total: totalVentas },
+      {
+        mesas: sumar(d.por_mozo, (m) => m.mesas),
+        comensales: sumar(d.por_mozo, (m) => m.comensales),
+        cantidad: r.cantidad,
+        total: totalVentas,
+      },
     ),
     detalle: seccion("Detalle de ventas", COLUMNAS_VENTAS, d.ventas, {
       comensales: r.comensales,

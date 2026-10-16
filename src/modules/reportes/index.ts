@@ -6,6 +6,8 @@ export { ReporteCuentasView } from "./components/reporte-cuentas-view";
 export { ReportePlanillaView } from "./components/reporte-planilla-view";
 export { ReporteInventarioView } from "./components/reporte-inventario-view";
 export { Indicador } from "./components/indicador";
+export { TablaReporte } from "./components/tabla-reporte";
+export type { ColumnaReporte } from "./utils/columnas";
 export { getDashboard, getReporte } from "./services/reportes.service";
 export { REPORTES } from "./utils/catalogo";
 export * from "./utils/calculos";

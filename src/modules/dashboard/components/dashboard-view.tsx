@@ -6,18 +6,17 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { DateRangePicker } from "@/components/form/DateRangePicker";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
+import { NavTabs } from "@/components/ui/table/NavTabs";
 import { getStoredUser } from "@/modules/auth";
-import {
-  estadoResultados,
-  formatoMoneda,
-  formatoNumero,
-  formatoPorcentaje,
-  Indicador,
-  type Granularidad,
-} from "@/modules/reportes";
-import { hoyIso } from "@/shared/utils/fecha";
+import { estadoResultados, formatoMoneda, formatoNumero, formatoPorcentaje, Indicador, type Granularidad } from "@/modules/reportes";
+import { formatearRango, hoyIso } from "@/shared/utils/fecha";
 import { useDashboard } from "../hooks/use-dashboard";
-import { GraficosDashboard } from "./graficos-dashboard";
+import { ayudasDashboard } from "../utils/ayudas";
+import { PestanaGastos } from "./pestana-gastos";
+import { PestanaMozos } from "./pestana-mozos";
+import { PestanaPlatos } from "./pestana-platos";
+import { PestanaResumen } from "./pestana-resumen";
+import { PestanaVentas } from "./pestana-ventas";
 
 const GRANULARIDADES: { valor: Granularidad; etiqueta: string }[] = [
   { valor: "dia", etiqueta: "Día" },
@@ -25,8 +24,22 @@ const GRANULARIDADES: { valor: Granularidad; etiqueta: string }[] = [
   { valor: "mes", etiqueta: "Mes" },
 ];
 
+type Pestana = "resumen" | "ventas" | "platos" | "mozos" | "gastos";
+
+const PESTANAS: { id: Pestana; label: string; icono: string }[] = [
+  { id: "resumen", label: "Resumen", icono: "mdi:chart-areaspline" },
+  { id: "ventas", label: "Ventas", icono: "mdi:cash-register" },
+  { id: "platos", label: "Platos", icono: "mdi:silverware-fork-knife" },
+  { id: "mozos", label: "Mozos", icono: "mdi:account-tie-outline" },
+  { id: "gastos", label: "Gastos", icono: "mdi:cash-minus" },
+];
+
+/** Pestañas con gráficos en el tiempo: solo en ellas tiene sentido agrupar por día, semana o mes. */
+const CON_GRANULARIDAD: Pestana[] = ["resumen", "gastos"];
+
 export function DashboardView() {
   const [name, setName] = useState("Usuario");
+  const [pestana, setPestana] = useState<Pestana>("resumen");
   const d = useDashboard();
   const hoy = useMemo(() => hoyIso(), []);
 
@@ -42,6 +55,8 @@ export function DashboardView() {
   }, []);
 
   const estado = d.datos ? estadoResultados(d.datos) : null;
+  const periodo = formatearRango(d.rango);
+  const ayudas = ayudasDashboard(periodo);
 
   return (
     <div>
@@ -54,7 +69,9 @@ export function DashboardView() {
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {d.permitido ? (
             <>
-              Ventas, platos, gastos y rentabilidad de Ingá. Para el detalle y la exportación a Excel, ve a{" "}
+              Ventas, platos, mozos, gastos y rentabilidad de Ingá. Pasa el cursor por el ícono{" "}
+              <Icon name="mdi:help-circle-outline" size={14} className="inline" aria-hidden="true" /> de cada cifra para ver cómo se
+              calcula. Para el detalle y la exportación a Excel, ve a{" "}
               <Link href="/reportes" className="text-brand-500 hover:underline">
                 Reportes
               </Link>
@@ -72,23 +89,25 @@ export function DashboardView() {
             <div className="w-full sm:w-72">
               <DateRangePicker label="Período" value={d.rango} onChange={d.cambiarRango} max={hoy} />
             </div>
-            <div role="group" aria-label="Agrupar por" className="inline-flex rounded-lg border border-gray-300 p-0.5 dark:border-gray-700">
-              {GRANULARIDADES.map((g) => (
-                <button
-                  key={g.valor}
-                  type="button"
-                  aria-pressed={d.granularidad === g.valor}
-                  onClick={() => d.cambiarGranularidad(g.valor)}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    d.granularidad === g.valor
-                      ? "bg-brand-500 text-white"
-                      : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {g.etiqueta}
-                </button>
-              ))}
-            </div>
+            {CON_GRANULARIDAD.includes(pestana) && (
+              <div role="group" aria-label="Agrupar por" className="inline-flex rounded-lg border border-gray-300 p-0.5 dark:border-gray-700">
+                {GRANULARIDADES.map((g) => (
+                  <button
+                    key={g.valor}
+                    type="button"
+                    aria-pressed={d.granularidad === g.valor}
+                    onClick={() => d.cambiarGranularidad(g.valor)}
+                    className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      d.granularidad === g.valor
+                        ? "bg-brand-500 text-white"
+                        : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    {g.etiqueta}
+                  </button>
+                ))}
+              </div>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -116,22 +135,25 @@ export function DashboardView() {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Indicador
-                  titulo="Ventas"
+                  titulo="Ventas totales"
                   valor={formatoMoneda(estado.ventas_brutas)}
-                  detalle={`Sin IGV: ${formatoMoneda(estado.ventas_netas)}`}
+                  detalle={`Con IGV. Sin IGV: ${formatoMoneda(estado.ventas_netas)} (la misma venta, no se suma)`}
                   icono="mdi:cash-register"
+                  ayuda={ayudas.ventas}
                 />
                 <Indicador
                   titulo="Ticket promedio"
                   valor={formatoMoneda(estado.ticket_promedio)}
-                  detalle={`${formatoNumero(estado.cantidad_ventas)} pedidos cobrados`}
+                  detalle={`Ventas ÷ ${formatoNumero(estado.cantidad_ventas)} pedidos cobrados`}
                   icono="mdi:receipt-text-outline"
+                  ayuda={ayudas.ticket}
                 />
                 <Indicador
                   titulo="Margen bruto"
                   valor={formatoMoneda(estado.margen_bruto)}
                   detalle={`${formatoPorcentaje(estado.margen_bruto_pct)} · costo de recetas ${formatoMoneda(estado.costo_ventas)}`}
                   icono="mdi:chart-line"
+                  ayuda={ayudas.margen}
                   negativo={estado.margen_bruto < 0}
                 />
                 <Indicador
@@ -139,25 +161,41 @@ export function DashboardView() {
                   valor={formatoMoneda(estado.utilidad_operativa)}
                   detalle={`${formatoPorcentaje(estado.utilidad_pct)} · gastos ${formatoMoneda(estado.total_gastos)}`}
                   icono="mdi:finance"
+                  ayuda={ayudas.utilidad}
                   negativo={estado.utilidad_operativa < 0}
                 />
-                <Indicador
-                  titulo="Comensales"
-                  valor={formatoNumero(estado.comensales)}
-                  detalle={`Consumo por comensal: ${formatoMoneda(estado.consumo_por_comensal)}`}
-                  icono="mdi:account-group-outline"
-                />
-                <Indicador titulo="Compras del día" valor={formatoMoneda(estado.gastos_diarios)} icono="mdi:cart-outline" />
-                <Indicador titulo="Gastos administrativos" valor={formatoMoneda(estado.gastos_administrativos)} icono="mdi:office-building-outline" />
-                <Indicador titulo="Planilla" valor={formatoMoneda(estado.planilla)} icono="mdi:account-cash-outline" />
               </div>
 
-              <GraficosDashboard datos={d.datos} desde={d.rango.desde} hasta={d.rango.hasta} granularidad={d.granularidad} />
+              <NavTabs
+                tabs={PESTANAS.map((p) => ({ id: p.id, label: p.label, icon: <Icon name={p.icono} size={16} aria-hidden="true" /> }))}
+                activeTab={pestana}
+                onChange={(id: Pestana) => setPestana(id)}
+              />
 
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Margen bruto = ventas sin IGV − costo actual de las recetas de lo vendido. Utilidad operativa = ventas sin IGV −
-                (compras del día + gastos administrativos + planilla). Son dos miradas distintas: no se restan juntas.
-              </p>
+              {/* Solo se monta la pestaña visible: los gráficos toman el ancho real al aparecer. */}
+              {pestana === "resumen" && (
+                <PestanaResumen
+                  datos={d.datos}
+                  desde={d.rango.desde}
+                  hasta={d.rango.hasta}
+                  granularidad={d.granularidad}
+                  ayudaFlujo={ayudas.ingresosGastos}
+                />
+              )}
+              {pestana === "ventas" && <PestanaVentas datos={d.datos} estado={estado} ayudas={ayudas} />}
+              {pestana === "platos" && <PestanaPlatos datos={d.datos} />}
+              {pestana === "mozos" && <PestanaMozos datos={d.datos} />}
+              {pestana === "gastos" && (
+                <PestanaGastos
+                  datos={d.datos}
+                  estado={estado}
+                  desde={d.rango.desde}
+                  hasta={d.rango.hasta}
+                  granularidad={d.granularidad}
+                  periodo={periodo}
+                  ayudas={ayudas}
+                />
+              )}
             </div>
           )}
         </>

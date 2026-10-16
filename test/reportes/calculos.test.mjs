@@ -264,3 +264,54 @@ test('etiqueta de canal para los tipos de pedido', () => {
   assert.equal(c.etiquetaTipoPedido(3), 'Delivery');
   assert.equal(c.etiquetaTipoPedido(9), 'Tipo 9');
 });
+
+test('topPlatos ordena por unidades y trae la venta y el costo de esas unidades', () => {
+  const top = plano(
+    c.topPlatos(
+      [
+        producto({ id_producto: 1, nombre: 'Ceviche', cantidad: 3, monto: 90, monto_neto: 76.27, costo_unitario: 10 }),
+        producto({ id_producto: 2, nombre: 'Lomo', cantidad: 19, monto: 380, monto_neto: 322.03, costo_unitario: 5 }),
+        producto({ id_producto: 3, nombre: 'Chicha', cantidad: 3, monto: 30, monto_neto: 25.42, costo_unitario: 1 }),
+      ],
+      2,
+    ),
+  );
+  assert.deepEqual(top.map((p) => p.nombre), ['Lomo', 'Ceviche'], 'empate en unidades: gana la mayor venta');
+  assert.equal(top[0].costo_total, 95, '19 unidades × S/ 5');
+  assert.equal(top[0].margen, 227.03);
+});
+
+test('topMozosPorMesas cuenta mesas atendidas y deja fuera a quien no atendió mesa', () => {
+  const top = plano(
+    c.topMozosPorMesas(
+      [
+        { id_mozo: 1, nombre: 'Ana', cantidad: 10, total: 500, mesas: 8, comensales: 20 },
+        { id_mozo: 2, nombre: 'Luis', cantidad: 9, total: 900, mesas: 8, comensales: 30 },
+        { id_mozo: 3, nombre: 'Caja', cantidad: 4, total: 80, mesas: 0, comensales: 4 },
+      ],
+      10,
+    ),
+  );
+  assert.deepEqual(top.map((m) => m.nombre), ['Luis', 'Ana'], 'empate en mesas: gana la mayor venta');
+  assert.equal(top[0].ticket_promedio, 100);
+  assert.equal(top[0].comensales_por_mesa, 3.8);
+  const once = Array.from({ length: 12 }, (_, i) => ({ id_mozo: i, nombre: `M${i}`, cantidad: 1, total: 1, mesas: i + 1, comensales: 1 }));
+  assert.equal(c.topMozosPorMesas(once, 10).length, 10, 'solo los 10 primeros');
+});
+
+test('gastosPorPeriodo separa compras, administrativos y planilla por período', () => {
+  const serie = plano(
+    c.gastosPorPeriodo({
+      desde: '2026-10-01',
+      hasta: '2026-10-02',
+      granularidad: 'dia',
+      gastos_diarios: [{ fecha: '2026-10-01', total: 30 }],
+      gastos_administrativos: [{ fecha: '2026-10-02', monto: 20 }],
+      planilla: [{ fecha: '2026-10-02', monto: 900 }],
+    }),
+  );
+  assert.deepEqual(serie.map((p) => [p.clave, p.valores.compras, p.valores.administrativos, p.valores.planilla]), [
+    ['2026-10-01', 30, 0, 0],
+    ['2026-10-02', 0, 20, 900],
+  ]);
+});

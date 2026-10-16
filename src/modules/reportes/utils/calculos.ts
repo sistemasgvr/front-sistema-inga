@@ -11,6 +11,7 @@ import type {
   VentaPorDia,
   VentaPorDiaSemana,
   VentaPorHora,
+  VentaPorMozo,
 } from "../types/reportes.types";
 
 /**
@@ -433,4 +434,47 @@ export function lineasEstadoResultados(e: EstadoResultados): LineaResultado[] {
     linea("(−) Total de gastos pagados", e.total_gastos),
     linea("Utilidad operativa (ventas sin IGV − gastos)", e.utilidad_operativa, "total"),
   ];
+}
+
+/** Platos más vendidos por unidades, con su venta y el costo de receta de esas unidades. */
+export function topPlatos(productos: readonly ProductoVendido[], n = 10): ProductoRentabilidad[] {
+  return productos
+    .map(rentabilidadProducto)
+    .sort((a, b) => b.cantidad - a.cantidad || b.monto - a.monto)
+    .slice(0, n);
+}
+
+/** Mozos con más mesas atendidas (pedidos de mesa cobrados); desempata la venta. */
+export function topMozosPorMesas(mozos: readonly VentaPorMozo[], n = 10) {
+  return mozos
+    .filter((m) => m.mesas > 0)
+    .sort((a, b) => b.mesas - a.mesas || b.total - a.total)
+    .slice(0, n)
+    .map((m) => ({
+      ...m,
+      ticket_promedio: m.cantidad ? redondear(m.total / m.cantidad) : 0,
+      comensales_por_mesa: m.mesas ? redondear(m.comensales / m.mesas, 1) : 0,
+    }));
+}
+
+/** Compras del día, gastos administrativos y planilla por período, para comparar su peso. */
+export function gastosPorPeriodo(datos: {
+  desde: string;
+  hasta: string;
+  granularidad: Granularidad;
+  gastos_diarios: readonly GastoDiarioDia[];
+  gastos_administrativos: readonly GastoAdministrativo[];
+  planilla: readonly PagoPlanilla[];
+}) {
+  type Fila = { fecha: string; compras: number; administrativos: number; planilla: number };
+  const filas: Fila[] = [
+    ...datos.gastos_diarios.map((g) => ({ fecha: g.fecha, compras: g.total, administrativos: 0, planilla: 0 })),
+    ...datos.gastos_administrativos.map((g) => ({ fecha: g.fecha, compras: 0, administrativos: g.monto, planilla: 0 })),
+    ...datos.planilla.map((p) => ({ fecha: p.fecha, compras: 0, administrativos: 0, planilla: p.monto })),
+  ];
+  return agruparPorPeriodo(datos.desde, datos.hasta, datos.granularidad, filas, {
+    compras: (f) => f.compras,
+    administrativos: (f) => f.administrativos,
+    planilla: (f) => f.planilla,
+  });
 }

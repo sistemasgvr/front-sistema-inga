@@ -31,7 +31,15 @@ export type VentaPorHora = { hora: number; cantidad: number; total: number };
 export type VentaPorDiaSemana = { dia: number; cantidad: number; total: number };
 export type VentaPorTipo = { tipo_pedido: number; cantidad: number; total: number; comensales: number };
 export type VentaPorMedio = { medio_pago: number; nombre: string; cantidad: number; total: number };
-export type VentaPorMozo = { id_mozo: number; nombre: string; cantidad: number; total: number };
+/** `mesas` = pedidos de mesa cobrados (atenciones); `cantidad` incluye llevar y delivery. */
+export type VentaPorMozo = {
+  id_mozo: number;
+  nombre: string;
+  cantidad: number;
+  total: number;
+  mesas: number;
+  comensales: number;
+};
 
 export type VentaListado = {
   id: number;
