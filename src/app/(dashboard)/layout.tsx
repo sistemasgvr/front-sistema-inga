@@ -7,6 +7,7 @@ import Backdrop from "@/layout/Backdrop";
 import { RequireAuth } from "@/modules/auth";
 import type { ReactNode } from "react";
 import { ImpresionProvider } from "@/modules/impresion";
+import { NotificacionesProvider } from "@/modules/notificaciones";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -20,6 +21,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <RequireAuth>
       <ImpresionProvider>
+      <NotificacionesProvider>
       <div className="min-h-screen xl:flex">
         <AppSidebar />
         <Backdrop />
@@ -32,6 +34,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </div>
+      </NotificacionesProvider>
       </ImpresionProvider>
     </RequireAuth>
   );

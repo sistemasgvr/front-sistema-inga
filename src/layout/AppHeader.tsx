@@ -7,6 +7,7 @@ import UserDropdown from "@/components/header/UserDropdown";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";
 import { IndicadorImpresion } from "@/modules/impresion";
+import { CampanaNotificaciones } from "@/modules/notificaciones";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -105,7 +106,7 @@ const AppHeader: React.FC = () => {
             </Link>
             <IndicadorImpresion />
             <ThemeToggleButton />
-            <NotificationDropdown />
+            <CampanaNotificaciones />
           </div>
           <UserDropdown />
         </div>
