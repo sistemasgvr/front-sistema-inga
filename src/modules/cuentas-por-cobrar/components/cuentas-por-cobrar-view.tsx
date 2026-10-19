@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
 import Input from "@/components/form/input/InputField";
@@ -541,6 +542,14 @@ export function CuentasPorCobrarView() {
                             >
                               <Icon name="mdi:eye-outline" size={19} />
                             </button>
+                            <Link
+                              href={`/cuentas-por-cobrar/clientes/${cli.id_persona}`}
+                              className="text-gray-500 transition-colors hover:text-brand-600"
+                              title="Estado de cuenta detallado: imprimir, PDF o Excel"
+                              aria-label={`Estado de cuenta detallado de ${cli.nombre}`}
+                            >
+                              <Icon name="mdi:printer-outline" size={19} />
+                            </Link>
                             <button
                               type="button"
                               onClick={() => abrirConsumo(cli)}

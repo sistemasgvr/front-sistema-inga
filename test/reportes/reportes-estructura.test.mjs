@@ -25,8 +25,8 @@ test('cada cambio de rango vuelve a pedir el reporte y cancela la respuesta ante
 
 test('el dashboard pide al backend en cada rango y no consulta sin permiso', () => {
   assert.match(hookDashboard, /getDashboard\(\{ fecha_desde: rango\.desde, fecha_hasta: rango\.hasta \}, controller\.signal\)/);
-  assert.match(hookDashboard, /if \(!permitido \|\| !completo\) return;/);
-  assert.match(hookDashboard, /PermisoBanderas\.DASHBOARD_VER/);
+  assert.match(hookDashboard, /if \(permitido !== true \|\| !completo\) return;/);
+  assert.match(hookDashboard, /useTienePermiso\(PermisoBanderas\.DASHBOARD_VER\)/);
   assert.match(hookDashboard, /controller\.abort\(\)/);
 });
 
@@ -98,4 +98,16 @@ test('cada vista arma sus secciones una vez para la tabla y el Excel', () => {
 test('el dashboard usa el selector de rango compartido sin fechas futuras', () => {
   assert.match(dashboard, /<DateRangePicker label="Período" value=\{d\.rango\} onChange=\{d\.cambiarRango\} max=\{hoy\} \/>/);
   assert.doesNotMatch(dashboard, /BarChartOne|LineChartOne/, 'ya no muestra los gráficos de ejemplo');
+});
+
+test('la sesión se lee sin romper la hidratación (servidor y navegador renderizan igual)', () => {
+  const sesion = leer('../../src/modules/reportes/hooks/use-sesion-cliente.ts');
+  assert.match(sesion, /useSyncExternalStore\(sinCambios, leer, \(\) => enServidor\)/);
+  assert.match(sesion, /\}, null\);/, 'el permiso es null hasta leer la sesión');
+  // Regresión: leer localStorage en useMemo daba "Hydration failed" en /dashboard.
+  assert.doesNotMatch(hookDashboard, /getStoredUser|useMemo/);
+  assert.doesNotMatch(shell, /useMemo\(\(\) => \{\s*const user = getStoredUser\(\)/);
+  assert.match(shell, /useSesionCliente\(\(\) => \{\s*const user = getStoredUser\(\);/);
+  assert.match(dashboard, /d\.permitido === null \?/);
+  assert.match(dashboard, /\{d\.permitido === true && \(/);
 });

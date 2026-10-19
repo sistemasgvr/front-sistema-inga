@@ -8,6 +8,7 @@ import type {
   AbonoCxcFormValues,
   ConsumoFormValues,
   EstadoCuentaCxc,
+  EstadoCuentaDetalleCxc,
   ListMovimientosCxcParams,
   ListMovimientosCxcResult,
   ListSaldosCxcParams,
@@ -189,5 +190,23 @@ export async function getReportePeriodo(params?: {
       quincena: params?.quincena || undefined,
       id_convenio: params?.id_convenio || undefined,
     },
+  });
+}
+
+/**
+ * Estado de cuenta detallado para imprimir o exportar: cada movimiento con su
+ * pedido y los platos. Sin fechas trae todo el historial.
+ */
+export function getEstadoCuentaDetalle(
+  idPersona: number,
+  rango: { desde: string; hasta: string },
+  signal?: AbortSignal,
+): Promise<EstadoCuentaDetalleCxc> {
+  return apiGet<EstadoCuentaDetalleCxc>(`${BASE}/clientes/${idPersona}/detalle`, {
+    params: {
+      fecha_desde: rango.desde || undefined,
+      fecha_hasta: rango.hasta || undefined,
+    },
+    signal,
   });
 }

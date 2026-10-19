@@ -1,6 +1,9 @@
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import type { TipoReporte } from "../types/reportes.types";
 
+/** Nombre que encabeza los reportes impresos y los archivos de Excel. */
+export const EMPRESA = "Restaurante Ingá";
+
 export type ReporteCatalogo = {
   tipo: TipoReporte;
   titulo: string;

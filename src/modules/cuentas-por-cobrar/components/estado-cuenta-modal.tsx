@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { Modal } from "@/components/ui/modal";
 import type { EstadoCuentaCxc, MovimientoCxc } from "../types/cxc.types";
@@ -264,7 +265,16 @@ export function EstadoCuentaModal({
         </>
       )}
 
-      <div className="mt-5 flex justify-end">
+      <div className="mt-5 flex flex-wrap justify-end gap-3">
+        {persona && (
+          <Link
+            href={`/cuentas-por-cobrar/clientes/${persona.id_persona}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+          >
+            <Icon name="mdi:printer-outline" size={18} aria-hidden="true" />
+            Imprimir con detalle de pedidos
+          </Link>
+        )}
         <button
           type="button"
           onClick={onClose}

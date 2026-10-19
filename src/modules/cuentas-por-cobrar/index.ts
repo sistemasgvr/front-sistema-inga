@@ -1,4 +1,5 @@
 export { CuentasPorCobrarView } from "./components/cuentas-por-cobrar-view";
+export { EstadoCuentaDetalleView } from "./components/estado-cuenta-detalle-view";
 export { useCuentasPorCobrar } from "./hooks/use-cuentas-por-cobrar";
 export * from "./services/cxc.service";
 export * from "./types/cxc.types";

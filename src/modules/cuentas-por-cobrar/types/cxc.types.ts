@@ -224,3 +224,65 @@ export type ReporteCxc = {
   total_neto: number;
   empresas: ReporteEmpresa[];
 };
+
+/* ------------------- Estado de cuenta detallado (imprimible) ------------------- */
+
+export type LineaPedidoCxc = {
+  id: number;
+  producto: string;
+  cantidad: number;
+  precio_unitario: number;
+  adicionales: { nombre: string; precio: number }[];
+  descuento: number;
+  subtotal: number;
+  cortesia: boolean;
+};
+
+/** Pedido que originó un cargo (o al que apunta una corrección). */
+export type PedidoCxc = {
+  id: number;
+  codigo: string;
+  tipo_pedido: number;
+  fecha: string;
+  mesa: string | null;
+  mozo: string | null;
+  comensales: number;
+  total: number;
+  comprobante: string | null;
+  pagos: { medio: string; monto: number }[];
+  lineas: LineaPedidoCxc[];
+};
+
+export type MovimientoDetalleCxc = {
+  id: number;
+  /** 1 consumo, 2 abono, 3 ajuste. */
+  tipo_movimiento: number;
+  /** `YYYY-MM-DD HH:MM` en Lima. */
+  fecha: string;
+  monto: number;
+  anio: number;
+  mes: number;
+  quincena: number;
+  medio_pago: number | null;
+  medio_pago_nombre: string | null;
+  observacion: string | null;
+  pedido: PedidoCxc | null;
+};
+
+export type EstadoCuentaDetalleCxc = {
+  periodo: { fecha_desde: string | null; fecha_hasta: string | null };
+  id_persona: number;
+  nombre: string;
+  num_documento: string | null;
+  convenio: string | null;
+  limite_credito: number | null;
+  saldo_actual: number;
+  /** Lo que debía antes de `fecha_desde` (0 sin fecha inicial). */
+  saldo_anterior: number;
+  total_cargos: number;
+  total_abonos: number;
+  total_ajustes: number;
+  /** Lo que debía al cierre de `fecha_hasta`. */
+  saldo_final: number;
+  movimientos: MovimientoDetalleCxc[];
+};

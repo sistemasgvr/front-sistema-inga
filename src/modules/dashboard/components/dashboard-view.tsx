@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import { DateRangePicker } from "@/components/form/DateRangePicker";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { NavTabs } from "@/components/ui/table/NavTabs";
 import { getStoredUser } from "@/modules/auth";
-import { estadoResultados, formatoMoneda, formatoNumero, formatoPorcentaje, Indicador, type Granularidad } from "@/modules/reportes";
+import {
+  estadoResultados,
+  formatoMoneda,
+  formatoNumero,
+  formatoPorcentaje,
+  Indicador,
+  useSesionCliente,
+  type Granularidad,
+} from "@/modules/reportes";
 import { formatearRango, hoyIso } from "@/shared/utils/fecha";
 import { useDashboard } from "../hooks/use-dashboard";
 import { ayudasDashboard } from "../utils/ayudas";
@@ -37,22 +45,19 @@ const PESTANAS: { id: Pestana; label: string; icono: string }[] = [
 /** Pestañas con gráficos en el tiempo: solo en ellas tiene sentido agrupar por día, semana o mes. */
 const CON_GRANULARIDAD: Pestana[] = ["resumen", "gastos"];
 
+/** Nombre para el saludo, leído de la sesión del navegador. */
+function nombreUsuario(): string {
+  const user = getStoredUser();
+  if (!user) return "Usuario";
+  return user.nombres ? `${user.nombres} ${user.apellidos}`.trim() : user.username;
+}
+
 export function DashboardView() {
-  const [name, setName] = useState("Usuario");
+  // En el servidor no hay sesión: "Usuario" hasta hidratar, sin desajuste de HTML.
+  const name = useSesionCliente(nombreUsuario, "Usuario");
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const d = useDashboard();
   const hoy = useMemo(() => hoyIso(), []);
-
-  useEffect(() => {
-    const user = getStoredUser();
-    if (user) {
-      const displayName = user.nombres
-        ? `${user.nombres} ${user.apellidos}`.trim()
-        : user.username;
-
-      setName(displayName);
-    }
-  }, []);
 
   const estado = d.datos ? estadoResultados(d.datos) : null;
   const periodo = formatearRango(d.rango);
@@ -67,7 +72,10 @@ export function DashboardView() {
           Bienvenido, {name}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {d.permitido ? (
+          {/* null = todavía no se leyó la sesión (servidor e hidratación). */}
+          {d.permitido === null ? (
+            "Cargando tu panel…"
+          ) : d.permitido ? (
             <>
               Ventas, platos, mozos, gastos y rentabilidad de Ingá. Pasa el cursor por el ícono{" "}
               <Icon name="mdi:help-circle-outline" size={14} className="inline" aria-hidden="true" /> de cada cifra para ver cómo se
@@ -83,7 +91,7 @@ export function DashboardView() {
         </p>
       </div>
 
-      {d.permitido && (
+      {d.permitido === true && (
         <>
           <div className="mb-5 flex flex-wrap items-end gap-3">
             <div className="w-full sm:w-72">

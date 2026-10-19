@@ -8,14 +8,13 @@ import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { formatearRango, hoyIso, type RangoFechas } from "@/shared/utils/fecha";
+import { useSesionCliente } from "../hooks/use-sesion-cliente";
 import type { TipoReporte } from "../types/reportes.types";
-import { REPORTES, reporteDe } from "../utils/catalogo";
+import { EMPRESA, REPORTES, reporteDe } from "../utils/catalogo";
 import type { SeccionExportCualquiera } from "../utils/columnas";
 import { exportarExcel } from "../utils/descarga";
 import { nombreArchivo } from "../utils/nombre-archivo";
 import { fechaHoraLima } from "../utils/formato";
-
-export const EMPRESA = "Restaurante Ingá";
 
 type Props = {
   tipo: TipoReporte;
@@ -40,10 +39,15 @@ type Props = {
 export function ReporteShell({ tipo, rango, onRangoChange, cargando, error, onRecargar, exportar, nota, children }: Props) {
   const reporte = reporteDe(tipo);
   const hoy = useMemo(() => hoyIso(), []);
-  const pestanas = useMemo(() => {
+  // Tipos permitidos como texto ("general,ventas"): primitivo para useSyncExternalStore.
+  // En el servidor no hay sesión, así que las pestañas aparecen tras hidratar.
+  const permitidas = useSesionCliente(() => {
     const user = getStoredUser();
-    return REPORTES.filter((r) => user?.es_super_admin || user?.permisos?.includes(r.permiso));
-  }, []);
+    return REPORTES.filter((r) => user?.es_super_admin || user?.permisos?.includes(r.permiso))
+      .map((r) => r.tipo)
+      .join(",");
+  }, "");
+  const pestanas = REPORTES.filter((r) => permitidas.split(",").includes(r.tipo));
   const [exportando, setExportando] = useState(false);
   const [errorExportar, setErrorExportar] = useState<string | null>(null);
   const [impreso, setImpreso] = useState("");

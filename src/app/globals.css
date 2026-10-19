@@ -789,6 +789,24 @@ span.flatpickr-weekday,
  * cabecera, usa A4 horizontal con numeración de páginas, y fuerza colores de
  * papel aunque la app esté en modo oscuro.
  */
+/* El estado de cuenta de un cliente es angosto: va en A4 vertical. */
+@page estado-cuenta {
+  size: A4 portrait;
+  margin: 12mm 12mm 14mm;
+
+  @bottom-left {
+    content: "Restaurante Ingá · Estado de cuenta";
+    font-size: 8pt;
+    color: #667085;
+  }
+
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 8pt;
+    color: #667085;
+  }
+}
+
 @page reporte {
   size: A4 landscape;
   margin: 12mm 10mm 14mm;
@@ -876,7 +894,7 @@ span.flatpickr-weekday,
     break-after: avoid;
   }
 
-  .reporte-imprimible .titulo-seccion h3 {
+  .reporte-imprimible :is(.titulo-seccion h3, h3.titulo-seccion) {
     border-left: 3px solid #e51b23;
     padding-left: 6px;
     font-size: 11pt;
@@ -924,5 +942,77 @@ span.flatpickr-weekday,
     background: #f2f4f7 !important;
     border-top: 2px solid #344054;
     font-weight: 600;
+  }
+
+  /* Estado de cuenta de cuentas por cobrar. */
+  .reporte-imprimible.estado-cuenta {
+    page: estado-cuenta;
+  }
+
+  .reporte-imprimible .documento-estado-cuenta {
+    background: none !important;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 8.5pt;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta > thead {
+    display: table-header-group; /* se repite en cada página */
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta > thead th {
+    background: #344054 !important;
+    color: #fff !important;
+    padding: 4px 6px;
+    font-size: 7pt;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta > tbody > tr > td {
+    border-bottom: 1px solid #e4e7ec;
+    padding: 3px 6px;
+  }
+
+  /* El consumo no se separa de los platos de su pedido. */
+  .reporte-imprimible .tabla-estado-cuenta .fila-movimiento {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta .fila-detalle {
+    break-inside: avoid;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta > tfoot {
+    display: table-row-group;
+  }
+
+  .reporte-imprimible .tabla-estado-cuenta > tfoot td {
+    background: #f2f4f7 !important;
+    border-top: 2px solid #344054;
+    font-weight: 600;
+    padding: 4px 6px;
+  }
+
+  .reporte-imprimible .detalle-pedido {
+    background: #f9fafb !important;
+    border: 1px solid #eaecf0;
+    padding: 4px 8px;
+  }
+
+  .reporte-imprimible .tabla-detalle {
+    font-size: 7.5pt;
+  }
+
+  .reporte-imprimible .tabla-detalle th {
+    background: none !important;
+    color: #475467 !important;
+    border-bottom: 1px solid #d0d5dd;
+  }
+
+  .reporte-imprimible .firmas {
+    break-inside: avoid;
   }
 }

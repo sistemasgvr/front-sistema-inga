@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { getDashboard, rangoMesActual, type DashboardDatos, type Granularidad } from "@/modules/reportes";
+import { useCallback, useEffect, useState } from "react";
+import { getDashboard, rangoMesActual, useTienePermiso, type DashboardDatos, type Granularidad } from "@/modules/reportes";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import type { RangoFechas } from "@/shared/utils/fecha";
 
@@ -11,13 +10,12 @@ type Respuesta = { clave: string; datos: DashboardDatos | null; error: string | 
 /**
  * Indicadores del dashboard. Cada cambio de rango (y "Actualizar") vuelve a
  * pedir al backend; la granularidad solo reagrupa lo ya recibido.
- * Sin el permiso `dashboard.ver` no se hace ninguna petición.
+ * Sin el permiso `dashboard.ver` no se hace ninguna petición. `permitido` es
+ * null hasta que el navegador lee la sesión (así el HTML del servidor coincide
+ * con el primer render del navegador y no falla la hidratación).
  */
 export function useDashboard() {
-  const permitido = useMemo(() => {
-    const user = getStoredUser();
-    return Boolean(user?.es_super_admin || user?.permisos?.includes(PermisoBanderas.DASHBOARD_VER));
-  }, []);
+  const permitido = useTienePermiso(PermisoBanderas.DASHBOARD_VER);
   const [rango, setRango] = useState<RangoFechas>(rangoMesActual);
   const [granularidad, setGranularidad] = useState<Granularidad>("dia");
   const [revision, setRevision] = useState(0);
@@ -27,7 +25,7 @@ export function useDashboard() {
   const clave = `${rango.desde}|${rango.hasta}#${revision}`;
 
   useEffect(() => {
-    if (!permitido || !completo) return;
+    if (permitido !== true || !completo) return;
     const controller = new AbortController();
     getDashboard({ fecha_desde: rango.desde, fecha_hasta: rango.hasta }, controller.signal)
       .then((datos) => {
@@ -55,7 +53,7 @@ export function useDashboard() {
     cambiarGranularidad: setGranularidad,
     completo,
     datos: actual?.datos ?? null,
-    cargando: permitido && completo && !actual,
+    cargando: permitido === true && completo && !actual,
     error: actual?.error ?? null,
     recargar,
   };
