@@ -8,7 +8,11 @@ declare module 'qz-tray' {
       setSignaturePromise(callback: (message: string) => (resolve: (signature: string) => void, reject: (error: unknown) => void) => void): void;
     };
     configs: { create(printer: { host: string; port: number }, options?: Record<string, unknown>): unknown };
-    print(config: unknown, data: { type: 'raw'; format: 'command'; flavor: 'plain'; data: string }[]): Promise<void>;
+    print(config: unknown, data: (
+      | { type: 'raw'; format: 'command'; flavor: 'plain'; data: string }
+      // QZ convierte la imagen a raster ESC/POS en la PC antes de enviarla a la impresora.
+      | { type: 'raw'; format: 'image'; flavor: 'base64'; data: string; options: { language: 'ESCPOS'; dotDensity: 'single' | 'double' } }
+    )[]): Promise<void>;
     socket: { open(host: string, port: number): Promise<void>; close(host: string, port: number): Promise<void> };
   }
   const qz: Qz;

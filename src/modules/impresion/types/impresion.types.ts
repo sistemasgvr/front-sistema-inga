@@ -9,6 +9,14 @@ export type ContextoImpresion = {
   reanudar: () => void;
 };
 
+/** Encabezado de los tickets (Configuración → Empresa). `logo`: PNG blanco y negro en base64. */
+export interface EmpresaTicket {
+  ruc: string | null;
+  razon_social: string | null;
+  direccion: string | null;
+  logo: string | null;
+}
+
 export interface ComprobanteImpresion {
   nombre_tipo: string;
   numero: string;

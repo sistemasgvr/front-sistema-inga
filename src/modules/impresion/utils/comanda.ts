@@ -1,60 +1,172 @@
-import type { ComandaImpresion } from '../types/impresion.types';
+import type { ComandaImpresion, EmpresaTicket } from '../types/impresion.types';
 
 // ASCII portable: evita seleccionar una tabla de caracteres distinta en cada impresora.
 const texto = (value: unknown) => String(value ?? '').normalize('NFD')
   .replace(/[̀-ͯ]/g, '').replace(/[^\x20-\x7e\n]/g, '').slice(0, 2000);
 
 const soles = (valor: unknown) => `S/ ${Number(valor ?? 0).toFixed(2)}`;
-const SEPARADOR = '--------------------------------';
 
-export function formatearComanda(comanda: ComandaImpresion): string {
-  if (comanda.tipo === 'COMPROBANTE') return formatearComprobante(comanda);
-  const lineas = [texto(comanda.estacion).toUpperCase(),
-    ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
-    comanda.tipo==='PRECUENTA'?'PRECUENTA - NO ES COMPROBANTE':`COMANDA ${texto(comanda.id)} / LOTE ${comanda.numero}`,
-    `Pedido: ${texto(comanda.pedido)}`,
-    `Mesa: ${texto(comanda.mesa || (comanda.tipo_pedido === 3 ? 'DELIVERY' : 'PARA LLEVAR'))}`,
-    `Mozo: ${texto(comanda.mozo)}`,
-    new Date(comanda.fecha).toLocaleString('es-PE', { timeZone: 'America/Lima' }),
-    SEPARADOR,
-    ...comanda.items.flatMap((item) => [
-      `${Number(item.cantidad)} x ${texto(item.nombre_producto)}`,
-      ...(comanda.tipo==='PRECUENTA'?[`  S/ ${Number(item.monto_subtotal ?? 0).toFixed(2)}`]:[]),
-      ...(item.adicionales ?? []).map((a) => `  + ${texto(a.nombre)}`),
-      ...(item.observacion ? [`  NOTA: ${texto(item.observacion)}`] : []),
-    ]),
-    ...(comanda.observacion ? [SEPARADOR, texto(comanda.observacion)] : []),
-    ...(comanda.tipo==='PRECUENTA'?[SEPARADOR,`TOTAL S/ ${Number(comanda.total).toFixed(2)}`]:[]),
-    SEPARADOR, '', '', '',
-  ];
-  return '\x1b@' + lineas.join('\n') + '\n\x1dV\x00';
+/** Columnas de papel de 58 mm con la fuente normal. */
+const ANCHO = 32;
+const SEPARADOR = '-'.repeat(ANCHO);
+
+// Comandos ESC/POS.
+const INICIO = '\x1b@';
+const IZQUIERDA = '\x1ba\x00';
+const CENTRO = '\x1ba\x01';
+const NEGRITA = '\x1bE\x01';
+const NORMAL_PESO = '\x1bE\x00';
+const tamano = (ancho: number, alto: number) => `\x1d!${String.fromCharCode(((ancho - 1) << 4) | (alto - 1))}`;
+const NORMAL = tamano(1, 1);
+const CORTE = '\n\n\n\n\x1dV\x00';
+
+/** Inicializa la impresora y centra, para que el logo raster salga centrado. */
+export const ENCABEZADO_LOGO = INICIO + CENTRO;
+
+/** Parte el texto en líneas de `ancho` columnas sin cortar palabras (salvo las muy largas). */
+function envolver(valor: string, ancho = ANCHO): string[] {
+  const lineas: string[] = [];
+  for (const parrafo of valor.split('\n')) {
+    let actual = '';
+    for (const palabra of parrafo.split(/\s+/).filter(Boolean)) {
+      for (let resto = palabra; resto;) {
+        const libre = actual ? ancho - actual.length - 1 : ancho;
+        if (resto.length <= libre) { actual = actual ? `${actual} ${resto}` : resto; resto = ''; }
+        else if (actual) { lineas.push(actual); actual = ''; }
+        else { lineas.push(resto.slice(0, ancho)); resto = resto.slice(ancho); }
+      }
+    }
+    lineas.push(actual);
+  }
+  return lineas.filter((linea, i) => linea || i === 0);
 }
 
-/** Ticket del comprobante emitido (Ventas → Imprimir). Todavía no hay envío a SUNAT. */
-function formatearComprobante(comanda: ComandaImpresion): string {
-  const c = comanda.comprobante;
-  const receptor = c?.receptor_num_doc && c.receptor_num_doc !== '00000000'
-    ? [`Cliente: ${texto(c.receptor_razon_social)}`, `Doc: ${texto(c.receptor_num_doc)}`]
-    : [`Cliente: ${texto(c?.receptor_razon_social || 'CLIENTES VARIOS')}`];
-  const lineas = [
-    texto(c?.nombre_tipo).toUpperCase(),
-    texto(c?.numero),
-    new Date(comanda.fecha).toLocaleString('es-PE', { timeZone: 'America/Lima' }),
-    `Pedido: ${texto(comanda.pedido)} - ${texto(comanda.mesa ? `Mesa ${comanda.mesa}` : comanda.tipo_pedido === 3 ? 'DELIVERY' : 'PARA LLEVAR')}`,
-    ...receptor,
+/** «Etiqueta: valor», con el valor alineado en una sola columna. */
+function dato(etiqueta: string, valor: unknown): string[] {
+  const prefijo = `${etiqueta}:`.padEnd(9);
+  return envolver(texto(valor), ANCHO - prefijo.length)
+    .map((linea, i) => (i ? ' '.repeat(prefijo.length) : prefijo) + linea);
+}
+
+/** El tamaño más grande que entra en una línea (hasta 3x). */
+function grande(valor: string, maximo = 3): string {
+  const escala = [3, 2].find((n) => n <= maximo && valor.length * n <= ANCHO);
+  return (escala ? tamano(escala, escala) : tamano(1, 2)) + valor + NORMAL;
+}
+
+const fecha = (valor: string) => new Date(valor).toLocaleString('es-PE', {
+  timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+}).replace(',', '');
+
+const destino = (comanda: ComandaImpresion) =>
+  texto(comanda.mesa || (comanda.tipo_pedido === 3 ? 'DELIVERY' : 'PARA LLEVAR'));
+
+const cantidad = (valor: unknown) => String(Number(valor ?? 0));
+
+type Item = ComandaImpresion['items'][number];
+
+/**
+ * Tabla CANT / PRODUCTO [/ SUBTOTAL]. Los nombres largos continúan debajo,
+ * alineados con la columna de producto, igual que adicionales y notas.
+ */
+function tabla(items: Item[], conSubtotal: boolean, extras: (item: Item) => string[]): string[] {
+  const cant = 5;
+  const subtotal = conSubtotal ? 9 : 0;
+  const producto = ANCHO - cant - subtotal;
+  const sangria = ' '.repeat(cant);
+  const encabezado = 'CANT'.padEnd(cant) + (conSubtotal ? 'PRODUCTO'.padEnd(producto) + 'SUBTOTAL'.padStart(subtotal) : 'PRODUCTO');
+  return [
+    NEGRITA + encabezado + NORMAL_PESO,
     SEPARADOR,
-    ...comanda.items.flatMap((item) => [
-      `${Number(item.cantidad)} x ${texto(item.nombre_producto)}`,
-      `  ${soles(item.monto_subtotal)}`,
+    ...items.flatMap((item) => {
+      const [primera, ...resto] = envolver(texto(item.nombre_producto), producto);
+      const monto = conSubtotal ? Number(item.monto_subtotal ?? 0).toFixed(2).padStart(subtotal) : '';
+      return [
+        cantidad(item.cantidad).padEnd(cant) + (conSubtotal ? primera.padEnd(producto) : primera) + monto,
+        ...resto.map((linea) => sangria + linea),
+        ...extras(item).flatMap((extra) => envolver(extra, producto).map((linea) => sangria + linea)),
+      ];
+    }),
+  ];
+}
+
+/** Línea de importe alineada a la derecha. */
+const importe = (etiqueta: string, valor: unknown) => `${etiqueta}  ${soles(valor)}`.padStart(ANCHO);
+
+export function formatearComanda(comanda: ComandaImpresion, empresa?: EmpresaTicket | null): string {
+  if (comanda.tipo === 'COMPROBANTE') return formatearComprobante(comanda, empresa);
+  if (comanda.tipo === 'PRECUENTA') return formatearPrecuenta(comanda);
+  const lineas = [
+    NEGRITA + texto(comanda.estacion).toUpperCase(),
+    ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
+    '',
+    // La mesa es lo primero que busca cocina: va con el número lo más grande posible.
+    ...(comanda.mesa ? [tamano(1, 2) + 'MESA' + NORMAL, grande(texto(comanda.mesa))] : [grande(destino(comanda), 2)]),
+    NORMAL_PESO + IZQUIERDA + SEPARADOR,
+    ...dato('Comanda', `${texto(comanda.id)} / Lote ${comanda.numero}`),
+    ...dato('Fecha', fecha(comanda.fecha)),
+    ...dato('Pedido', comanda.pedido),
+    ...(comanda.mozo ? dato('Mozo', comanda.mozo) : []),
+    SEPARADOR,
+    ...tabla(comanda.items, false, (item) => [
+      ...(item.adicionales ?? []).map((a) => `+ ${texto(a.nombre)}`),
+      ...(item.observacion ? [`NOTA: ${texto(item.observacion)}`] : []),
     ]),
     SEPARADOR,
-    `Op. gravada  ${soles(c?.monto_gravado)}`,
-    `IGV          ${soles(c?.monto_igv)}`,
-    `TOTAL        ${soles(c?.monto_total ?? comanda.total)}`,
-    ...(comanda.pagos ?? []).map((p) => `${texto(p.nombre_medio)}: ${soles(p.monto)}`),
-    SEPARADOR, '', '', '',
+    ...(comanda.observacion ? [...envolver(`OBS: ${texto(comanda.observacion)}`), SEPARADOR] : []),
   ];
-  return '\x1b@' + lineas.join('\n') + '\n\x1dV\x00';
+  return INICIO + CENTRO + lineas.join('\n') + CORTE;
+}
+
+function formatearPrecuenta(comanda: ComandaImpresion): string {
+  const lineas = [
+    NEGRITA + tamano(1, 2) + 'PRECUENTA' + NORMAL + NORMAL_PESO,
+    'No valido como comprobante de pago',
+    ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
+    IZQUIERDA + SEPARADOR,
+    ...dato('Mesa', destino(comanda)),
+    ...dato('Pedido', comanda.pedido),
+    ...(comanda.mozo ? dato('Mozo', comanda.mozo) : []),
+    ...dato('Fecha', fecha(comanda.fecha)),
+    SEPARADOR,
+    ...tabla(comanda.items, true, (item) => (item.adicionales ?? []).map((a) => `+ ${texto(a.nombre)}`)),
+    SEPARADOR,
+    NEGRITA + tamano(1, 2) + importe('TOTAL', comanda.total) + NORMAL + NORMAL_PESO,
+  ];
+  return INICIO + CENTRO + lineas.join('\n') + CORTE;
+}
+
+/** Ticket del comprobante emitido (Ventas → Imprimir). Todavía no hay envío a SUNAT, por eso no lleva QR. */
+function formatearComprobante(comanda: ComandaImpresion, empresa?: EmpresaTicket | null): string {
+  const c = comanda.comprobante;
+  const numero = texto(c?.numero);
+  const documento = texto(c?.receptor_num_doc);
+  const lineas = [
+    NEGRITA + texto(c?.nombre_tipo).toUpperCase(),
+    grande(numero, 2) + NORMAL_PESO,
+    ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
+    '',
+    ...(empresa?.razon_social ? envolver(texto(empresa.razon_social)).map((l) => NEGRITA + l + NORMAL_PESO) : []),
+    ...(empresa?.ruc ? [`RUC ${texto(empresa.ruc)}`] : []),
+    ...(empresa?.direccion ? envolver(texto(empresa.direccion)) : []),
+    IZQUIERDA + SEPARADOR,
+    ...dato('Fecha', fecha(comanda.fecha)),
+    ...dato('Pedido', `${texto(comanda.pedido)} - ${comanda.mesa ? `Mesa ${texto(comanda.mesa)}` : destino(comanda)}`),
+    ...dato('Cliente', c?.receptor_razon_social || 'CLIENTES VARIOS'),
+    ...(documento && documento !== '00000000'
+      ? dato(documento.length === 11 ? 'RUC' : documento.length === 8 ? 'DNI' : 'Doc', documento) : []),
+    SEPARADOR,
+    ...tabla(comanda.items, true, () => []),
+    SEPARADOR,
+    importe('OP. GRAVADA', c?.monto_gravado),
+    importe('IGV', c?.monto_igv),
+    NEGRITA + tamano(1, 2) + importe('TOTAL', c?.monto_total ?? comanda.total) + NORMAL + NORMAL_PESO,
+    ...((comanda.pagos ?? []).length ? [SEPARADOR, ...(comanda.pagos ?? []).map((p) => importe(texto(p.nombre_medio), p.monto))] : []),
+    SEPARADOR,
+    CENTRO + 'Gracias por su preferencia',
+  ];
+  return INICIO + CENTRO + lineas.join('\n') + CORTE;
 }
 
 export function formatearPrueba(estacion: string, host: string, fecha = new Date()): string {

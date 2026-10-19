@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from '@/shared/api/api-client';
-import { formatearComanda, formatearPrueba } from '../utils/comanda';
-import type { TrabajoImpresion } from '../types/impresion.types';
+import { ENCABEZADO_LOGO, formatearComanda, formatearPrueba } from '../utils/comanda';
+import type { EmpresaTicket, TrabajoImpresion } from '../types/impresion.types';
 
 let conexion: Promise<typeof import('qz-tray')['default']> | null = null;
 
@@ -41,15 +41,32 @@ export async function probarConexion(host: string) {
   await qz.socket.close(host.trim(), 9100);
 }
 
-async function imprimirRaw(host: string, data: string) {
+async function imprimirRaw(host: string, data: string, logo?: string | null) {
   const qz = await conectarQz();
-  await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), [
-    { type: 'raw', format: 'command', flavor: 'plain', data },
-  ]);
+  const texto = { type: 'raw', format: 'command', flavor: 'plain', data } as const;
+  await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), logo ? [
+    { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO_LOGO },
+    { type: 'raw', format: 'image', flavor: 'base64', data: logo, options: { language: 'ESCPOS', dotDensity: 'double' } },
+    texto,
+  ] : [texto]);
 }
 
-export function imprimirComanda(trabajo: TrabajoImpresion) {
-  return imprimirRaw(trabajo.host, formatearComanda(trabajo.contenido));
+// Logo y datos fiscales cambian muy poco: se piden una vez cada pocos minutos, no por ticket.
+let empresa: { valor: EmpresaTicket | null; vence: number } | null = null;
+async function datosEmpresa() {
+  if (empresa && empresa.vence > Date.now()) return empresa.valor;
+  try {
+    empresa = { valor: await apiGet<EmpresaTicket | null>('/impresion/empresa'), vence: Date.now() + 5 * 60_000 };
+  } catch {
+    // Sin encabezado se sigue imprimiendo: una comanda no debe esperar al logo.
+    empresa = { valor: empresa?.valor ?? null, vence: Date.now() + 30_000 };
+  }
+  return empresa.valor;
+}
+
+export async function imprimirComanda(trabajo: TrabajoImpresion) {
+  const datos = await datosEmpresa();
+  return imprimirRaw(trabajo.host, formatearComanda(trabajo.contenido, datos), datos?.logo);
 }
 
 // Va directo a la impresora: no pasa por la cola ni crea comandas en el backend.

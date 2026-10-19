@@ -238,6 +238,12 @@ const navItems: NavItem[] = [
     name: "Configuración",
     subItems: [
       {
+        icon: "mdi:domain",
+        name: "Empresa",
+        path: "/configuracion/empresa",
+        permission: PermisoBanderas.EMPRESA_VER,
+      },
+      {
         icon: "mdi:shield-key-outline",
         name: "Roles y Permisos",
         path: "/configuracion/roles",
