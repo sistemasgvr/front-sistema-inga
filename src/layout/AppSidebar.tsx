@@ -249,12 +249,12 @@ const navItems: NavItem[] = [
         path: "/configuracion/roles",
         permission: PermisoBanderas.ROLES_LISTAR,
       },
-      {
+    /*   {
         icon: "ri:file-paper-2-fill",
         name: "Sunat",
         path: "/configuracion/sunat",
         permission: PermisoBanderas.SUNAT_LISTAR,
-      },
+      }, */
       {
         icon: "mdi:printer-settings",
         name: "Estaciones",

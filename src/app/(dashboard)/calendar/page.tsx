@@ -1,4 +1,4 @@
-import Calendar from "@/components/calendar/Calendar";
+/* import Calendar from "@/components/calendar/Calendar";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 
 export default function CalendarPage() {
@@ -9,3 +9,4 @@ export default function CalendarPage() {
     </div>
   );
 }
+ */
