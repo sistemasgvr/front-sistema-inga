@@ -79,13 +79,14 @@ test('el ticket contiene ítems, notas y adicionales y elimina controles inyecta
   await service.imprimirComanda({ id: '42', host: '192.168.1.101', contenido: ticket });
   const print = calls.find(([name]) => name === 'print');
   assert.equal(print[1].host, '192.168.1.101');
-  assert.equal(print[2].length, 1); // Sin logo configurado no se envía imagen.
-  const content = print[2][0].data;
+  // Sin logo configurado no se envía imagen: margen superior y texto.
+  assert.equal(print[2].length, 2);
+  assert.equal(print[2][0].data, '\x1b@\x1bd\x02\x1ba\x01'); // 2 renglones en blanco antes de todo.
+  const content = print[2][1].data;
   assert.match(limpio(content), /CANT PRODUCTO\n-{48}\n2 {4}Pollo\n {5}\+ Limon\n {5}NOTA: Sin aji@\n/);
   assert.doesNotMatch(content, /Sin aji\x1b/); // El ESC inyectado en la nota se descarta.
-  // Sin corte automático: avanza 6 líneas para dejar el ticket como tira y cortarlo a mano.
-  assert.ok(content.endsWith('\n\x1bd\x06'));
-  assert.doesNotMatch(content, /\x1dV/);
+  // 4 renglones en blanco y corte parcial que primero lleva el papel hasta la cuchilla (GS V 66).
+  assert.ok(content.endsWith('\n\x1bd\x04\x1dVB\x00'));
 });
 test('la comanda destaca la mesa en tamaño grande y lista los datos del pedido', () => {
   const content = comanda.formatearComanda(ticket);
@@ -98,7 +99,7 @@ test('el logo se imprime centrado como imagen antes del texto y se pide una sola
   await service.imprimirComanda({ id: '42', host: '192.168.1.101', contenido: ticket });
   await service.imprimirComanda({ id: '43', host: '192.168.1.101', contenido: ticket });
   const [, , data] = calls.find(([name]) => name === 'print');
-  assert.equal(data[0].data, '\x1b@\x1ba\x01');
+  assert.equal(data[0].data, '\x1b@\x1bd\x02\x1ba\x01'); // Margen en blanco antes del logo.
   assert.equal(JSON.stringify(data[1]), JSON.stringify({ type: 'raw', format: 'image', flavor: 'base64', data: 'iVBORw0KGgo=',
     options: { language: 'ESCPOS', dotDensity: 'double' } }));
   assert.match(data[2].data, /Pollo/);
@@ -108,8 +109,8 @@ test('si no se pueden leer los datos de la empresa, la comanda se imprime igual'
   const { service, calls } = setup(new Error('500'));
   await service.imprimirComanda({ id: '42', host: '192.168.1.101', contenido: ticket });
   const [, , data] = calls.find(([name]) => name === 'print');
-  assert.equal(data.length, 1);
-  assert.match(data[0].data, /Pollo/);
+  assert.equal(data.length, 2);
+  assert.match(data[1].data, /Pollo/);
 });
 test('la precuenta muestra mesa, pedido, mozo y fecha alineados, con subtotales y total', () => {
   const content = limpio(comanda.formatearComanda({ ...ticket, tipo: 'PRECUENTA', total: 41.5,
@@ -133,7 +134,7 @@ test('un fallo de QZ permite intentar una nueva conexión y no imprime', async (
 test('la hoja de prueba imprime directo en la IP de la estación sin pasar por la cola', async () => {
   const { service, calls } = setup();
   await service.imprimirPrueba(' 192.168.1.50 ', 'Cocina Ñoña');
-  const [, config, [job]] = calls.find(([name]) => name === 'print');
+  const [, config, [, job]] = calls.find(([name]) => name === 'print');
   assert.equal(JSON.stringify(config), JSON.stringify({ host: '192.168.1.50', port: 9100 }));
   assert.match(job.data, /HOJA DE PRUEBA\nCOCINA NONA\nImpresora: 192\.168\.1\.50:9100/);
   assert.ok(!calls.some(([name, url]) => name === 'sign' && !String(url).includes('qz')));
@@ -188,5 +189,5 @@ test('si la firma falla una vez (corte breve), se reintenta solo y el ticket sal
   };
   await service.imprimirComanda({ id: '42', host: '192.168.1.101', contenido: ticket });
   assert.equal(intentos, 2);
-  assert.match(calls.find(([name]) => name === 'print')[2][0].data, /Pollo/);
+  assert.match(calls.find(([name]) => name === 'print')[2][1].data, /Pollo/);
 });

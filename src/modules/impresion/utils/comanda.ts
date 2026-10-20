@@ -17,12 +17,16 @@ const NEGRITA = '\x1bE\x01';
 const NORMAL_PESO = '\x1bE\x00';
 const tamano = (ancho: number, alto: number) => `\x1d!${String.fromCharCode(((ancho - 1) << 4) | (alto - 1))}`;
 const NORMAL = tamano(1, 1);
-// Sin corte automático: el papel sale como tira y se corta a mano. Se avanza lo
-// suficiente para que la última línea pase la barra de corte sin partir el texto.
-const FINAL = '\x1bd\x06';
+/** Renglones en blanco antes del logo y después del último texto. */
+export const ESPACIO_SUPERIOR = 2;
+export const ESPACIO_INFERIOR = 4;
+// Deja renglones en blanco y hace un corte parcial con GS V 66: la impresora avanza
+// primero el papel hasta la cuchilla, así nunca corta sobre el texto, y el ticket
+// queda colgando como tira para desprenderlo a mano.
+const FINAL = `\x1bd${String.fromCharCode(ESPACIO_INFERIOR)}\x1dVB\x00`;
 
-/** Inicializa la impresora y centra, para que el logo raster salga centrado. */
-export const ENCABEZADO_LOGO = INICIO + CENTRO;
+/** Inicializa la impresora, deja margen en blanco arriba y centra (el logo raster sale centrado). */
+export const ENCABEZADO = INICIO + `\x1bd${String.fromCharCode(ESPACIO_SUPERIOR)}` + CENTRO;
 
 const fecha = (valor: string) => new Date(valor).toLocaleString('es-PE', {
   timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric',

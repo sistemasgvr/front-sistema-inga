@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/shared/api/api-client';
-import { ENCABEZADO_LOGO, formatearComanda, formatearPrueba } from '../utils/comanda';
+import { ENCABEZADO, formatearComanda, formatearPrueba } from '../utils/comanda';
 import type { AnchoPapel, EmpresaTicket, TrabajoImpresion } from '../types/impresion.types';
 
 let conexion: Promise<typeof import('qz-tray')['default']> | null = null;
@@ -55,12 +55,14 @@ async function imprimirRaw(host: string, data: string, logo?: string | null) {
   const qz = await conectarQz();
   // QZ modifica los objetos al enviarlos: se arman de nuevo en cada intento.
   const datos = () => {
+    // El encabezado (margen superior en blanco) va siempre primero, haya logo o no.
+    const encabezado = { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO } as const;
     const texto = { type: 'raw', format: 'command', flavor: 'plain', data } as const;
     return logo ? [
-      { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO_LOGO },
+      encabezado,
       { type: 'raw', format: 'image', flavor: 'base64', data: logo, options: { language: 'ESCPOS', dotDensity: 'double' } },
       texto,
-    ] as const : [texto];
+    ] as const : [encabezado, texto];
   };
   for (let intento = 0; ; intento++) {
     ultimoErrorFirma = null;
