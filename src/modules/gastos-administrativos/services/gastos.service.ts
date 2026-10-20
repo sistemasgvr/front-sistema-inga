@@ -54,7 +54,6 @@ export async function createCategoria(
   values: CategoriaFormValues,
 ): Promise<CategoriaGasto> {
   return apiPost<CategoriaGasto>(`${BASE}/categorias`, {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     tipo_gasto: values.tipo_gasto,
     id_categoria_padre: values.id_categoria_padre ?? undefined,
@@ -67,7 +66,6 @@ export async function updateCategoria(
   values: CategoriaFormValues,
 ): Promise<CategoriaGasto> {
   return apiPatch<CategoriaGasto>(`${BASE}/categorias/${id}`, {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     tipo_gasto: values.tipo_gasto,
     orden: values.orden,

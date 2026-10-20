@@ -53,7 +53,6 @@ export async function createSubCategoria(values: SubCategoriaFormValues): Promis
     ...values,
     id_categoria: Number(values.id_categoria),
     orden: Number(values.orden ?? 0),
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });
   return response;
@@ -67,7 +66,6 @@ export async function updateSubCategoria(
     ...values,
     id_categoria: Number(values.id_categoria),
     orden: Number(values.orden ?? 0),
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });
   return response;

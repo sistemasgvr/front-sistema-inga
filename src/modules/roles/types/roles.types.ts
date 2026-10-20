@@ -20,7 +20,6 @@ export type PermisoItem = {
 };
 
 export type RoleFormValues = {
-  codigo: string;
   nombre: string;
   descripcion?: string;
   estado?: RoleStatus;

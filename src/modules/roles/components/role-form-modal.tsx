@@ -15,7 +15,6 @@ type RoleFormModalProps = {
 };
 
 const EMPTY_FORM: RoleFormValues = {
-  codigo: "",
   nombre: "",
   descripcion: "",
 };
@@ -37,7 +36,6 @@ export function RoleFormModal({
 
     if (role) {
       setValues({
-        codigo: role.codigo,
         nombre: role.nombre,
         descripcion: role.descripcion ?? "",
       });
@@ -56,9 +54,6 @@ export function RoleFormModal({
   function validate(currentValues: RoleFormValues = values): boolean {
     const next: Partial<Record<keyof RoleFormValues, string>> = {};
 
-    if (!currentValues.codigo.trim()) {
-      next.codigo = "El código es obligatorio.";
-    }
     if (!currentValues.nombre.trim()) {
       next.nombre = "El nombre es obligatorio.";
     }
@@ -104,22 +99,6 @@ export function RoleFormModal({
       maxWidth="max-w-[500px]"
     >
       <div className="space-y-4">
-        <div>
-          <Label htmlFor="codigo">Código del Rol *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) =>
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }))
-            }
-            onBlur={() => handleBlur("codigo")}
-            placeholder="Ej. CAJERO, OPERARIO"
-            error={Boolean(showError("codigo"))}
-            hint={showError("codigo")}
-            disabled={isSaving || Boolean(role)}
-          />
-        </div>
-
         <div>
           <Label htmlFor="nombre">Nombre del Rol *</Label>
           <Input

@@ -38,7 +38,6 @@ export async function listRoles(
 
 export async function createRole(values: RoleFormValues): Promise<RoleItem> {
   return apiPost<RoleItem>("/auth/roles", {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
@@ -49,7 +48,6 @@ export async function updateRole(
   values: RoleFormValues,
 ): Promise<RoleItem> {
   return apiPatch<RoleItem>(`/auth/roles/${id}`, {
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });

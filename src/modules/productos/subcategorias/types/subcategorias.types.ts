@@ -4,7 +4,6 @@ export type SubCategoriaItem = {
   id: number;
   id_categoria: number;
   nombre_categoria?: string;
-  codigo: string;
   nombre: string;
   orden: number;
   estado: SubCategoriaStatus;
@@ -15,7 +14,6 @@ export type SubCategoriaItem = {
 
 export type SubCategoriaFormValues = {
   id_categoria: number;
-  codigo: string;
   nombre: string;
   orden: number;
 };

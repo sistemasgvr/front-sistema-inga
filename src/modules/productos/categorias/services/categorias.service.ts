@@ -39,7 +39,6 @@ export async function listCategorias(
 export async function createCategoria(values: CategoriaFormValues): Promise<CategoriaItem> {
   const response = await apiPost<CategoriaItem>("/productos/categorias", {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
@@ -52,7 +51,6 @@ export async function updateCategoria(
 ): Promise<CategoriaItem> {
   const response = await apiPatch<CategoriaItem>(`/productos/categorias/${id}`, {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });

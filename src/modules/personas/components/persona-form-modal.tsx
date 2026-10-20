@@ -501,8 +501,9 @@ export function PersonaFormModal({
             value={values.telefono}
             onChange={(e) => {
 
-              setValues((p) => ({ ...p, telefono: e.target.value }));
+              setValues((p) => ({ ...p, telefono: e.target.value.replace(/\D/g, "") }));
             }}
+            maxLength={20}
             placeholder="987654321"
             disabled={isSaving}
           />

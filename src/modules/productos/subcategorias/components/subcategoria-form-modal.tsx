@@ -30,7 +30,6 @@ export function SubCategoriaFormModal({
 }: SubCategoriaFormModalProps) {
   const [values, setValues] = useState<SubCategoriaFormValues>({
     id_categoria: filtroCategoria ?? categorias[0]?.id ?? 1,
-    codigo: "",
     nombre: "",
     orden: 10,
   });
@@ -45,14 +44,12 @@ export function SubCategoriaFormModal({
     if (subcategoria) {
       setValues({
         id_categoria: subcategoria.id_categoria,
-        codigo: subcategoria.codigo || "",
         nombre: subcategoria.nombre || "",
         orden: subcategoria.orden ?? 10,
       });
     } else {
       setValues({
         id_categoria: filtroCategoria ?? categorias[0]?.id ?? 1,
-        codigo: "",
         nombre: "",
         orden: 10,
       });
@@ -70,7 +67,6 @@ export function SubCategoriaFormModal({
     const next: Partial<Record<keyof SubCategoriaFormValues, string>> = {};
 
     if (!currentValues.nombre.trim()) next.nombre = "El nombre es obligatorio.";
-    if (!currentValues.codigo.trim()) next.codigo = "El código es obligatorio.";
     if (!currentValues.id_categoria) next.id_categoria = "Debes seleccionar una categoría padre." as any;
 
     setErrors(next);
@@ -96,7 +92,7 @@ export function SubCategoriaFormModal({
 
   const categoriaOptions = categorias.map((cat) => ({
     value: String(cat.id),
-    label: `${cat.nombre} (${cat.codigo})`,
+    label: cat.nombre,
   }));
 
   return (
@@ -129,37 +125,6 @@ export function SubCategoriaFormModal({
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="codigo">Código *</Label>
-            <Input
-              id="codigo"
-              value={values.codigo}
-              onChange={(e) => setValues((p) => ({ ...p, codigo: e.target.value }))}
-              onBlur={() => handleBlur("codigo")}
-              placeholder="Ej. ENT-CRI"
-              error={Boolean(showError("codigo"))}
-              hint={showError("codigo")}
-              disabled={isSaving}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="orden">Orden / Prioridad</Label>
-            <Input
-              id="orden"
-              type="number"
-              value={values.orden}
-              onChange={(e) => setValues((p) => ({ ...p, orden: Number(e.target.value) }))}
-              placeholder="Ej. 10, 20, 30"
-              disabled={isSaving}
-            />
-            <p className="mt-1 text-[11px] text-gray-400">
-              Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
-            </p>
-          </div>
-        </div>
-
         <div>
           <Label htmlFor="nombre">Nombre de Subcategoría *</Label>
           <Input
@@ -172,6 +137,21 @@ export function SubCategoriaFormModal({
             hint={showError("nombre")}
             disabled={isSaving}
           />
+        </div>
+
+        <div>
+          <Label htmlFor="orden">Orden / Prioridad</Label>
+          <Input
+            id="orden"
+            type="number"
+            value={values.orden}
+            onChange={(e) => setValues((p) => ({ ...p, orden: Number(e.target.value) }))}
+            placeholder="Ej. 10, 20, 30"
+            disabled={isSaving}
+          />
+          <p className="mt-1 text-[11px] text-gray-400">
+            Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
+          </p>
         </div>
       </div>
     </FormModal>

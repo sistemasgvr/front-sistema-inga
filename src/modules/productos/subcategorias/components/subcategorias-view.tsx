@@ -194,7 +194,7 @@ export function SubCategoriasView() {
           <div className="w-full sm:w-2/3">
             <Input
               type="search"
-              placeholder="Buscar por código o nombre..."
+              placeholder="Buscar por nombre..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />

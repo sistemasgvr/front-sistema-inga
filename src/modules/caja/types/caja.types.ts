@@ -27,7 +27,6 @@ export type CajaItem = {
   id: number;
   id_sucursal: number;
   nombre_sucursal: string;
-  codigo: string;
   nombre: string;
   estado: EstadoRegistro;
   /** Datos del turno en curso, si la caja está tomada. */
@@ -43,7 +42,6 @@ export type CajaItem = {
 
 export type CajaFormValues = {
   id_sucursal: number | null;
-  codigo: string;
   nombre: string;
 };
 
@@ -74,7 +72,6 @@ export type ListCajasResult = {
 export type TurnoItem = {
   id: number;
   id_caja: number;
-  codigo_caja: string;
   nombre_caja: string;
   id_sucursal?: number;
   nombre_sucursal?: string;

@@ -41,7 +41,6 @@ function EstacionFormContent({
 
   const [values, setValues] = useState<EstacionFormValues>({
     id_sucursal: defaultSucursalId,
-    codigo: "",
     nombre: "",
     tipo_estacion: 1,
     impresora_nombre: "",
@@ -61,7 +60,6 @@ function EstacionFormContent({
     if (estacion) {
       setValues({
         id_sucursal: estacion.id_sucursal ?? defaultSucursalId,
-        codigo: estacion.codigo || "",
         nombre: estacion.nombre || "",
         tipo_estacion: estacion.tipo_estacion ?? 1,
         impresora_nombre: estacion.impresora_nombre || "",
@@ -72,7 +70,6 @@ function EstacionFormContent({
     } else {
       setValues({
         id_sucursal: availableSucursales[0]?.id ?? defaultSucursalId,
-        codigo: "",
         nombre: "",
         tipo_estacion: tiposEstacion[0]?.valor_entero ?? 1,
         impresora_nombre: "",
@@ -94,7 +91,6 @@ function EstacionFormContent({
   function validate(currentValues: EstacionFormValues = values): boolean {
     const next: Partial<Record<keyof EstacionFormValues, string>> = {};
 
-    if (!currentValues.codigo.trim()) next.codigo = "El código es obligatorio.";
     if (!currentValues.nombre.trim()) next.nombre = "El nombre de la estación es obligatorio.";
     if (!currentValues.id_sucursal) next.id_sucursal = "La sucursal es obligatoria.";
     if (!currentValues.tipo_estacion) next.tipo_estacion = "El tipo de estación es obligatorio.";
@@ -160,24 +156,24 @@ function EstacionFormContent({
       isSaving={isSaving}
     >
 
+      <div>
+        <Label htmlFor="nombre">Nombre de la estación *</Label>
+        <Input
+          id="nombre"
+          value={values.nombre}
+          onChange={(e) => {
+
+            setValues((p) => ({ ...p, nombre: e.target.value }));
+          }}
+          onBlur={() => handleBlur("nombre")}
+          placeholder="Ej. Cocina Principal"
+          error={Boolean(showError("nombre"))}
+          hint={showError("nombre")}
+          disabled={isSaving}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="codigo">Código *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
-            }}
-            onBlur={() => handleBlur("codigo")}
-            placeholder="Ej. EST-COC"
-            error={Boolean(showError("codigo"))}
-            hint={showError("codigo")}
-            disabled={isSaving}
-          />
-        </div>
-
         <div>
           <Label>Tipo de estación *</Label>
           <Select
@@ -192,25 +188,6 @@ function EstacionFormContent({
               setValues((p) => ({ ...p, tipo_estacion: Number(val) }));
               handleBlur("tipo_estacion");
             }}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="nombre">Nombre de la estación *</Label>
-          <Input
-            id="nombre"
-            value={values.nombre}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, nombre: e.target.value }));
-            }}
-            onBlur={() => handleBlur("nombre")}
-            placeholder="Ej. Cocina Principal"
-            error={Boolean(showError("nombre"))}
-            hint={showError("nombre")}
-            disabled={isSaving}
           />
         </div>
 

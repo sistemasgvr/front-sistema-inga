@@ -4,7 +4,6 @@ export type EstacionItem = {
   es_caja_principal?: boolean;
   id: number;
   id_sucursal: number;
-  codigo: string;
   nombre: string;
   tipo_estacion: number;
   impresora_nombre?: string | null;
@@ -19,7 +18,6 @@ export type EstacionItem = {
 
 export type EstacionFormValues = {
   id_sucursal: number;
-  codigo: string;
   nombre: string;
   tipo_estacion: number;
   impresora_nombre?: string;

@@ -72,7 +72,6 @@ export function CategoriasGastoView() {
             >
               {cat.nombre}
             </span>
-            <span className="font-mono text-xs text-gray-400">{cat.codigo}</span>
             {!esHija && (
               <Badge
                 size="sm"

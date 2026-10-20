@@ -177,9 +177,6 @@ export function SubCategoriasTable({
                     >
                       <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/[0.05]">
                         <div className="flex items-center gap-2">
-                          <Badge size="sm" variant="light" color="light">
-                            {subcat.codigo}
-                          </Badge>
                           <h4 className="text-xs font-bold text-gray-900 dark:text-white">
                             {subcat.nombre}
                           </h4>
@@ -241,7 +238,7 @@ export function SubCategoriasTable({
               <TableHeader className="border-b border-gray-200 bg-gray-100/80 dark:border-gray-800 dark:bg-gray-900">
                 <TableRow>
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-200">
-                    Código y Subcategoría
+                    Subcategoría
                   </TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-200">
                     Productos Asignados
@@ -351,9 +348,6 @@ export function SubCategoriasTable({
                           <TableCell className="px-5 py-3 text-start pl-10">
                             <div className="flex items-center gap-3">
                               <span className="text-gray-300 dark:text-gray-600 font-mono text-xs">└─</span>
-                              <Badge size="sm" variant="light" color="light">
-                                {subcat.codigo}
-                              </Badge>
                               <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                                 {subcat.nombre}
                               </span>

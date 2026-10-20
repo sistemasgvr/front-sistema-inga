@@ -140,7 +140,7 @@ export function EstacionesView() {
         <div className="w-full sm:max-w-md">
           <Input
             type="search"
-            placeholder="Buscar por código o nombre..."
+            placeholder="Buscar por nombre..."
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
           />

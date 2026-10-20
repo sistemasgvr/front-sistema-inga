@@ -24,9 +24,6 @@ const headerCell = "px-5 py-3.5 text-xs font-semibold tracking-wider text-gray-6
 function EstacionNombre({ item }: { item: EstacionItem }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <Badge size="sm" variant="light" color="light" className="font-mono text-[11px] font-bold text-brand-600 dark:text-brand-400">
-        {item.codigo}
-      </Badge>
       <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">{item.nombre}</span>
       {item.es_caja_principal && (
         <Badge size="sm" color="info" startIcon={<Icon name="mdi:cash-register" size={13} />}>

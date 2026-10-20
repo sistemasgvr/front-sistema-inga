@@ -33,7 +33,6 @@ export function CategoriaFormModal({
   isSaving,
 }: CategoriaFormModalProps) {
   const [values, setValues] = useState<CategoriaFormValues>({
-    codigo: "",
     nombre: "",
     tipo_gasto: TIPO_GASTO.FIJO,
     id_categoria_padre: null,
@@ -49,7 +48,6 @@ export function CategoriaFormModal({
 
     if (categoria) {
       setValues({
-        codigo: categoria.codigo,
         nombre: categoria.nombre,
         tipo_gasto: categoria.tipo_gasto,
         id_categoria_padre: categoria.id_categoria_padre ?? null,
@@ -57,7 +55,6 @@ export function CategoriaFormModal({
       });
     } else {
       setValues({
-        codigo: "",
         nombre: "",
         // Una subcategoría hereda el tipo del padre: lo fijo desde el inicio
         // para que el usuario vea el valor correcto y no pueda cambiarlo.
@@ -71,12 +68,6 @@ export function CategoriaFormModal({
 
   }, [isOpen, categoria, padre]);
 
-  const errorCodigo =
-    intentoEnviar && !values.codigo.trim()
-      ? "El código es obligatorio."
-      : values.codigo.trim() && !/^[A-Za-z0-9_-]+$/.test(values.codigo.trim())
-        ? "Usa solo letras, números, guion o guion bajo."
-        : undefined;
   const errorNombre =
     intentoEnviar && !values.nombre.trim() ? "El nombre es obligatorio." : undefined;
 
@@ -90,7 +81,7 @@ export function CategoriaFormModal({
     if (isSaving) return;
     setIntentoEnviar(true);
 
-    if (!values.codigo.trim() || !values.nombre.trim() || errorCodigo) return;
+    if (!values.nombre.trim()) return;
 
     try {
       await onSubmit(values);
@@ -121,38 +112,20 @@ export function CategoriaFormModal({
       isSaving={isSaving}
     >
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label htmlFor="codigo">Código *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) => {
+      <div>
+        <Label htmlFor="nombre">Nombre *</Label>
+        <Input
+          id="nombre"
+          value={values.nombre}
+          onChange={(e) => {
 
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
-            }}
-            placeholder="LUZ"
-            error={Boolean(errorCodigo)}
-            hint={errorCodigo}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <Label htmlFor="nombre">Nombre *</Label>
-          <Input
-            id="nombre"
-            value={values.nombre}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, nombre: e.target.value }));
-            }}
-            placeholder="Luz"
-            error={Boolean(errorNombre)}
-            hint={errorNombre}
-            disabled={isSaving}
-          />
-        </div>
+            setValues((p) => ({ ...p, nombre: e.target.value }));
+          }}
+          placeholder="Luz"
+          error={Boolean(errorNombre)}
+          hint={errorNombre}
+          disabled={isSaving}
+        />
       </div>
 
       <div>

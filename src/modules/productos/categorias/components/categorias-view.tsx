@@ -126,7 +126,7 @@ export function CategoriasView() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:max-w-xl">
           <div className="w-full">
-            <Input type="search" placeholder="Buscar por código o nombre..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+            <Input type="search" placeholder="Buscar por nombre..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
 
           <div className="w-full sm:w-48">

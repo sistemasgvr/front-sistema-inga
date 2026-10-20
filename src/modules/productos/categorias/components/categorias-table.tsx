@@ -84,9 +84,6 @@ export function CategoriasTable({
             >
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <Badge size="sm" variant="light" color="light" className="font-mono text-[11px] font-bold text-brand-600 dark:text-brand-400">
-                    {cat.codigo}
-                  </Badge>
                   <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {cat.nombre}
                   </span>
@@ -177,7 +174,7 @@ export function CategoriasTable({
               <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
                 <TableRow>
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
-                    Código y Categoría
+                    Categoría
                   </TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
                     Subcategorías
@@ -208,9 +205,6 @@ export function CategoriasTable({
                     <TableRow key={cat.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                       <TableCell className="px-5 py-4 text-start">
                         <div className="flex items-center gap-2.5">
-                          <Badge size="sm" variant="light" color="light" className="font-mono text-[11px] font-bold text-brand-600 dark:text-brand-400">
-                            {cat.codigo}
-                          </Badge>
                           <div>
                             <span className="block text-sm font-semibold text-gray-900 dark:text-white">
                               {cat.nombre}

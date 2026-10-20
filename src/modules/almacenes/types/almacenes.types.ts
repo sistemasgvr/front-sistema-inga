@@ -4,7 +4,6 @@ export type AlmacenItem = {
   id: number;
   id_sucursal: number;
   nombre_sucursal?: string;
-  codigo: string;
   nombre: string;
   descripcion?: string | null;
   tipo_almacen: number;
@@ -17,7 +16,6 @@ export type AlmacenItem = {
 
 export type AlmacenFormValues = {
   id_sucursal: number;
-  codigo: string;
   nombre: string;
   descripcion?: string;
   tipo_almacen: number;

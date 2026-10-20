@@ -41,7 +41,6 @@ function AlmacenFormContent({
 
   const [values, setValues] = useState<AlmacenFormValues>({
     id_sucursal: defaultSucursalId,
-    codigo: "",
     nombre: "",
     descripcion: "",
     tipo_almacen: 1,
@@ -60,7 +59,6 @@ function AlmacenFormContent({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setValues({
         id_sucursal: almacen.id_sucursal ?? defaultSucursalId,
-        codigo: almacen.codigo || "",
         nombre: almacen.nombre || "",
         descripcion: almacen.descripcion || "",
         tipo_almacen: almacen.tipo_almacen ?? 1,
@@ -69,7 +67,6 @@ function AlmacenFormContent({
     } else {
       setValues({
         id_sucursal: availableSucursales[0]?.id ?? defaultSucursalId,
-        codigo: "",
         nombre: "",
         descripcion: "",
         tipo_almacen: tiposAlmacen[0]?.valor_entero ?? 1,
@@ -89,7 +86,6 @@ function AlmacenFormContent({
   function validate(currentValues: AlmacenFormValues = values): boolean {
     const next: Partial<Record<keyof AlmacenFormValues, string>> = {};
 
-    if (!currentValues.codigo.trim()) next.codigo = "El código es obligatorio.";
     if (!currentValues.nombre.trim()) next.nombre = "El nombre del almacén es obligatorio.";
     if (!currentValues.id_sucursal) next.id_sucursal = "La sucursal es obligatoria.";
     if (!currentValues.tipo_almacen) next.tipo_almacen = "El tipo de almacén es obligatorio.";
@@ -151,24 +147,24 @@ function AlmacenFormContent({
       isSaving={isSaving}
     >
 
+      <div>
+        <Label htmlFor="nombre">Nombre del almacén *</Label>
+        <Input
+          id="nombre"
+          value={values.nombre}
+          onChange={(e) => {
+
+            setValues((p) => ({ ...p, nombre: e.target.value }));
+          }}
+          onBlur={() => handleBlur("nombre")}
+          placeholder="Ej. Almacén Principal"
+          error={Boolean(showError("nombre"))}
+          hint={showError("nombre")}
+          disabled={isSaving}
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="codigo">Código *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
-            }}
-            onBlur={() => handleBlur("codigo")}
-            placeholder="Ej. ALM-01"
-            error={Boolean(showError("codigo"))}
-            hint={showError("codigo")}
-            disabled={isSaving}
-          />
-        </div>
-
         <div>
           <Label>Tipo de almacén *</Label>
           <Select
@@ -183,25 +179,6 @@ function AlmacenFormContent({
               setValues((p) => ({ ...p, tipo_almacen: Number(val) }));
               handleBlur("tipo_almacen");
             }}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="nombre">Nombre del almacén *</Label>
-          <Input
-            id="nombre"
-            value={values.nombre}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, nombre: e.target.value }));
-            }}
-            onBlur={() => handleBlur("nombre")}
-            placeholder="Ej. Almacén Principal"
-            error={Boolean(showError("nombre"))}
-            hint={showError("nombre")}
-            disabled={isSaving}
           />
         </div>
 

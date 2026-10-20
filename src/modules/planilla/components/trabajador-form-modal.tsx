@@ -129,7 +129,8 @@ export function TrabajadorFormModal({
         <div>
           <Label htmlFor="trabajador-telefono">Teléfono</Label>
           <Input id="trabajador-telefono" value={values.telefono} disabled={isSaving}
-            onChange={(e) => setValues(p => ({ ...p, telefono: e.target.value }))} />
+            maxLength={20} placeholder="987654321"
+            onChange={(e) => setValues(p => ({ ...p, telefono: e.target.value.replace(/\D/g, "") }))} />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

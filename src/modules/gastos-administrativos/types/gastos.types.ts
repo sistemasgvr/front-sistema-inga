@@ -47,7 +47,6 @@ export type CategoriaGasto = {
   id: number;
   id_categoria_padre?: number | null;
   nombre_categoria_padre?: string | null;
-  codigo: string;
   nombre: string;
   tipo_gasto: number;
   tipo_gasto_nombre: string;
@@ -60,7 +59,6 @@ export type CategoriaGasto = {
 };
 
 export type CategoriaFormValues = {
-  codigo: string;
   nombre: string;
   tipo_gasto: number;
   id_categoria_padre: number | null;
@@ -78,7 +76,6 @@ export type GastoItem = {
   id: number;
   id_categoria: number;
   nombre_categoria: string;
-  codigo_categoria?: string;
   id_categoria_padre?: number | null;
   nombre_categoria_padre: string | null;
   tipo_gasto: number;

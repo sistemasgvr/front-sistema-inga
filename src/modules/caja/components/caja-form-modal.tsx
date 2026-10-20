@@ -29,7 +29,6 @@ export function CajaFormModal({
 }: CajaFormModalProps) {
   const [values, setValues] = useState<CajaFormValues>({
     id_sucursal: null,
-    codigo: "",
     nombre: "",
   });
   const [intentoEnviar, setIntentoEnviar] = useState(false);
@@ -41,13 +40,11 @@ export function CajaFormModal({
     if (caja) {
       setValues({
         id_sucursal: caja.id_sucursal,
-        codigo: caja.codigo,
         nombre: caja.nombre,
       });
     } else {
       setValues({
         id_sucursal: sucursales[0]?.id ?? null,
-        codigo: "",
         nombre: "",
       });
     }
@@ -56,8 +53,6 @@ export function CajaFormModal({
 
   }, [isOpen, caja, sucursales]);
 
-  const errorCodigo =
-    intentoEnviar && !values.codigo.trim() ? "El código es obligatorio." : undefined;
   const errorNombre =
     intentoEnviar && !values.nombre.trim() ? "El nombre es obligatorio." : undefined;
   const errorSucursal =
@@ -72,7 +67,7 @@ export function CajaFormModal({
     if (isSaving) return;
     setIntentoEnviar(true);
 
-    if (!values.codigo.trim() || !values.nombre.trim() || !values.id_sucursal) return;
+    if (!values.nombre.trim() || !values.id_sucursal) return;
 
     try {
       await onSubmit(values);
@@ -92,6 +87,22 @@ export function CajaFormModal({
       subtitle="Cada caja física del local sobre la que se abren turnos."
       isSaving={isSaving}
     >
+
+      <div>
+        <Label htmlFor="nombre">Nombre *</Label>
+        <Input
+          id="nombre"
+          value={values.nombre}
+          onChange={(e) => {
+
+            setValues((p) => ({ ...p, nombre: e.target.value }));
+          }}
+          placeholder="Caja principal"
+          error={Boolean(errorNombre)}
+          hint={errorNombre ?? "Único dentro de la sucursal."}
+          disabled={isSaving}
+        />
+      </div>
 
       <div>
         <Label htmlFor="id_sucursal">Sucursal *</Label>
@@ -115,40 +126,6 @@ export function CajaFormModal({
               : undefined)
           }
         />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <Label htmlFor="codigo">Código *</Label>
-          <Input
-            id="codigo"
-            value={values.codigo}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }));
-            }}
-            placeholder="CAJA-01"
-            error={Boolean(errorCodigo)}
-            hint={errorCodigo ?? "Único dentro de la sucursal."}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <Label htmlFor="nombre">Nombre *</Label>
-          <Input
-            id="nombre"
-            value={values.nombre}
-            onChange={(e) => {
-
-              setValues((p) => ({ ...p, nombre: e.target.value }));
-            }}
-            placeholder="Caja principal"
-            error={Boolean(errorNombre)}
-            hint={errorNombre}
-            disabled={isSaving}
-          />
-        </div>
       </div>
     </FormModal>
   );

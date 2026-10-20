@@ -41,7 +41,6 @@ export async function listEstaciones(
 export async function createEstacion(values: EstacionFormValues): Promise<EstacionItem> {
   const response = await apiPost<EstacionItem>("/estaciones", {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     impresora_nombre: values.impresora_nombre?.trim() || null,
     impresora_ip: values.impresora_ip?.trim() || null,
@@ -56,7 +55,6 @@ export async function updateEstacion(
 ): Promise<EstacionItem> {
   const response = await apiPatch<EstacionItem>(`/estaciones/${id}`, {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     impresora_nombre: values.impresora_nombre?.trim() || null,
     impresora_ip: values.impresora_ip?.trim() || null,

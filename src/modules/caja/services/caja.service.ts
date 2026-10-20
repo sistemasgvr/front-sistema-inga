@@ -51,7 +51,6 @@ export async function listCajas(
 export async function createCaja(values: CajaFormValues): Promise<CajaItem> {
   return apiPost<CajaItem>("/caja/cajas", {
     id_sucursal: values.id_sucursal,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });
 }
@@ -62,7 +61,6 @@ export async function updateCaja(
 ): Promise<CajaItem> {
   return apiPatch<CajaItem>(`/caja/cajas/${id}`, {
     id_sucursal: values.id_sucursal,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
   });
 }

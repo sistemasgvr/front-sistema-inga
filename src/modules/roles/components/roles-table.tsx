@@ -73,9 +73,6 @@ export function RolesTable({
               >
                 <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-white/[0.05]">
                   <div className="flex items-center gap-2">
-                    <Badge size="sm" color="primary" variant="light">
-                      {role.codigo}
-                    </Badge>
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white">
                       {role.nombre}
                     </h4>
@@ -186,9 +183,6 @@ export function RolesTable({
               <TableHeader className="border-b border-gray-100 bg-gray-50/50 dark:border-white/[0.05] dark:bg-gray-900/20">
                 <TableRow>
                   <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
-                    Código
-                  </TableCell>
-                  <TableCell isHeader className="px-5 py-3.5 text-start text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
                     Nombre y Descripción
                   </TableCell>
                   <TableCell isHeader className="px-5 py-3.5 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase dark:text-gray-300">
@@ -209,13 +203,13 @@ export function RolesTable({
               <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">
+                    <TableCell colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">
                       Cargando roles...
                     </TableCell>
                   </TableRow>
                 ) : safeRoles.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="px-5 py-8 text-center text-sm text-gray-500">
+                    <TableCell colSpan={5} className="px-5 py-8 text-center text-sm text-gray-500">
                       No hay roles registrados.
                     </TableCell>
                   </TableRow>
@@ -228,12 +222,6 @@ export function RolesTable({
 
                     return (
                       <TableRow key={role.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                        <TableCell className="px-5 py-4 text-start">
-                          <Badge size="sm" color="primary" variant="light">
-                            {role.codigo}
-                          </Badge>
-                        </TableCell>
-
                         <TableCell className="px-5 py-4 text-start">
                           <span className="block text-sm font-bold text-gray-900 dark:text-white">
                             {role.nombre}

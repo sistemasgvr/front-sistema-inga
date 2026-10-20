@@ -16,7 +16,6 @@ type CategoriaFormModalProps = {
 };
 
 const EMPTY_FORM: CategoriaFormValues = {
-  codigo: "",
   nombre: "",
   descripcion: "",
   es_carta: false,
@@ -40,7 +39,6 @@ export function CategoriaFormModal({
 
     if (categoria) {
       setValues({
-        codigo: categoria.codigo || "",
         nombre: categoria.nombre || "",
         descripcion: categoria.descripcion || "",
         es_carta: Boolean(categoria.es_carta),
@@ -61,9 +59,6 @@ export function CategoriaFormModal({
   function validate(currentValues: CategoriaFormValues = values): boolean {
     const next: Partial<Record<keyof CategoriaFormValues, string>> = {};
 
-    if (!currentValues.codigo.trim()) {
-      next.codigo = "El código es obligatorio.";
-    }
     if (!currentValues.nombre.trim()) {
       next.nombre = "El nombre de la categoría es obligatorio.";
     }
@@ -106,42 +101,6 @@ export function CategoriaFormModal({
       maxWidth="max-w-[550px]"
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="codigo">Código *</Label>
-            <Input
-              id="codigo"
-              value={values.codigo}
-              onChange={(e) =>
-                setValues((p) => ({ ...p, codigo: e.target.value.toUpperCase() }))
-              }
-              onBlur={() => handleBlur("codigo")}
-              placeholder="Ej. CAT-01"
-              error={Boolean(showError("codigo"))}
-              hint={showError("codigo")}
-              disabled={isSaving}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="orden">Orden / Prioridad</Label>
-            <Input
-              id="orden"
-              type="number"
-              value={values.orden}
-              onChange={(e) =>
-                setValues((p) => ({ ...p, orden: Number(e.target.value) }))
-              }
-              onBlur={() => handleBlur("orden")}
-              placeholder="Ej. 10, 20, 30"
-              disabled={isSaving}
-            />
-            <p className="mt-1 text-[11px] text-gray-400">
-              Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
-            </p>
-          </div>
-        </div>
-
         <div>
           <Label htmlFor="nombre">Nombre de la Categoría *</Label>
           <Input
@@ -167,6 +126,24 @@ export function CategoriaFormModal({
             placeholder="Breve descripción orientativa..."
             disabled={isSaving}
           />
+        </div>
+
+        <div>
+          <Label htmlFor="orden">Orden / Prioridad</Label>
+          <Input
+            id="orden"
+            type="number"
+            value={values.orden}
+            onChange={(e) =>
+              setValues((p) => ({ ...p, orden: Number(e.target.value) }))
+            }
+            onBlur={() => handleBlur("orden")}
+            placeholder="Ej. 10, 20, 30"
+            disabled={isSaving}
+          />
+          <p className="mt-1 text-[11px] text-gray-400">
+            Recomendación: usa incrementos de 10 en 10 (10, 20, 30) para facilitar reordenamientos futuros.
+          </p>
         </div>
 
         <div className="pt-2">

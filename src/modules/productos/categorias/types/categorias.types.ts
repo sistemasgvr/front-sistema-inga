@@ -2,7 +2,6 @@ export type CategoriaStatus = 1 | 0;
 
 export type CategoriaItem = {
   id: number;
-  codigo: string;
   nombre: string;
   descripcion?: string | null;
   es_carta: boolean;
@@ -14,7 +13,6 @@ export type CategoriaItem = {
 };
 
 export type CategoriaFormValues = {
-  codigo: string;
   nombre: string;
   descripcion?: string;
   es_carta: boolean;

@@ -84,7 +84,7 @@ export function AbrirTurnoCard({
               <Select
                 options={cajasDisponibles.map((c) => ({
                   value: String(c.id),
-                  label: `${c.codigo} — ${c.nombre}`,
+                  label: c.nombre,
                 }))}
                 defaultValue={idCaja ? String(idCaja) : ""}
                 placeholder="Selecciona la caja"

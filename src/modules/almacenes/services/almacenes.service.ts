@@ -39,7 +39,6 @@ export async function listAlmacenes(
 export async function createAlmacen(values: AlmacenFormValues): Promise<AlmacenItem> {
   const response = await apiPost<AlmacenItem>("/almacenes", {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
@@ -52,7 +51,6 @@ export async function updateAlmacen(
 ): Promise<AlmacenItem> {
   const response = await apiPatch<AlmacenItem>(`/almacenes/${id}`, {
     ...values,
-    codigo: values.codigo.trim().toUpperCase(),
     nombre: values.nombre.trim(),
     descripcion: values.descripcion?.trim() || null,
   });
