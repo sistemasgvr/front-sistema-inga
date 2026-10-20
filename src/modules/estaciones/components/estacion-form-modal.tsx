@@ -46,6 +46,7 @@ function EstacionFormContent({
     tipo_estacion: 1,
     impresora_nombre: "",
     impresora_ip: "",
+    ancho_papel: 80,
     usa_kds: false,
   });
 
@@ -65,6 +66,7 @@ function EstacionFormContent({
         tipo_estacion: estacion.tipo_estacion ?? 1,
         impresora_nombre: estacion.impresora_nombre || "",
         impresora_ip: estacion.impresora_ip || "",
+        ancho_papel: estacion.ancho_papel === 58 ? 58 : 80,
         usa_kds: Boolean(estacion.usa_kds),
       });
     } else {
@@ -75,6 +77,7 @@ function EstacionFormContent({
         tipo_estacion: tiposEstacion[0]?.valor_entero ?? 1,
         impresora_nombre: "",
         impresora_ip: "",
+        ancho_papel: 80,
         usa_kds: false,
       });
     }
@@ -233,7 +236,7 @@ function EstacionFormContent({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <Label htmlFor="impresora_nombre">Nombre Impresora</Label>
           <Input
@@ -256,6 +259,19 @@ function EstacionFormContent({
             disabled={isSaving}
             error={Boolean(showError("impresora_ip"))}
             hint={showError("impresora_ip")}
+          />
+        </div>
+
+        <div>
+          <Label>Ancho de papel</Label>
+          <Select
+            options={[
+              { value: "80", label: "80 mm (48 columnas)" },
+              { value: "58", label: "58 mm (32 columnas)" },
+            ]}
+            defaultValue={String(values.ancho_papel)}
+            disabled={isSaving}
+            onChange={(val) => setValues((p) => ({ ...p, ancho_papel: val === "58" ? 58 : 80 }))}
           />
         </div>
       </div>

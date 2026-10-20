@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from '@/shared/api/api-client';
 import { ENCABEZADO_LOGO, formatearComanda, formatearPrueba } from '../utils/comanda';
-import type { EmpresaTicket, TrabajoImpresion } from '../types/impresion.types';
+import type { AnchoPapel, EmpresaTicket, TrabajoImpresion } from '../types/impresion.types';
 
 let conexion: Promise<typeof import('qz-tray')['default']> | null = null;
 // QZ sólo informa «Failed to sign request»; se guarda el motivo real que dio el servidor.
@@ -94,11 +94,11 @@ async function datosEmpresa() {
 
 export async function imprimirComanda(trabajo: TrabajoImpresion) {
   const datos = await datosEmpresa();
-  return imprimirRaw(trabajo.host, formatearComanda(trabajo.contenido, datos), datos?.logo);
+  return imprimirRaw(trabajo.host, formatearComanda(trabajo.contenido, datos, trabajo.ancho_papel ?? 80), datos?.logo);
 }
 
 // Va directo a la impresora: no pasa por la cola ni crea comandas en el backend.
-export async function imprimirPrueba(host: string, estacion: string) {
+export async function imprimirPrueba(host: string, estacion: string, papel: AnchoPapel = 80) {
   if (!host.trim()) throw new Error('La estación no tiene IP de impresora configurada');
-  await imprimirRaw(host, formatearPrueba(estacion, host.trim()));
+  await imprimirRaw(host, formatearPrueba(estacion, host.trim(), new Date(), papel));
 }

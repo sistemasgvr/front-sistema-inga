@@ -44,7 +44,9 @@ function EstacionImpresora({ item }: { item: EstacionItem }) {
   return (
     <div>
       <span className="block text-sm text-gray-800 dark:text-gray-200">{item.impresora_nombre || "Impresora"}</span>
-      <span className="mt-0.5 block font-mono text-xs text-gray-500">{item.impresora_ip || "IP no asignada"}</span>
+      <span className="mt-0.5 block font-mono text-xs text-gray-500">
+        {item.impresora_ip || "IP no asignada"} · {item.ancho_papel ?? 80} mm
+      </span>
     </div>
   );
 }

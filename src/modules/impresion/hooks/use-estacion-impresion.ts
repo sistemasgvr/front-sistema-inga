@@ -41,7 +41,7 @@ export function useEstacionImpresion(estacion: EstacionItem) {
   }
   function imprimirHojaPrueba() {
     return ejecutar(async () => {
-      await imprimirPrueba(estacion.impresora_ip ?? '', estacion.nombre);
+      await imprimirPrueba(estacion.impresora_ip ?? '', estacion.nombre, estacion.ancho_papel ?? 80);
       toast('success', 'Prueba de impresión', 'Hoja de prueba enviada. Verifica que haya salido el ticket.');
     });
   }

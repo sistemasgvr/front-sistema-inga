@@ -10,6 +10,8 @@ export type EstacionItem = {
   impresora_nombre?: string | null;
   impresora_ip?: string | null;
   usa_kds: boolean;
+  /** Ancho del rollo de la impresora (mm). */
+  ancho_papel?: 58 | 80;
   estado: EstacionStatus;
   fecha_creacion?: string;
   fecha_modificacion?: string;
@@ -22,6 +24,7 @@ export type EstacionFormValues = {
   tipo_estacion: number;
   impresora_nombre?: string;
   impresora_ip?: string;
+  ancho_papel: 58 | 80;
   usa_kds: boolean;
 };
 

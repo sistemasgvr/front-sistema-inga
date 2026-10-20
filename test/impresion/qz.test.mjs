@@ -81,9 +81,11 @@ test('el ticket contiene ítems, notas y adicionales y elimina controles inyecta
   assert.equal(print[1].host, '192.168.1.101');
   assert.equal(print[2].length, 1); // Sin logo configurado no se envía imagen.
   const content = print[2][0].data;
-  assert.match(limpio(content), /CANT PRODUCTO\n-{32}\n2 {4}Pollo\n {5}\+ Limon\n {5}NOTA: Sin aji@\n/);
+  assert.match(limpio(content), /CANT PRODUCTO\n-{48}\n2 {4}Pollo\n {5}\+ Limon\n {5}NOTA: Sin aji@\n/);
   assert.doesNotMatch(content, /Sin aji\x1b/); // El ESC inyectado en la nota se descarta.
-  assert.ok(content.endsWith('\x1dV\x00'));
+  // Sin corte automático: avanza 6 líneas para dejar el ticket como tira y cortarlo a mano.
+  assert.ok(content.endsWith('\n\x1bd\x06'));
+  assert.doesNotMatch(content, /\x1dV/);
 });
 test('la comanda destaca la mesa en tamaño grande y lista los datos del pedido', () => {
   const content = comanda.formatearComanda(ticket);
@@ -112,7 +114,7 @@ test('si no se pueden leer los datos de la empresa, la comanda se imprime igual'
 test('la precuenta muestra mesa, pedido, mozo y fecha alineados, con subtotales y total', () => {
   const content = limpio(comanda.formatearComanda({ ...ticket, tipo: 'PRECUENTA', total: 41.5,
     items: [{ cantidad: 2, nombre_producto: 'Arroz con pato a la chiclayana', monto_subtotal: 41.5, observacion: 'Sin sal',
-      adicionales: [{ nombre: 'Crema' }] }] }));
+      adicionales: [{ nombre: 'Crema' }] }] }, null, 58)); // Rollo de 58 mm: 32 columnas.
   assert.match(content, /PRECUENTA\nNo valido como comprobante de pago\n-{32}\nMesa: {4}M5\nPedido: {2}P-1\nMozo: {4}Jose\nFecha: {3}03\/10\/2026 10:00/);
   assert.match(content, /CANT PRODUCTO {11}SUBTOTAL\n/);
   assert.match(content, /\n2 {4}Arroz con pato a +41\.50\n {5}la chiclayana\n {5}\+ Crema\n/);
@@ -146,9 +148,10 @@ test('el comprobante impreso desde Ventas lleva número, empresa, receptor, tota
   { ruc: '20123456789', razon_social: 'Restaurante Inga S.A.C.', direccion: 'Av. Perú 123 - Lima', logo: null });
   const contenido = limpio(crudo);
   assert.match(crudo, /BOLETA DE VENTA\n\x1d!\x11B001-00000002/); // Número a doble tamaño.
-  assert.match(contenido, /B001-00000002\n\nRestaurante Inga S\.A\.C\.\nRUC 20123456789\nAv\. Peru 123 - Lima\n-{32}\nFecha: {3}03\/10\/2026 10:00\nPedido: {2}P-1 - Mesa M5\nCliente: Ana Perez\nDNI: {5}12345678\n/);
+  assert.match(contenido, /B001-00000002\n\nRestaurante Inga S\.A\.C\.\nRUC 20123456789\nAv\. Peru 123 - Lima\n-{48}\nFecha: {3}03\/10\/2026 10:00\nPedido: {2}P-1 - Mesa M5\nCliente: Ana Perez\nDNI: {5}12345678\n/);
+  assert.match(contenido, /\nCANT PRODUCTO {27}SUBTOTAL\n/); // Rollo de 80 mm por defecto: 48 columnas.
   assert.match(contenido, /\n1 {4}Barco criollo +80\.00\n/);
-  assert.match(contenido, /\n {11}OP\. GRAVADA {2}S\/ 67\.80\n {19}IGV {2}S\/ 12\.20\n {17}TOTAL {2}S\/ 80\.00\n/);
+  assert.match(contenido, /\n {27}OP\. GRAVADA {2}S\/ 67\.80\n {35}IGV {2}S\/ 12\.20\n {33}TOTAL {2}S\/ 80\.00\n/);
   assert.match(contenido, /Yape {2}S\/ 80\.00/);
   assert.doesNotMatch(contenido, /COMANDA|QR/);
 });

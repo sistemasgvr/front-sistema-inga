@@ -1,4 +1,4 @@
-import type { ComandaImpresion, EmpresaTicket } from '../types/impresion.types';
+import type { AnchoPapel, ComandaImpresion, EmpresaTicket } from '../types/impresion.types';
 
 // ASCII portable: evita seleccionar una tabla de caracteres distinta en cada impresora.
 const texto = (value: unknown) => String(value ?? '').normalize('NFD')
@@ -6,9 +6,8 @@ const texto = (value: unknown) => String(value ?? '').normalize('NFD')
 
 const soles = (valor: unknown) => `S/ ${Number(valor ?? 0).toFixed(2)}`;
 
-/** Columnas de papel de 58 mm con la fuente normal. */
-const ANCHO = 32;
-const SEPARADOR = '-'.repeat(ANCHO);
+/** Columnas con la fuente normal (A, 12 puntos): 58 mm → 32, 80 mm → 48. */
+export const COLUMNAS: Record<AnchoPapel, number> = { 58: 32, 80: 48 };
 
 // Comandos ESC/POS.
 const INICIO = '\x1b@';
@@ -18,41 +17,12 @@ const NEGRITA = '\x1bE\x01';
 const NORMAL_PESO = '\x1bE\x00';
 const tamano = (ancho: number, alto: number) => `\x1d!${String.fromCharCode(((ancho - 1) << 4) | (alto - 1))}`;
 const NORMAL = tamano(1, 1);
-const CORTE = '\n\n\n\n\x1dV\x00';
+// Sin corte automático: el papel sale como tira y se corta a mano. Se avanza lo
+// suficiente para que la última línea pase la barra de corte sin partir el texto.
+const FINAL = '\x1bd\x06';
 
 /** Inicializa la impresora y centra, para que el logo raster salga centrado. */
 export const ENCABEZADO_LOGO = INICIO + CENTRO;
-
-/** Parte el texto en líneas de `ancho` columnas sin cortar palabras (salvo las muy largas). */
-function envolver(valor: string, ancho = ANCHO): string[] {
-  const lineas: string[] = [];
-  for (const parrafo of valor.split('\n')) {
-    let actual = '';
-    for (const palabra of parrafo.split(/\s+/).filter(Boolean)) {
-      for (let resto = palabra; resto;) {
-        const libre = actual ? ancho - actual.length - 1 : ancho;
-        if (resto.length <= libre) { actual = actual ? `${actual} ${resto}` : resto; resto = ''; }
-        else if (actual) { lineas.push(actual); actual = ''; }
-        else { lineas.push(resto.slice(0, ancho)); resto = resto.slice(ancho); }
-      }
-    }
-    lineas.push(actual);
-  }
-  return lineas.filter((linea, i) => linea || i === 0);
-}
-
-/** «Etiqueta: valor», con el valor alineado en una sola columna. */
-function dato(etiqueta: string, valor: unknown): string[] {
-  const prefijo = `${etiqueta}:`.padEnd(9);
-  return envolver(texto(valor), ANCHO - prefijo.length)
-    .map((linea, i) => (i ? ' '.repeat(prefijo.length) : prefijo) + linea);
-}
-
-/** El tamaño más grande que entra en una línea (hasta 3x). */
-function grande(valor: string, maximo = 3): string {
-  const escala = [3, 2].find((n) => n <= maximo && valor.length * n <= ANCHO);
-  return (escala ? tamano(escala, escala) : tamano(1, 2)) + valor + NORMAL;
-}
 
 const fecha = (valor: string) => new Date(valor).toLocaleString('es-PE', {
   timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric',
@@ -66,79 +36,121 @@ const cantidad = (valor: unknown) => String(Number(valor ?? 0));
 
 type Item = ComandaImpresion['items'][number];
 
-/**
- * Tabla CANT / PRODUCTO [/ SUBTOTAL]. Los nombres largos continúan debajo,
- * alineados con la columna de producto, igual que adicionales y notas.
- */
-function tabla(items: Item[], conSubtotal: boolean, extras: (item: Item) => string[]): string[] {
-  const cant = 5;
-  const subtotal = conSubtotal ? 9 : 0;
-  const producto = ANCHO - cant - subtotal;
-  const sangria = ' '.repeat(cant);
-  const encabezado = 'CANT'.padEnd(cant) + (conSubtotal ? 'PRODUCTO'.padEnd(producto) + 'SUBTOTAL'.padStart(subtotal) : 'PRODUCTO');
-  return [
-    NEGRITA + encabezado + NORMAL_PESO,
-    SEPARADOR,
-    ...items.flatMap((item) => {
-      const [primera, ...resto] = envolver(texto(item.nombre_producto), producto);
-      const monto = conSubtotal ? Number(item.monto_subtotal ?? 0).toFixed(2).padStart(subtotal) : '';
-      return [
-        cantidad(item.cantidad).padEnd(cant) + (conSubtotal ? primera.padEnd(producto) : primera) + monto,
-        ...resto.map((linea) => sangria + linea),
-        ...extras(item).flatMap((extra) => envolver(extra, producto).map((linea) => sangria + linea)),
-      ];
-    }),
-  ];
+/** Herramientas de maquetación para un ancho de papel concreto. */
+function maqueta(papel: AnchoPapel) {
+  const ancho = COLUMNAS[papel] ?? COLUMNAS[80];
+  const separador = '-'.repeat(ancho);
+
+  /** Parte el texto en líneas de `columnas` sin cortar palabras (salvo las muy largas). */
+  function envolver(valor: string, columnas = ancho): string[] {
+    const lineas: string[] = [];
+    for (const parrafo of valor.split('\n')) {
+      let actual = '';
+      for (const palabra of parrafo.split(/\s+/).filter(Boolean)) {
+        for (let resto = palabra; resto;) {
+          const libre = actual ? columnas - actual.length - 1 : columnas;
+          if (resto.length <= libre) { actual = actual ? `${actual} ${resto}` : resto; resto = ''; }
+          else if (actual) { lineas.push(actual); actual = ''; }
+          else { lineas.push(resto.slice(0, columnas)); resto = resto.slice(columnas); }
+        }
+      }
+      lineas.push(actual);
+    }
+    return lineas.filter((linea, i) => linea || i === 0);
+  }
+
+  /** «Etiqueta: valor», con el valor alineado en una sola columna. */
+  function dato(etiqueta: string, valor: unknown): string[] {
+    const prefijo = `${etiqueta}:`.padEnd(9);
+    return envolver(texto(valor), ancho - prefijo.length)
+      .map((linea, i) => (i ? ' '.repeat(prefijo.length) : prefijo) + linea);
+  }
+
+  /** El tamaño más grande que entra en una línea (hasta 3x). */
+  function grande(valor: string, maximo = 3): string {
+    const escala = [3, 2].find((n) => n <= maximo && valor.length * n <= ancho);
+    return (escala ? tamano(escala, escala) : tamano(1, 2)) + valor + NORMAL;
+  }
+
+  /**
+   * Tabla CANT / PRODUCTO [/ SUBTOTAL]. Los nombres largos continúan debajo,
+   * alineados con la columna de producto, igual que adicionales y notas.
+   */
+  function tabla(items: Item[], conSubtotal: boolean, extras: (item: Item) => string[]): string[] {
+    const cant = 5;
+    const subtotal = conSubtotal ? 9 : 0;
+    const producto = ancho - cant - subtotal;
+    const sangria = ' '.repeat(cant);
+    const encabezado = 'CANT'.padEnd(cant) + (conSubtotal ? 'PRODUCTO'.padEnd(producto) + 'SUBTOTAL'.padStart(subtotal) : 'PRODUCTO');
+    return [
+      NEGRITA + encabezado + NORMAL_PESO,
+      separador,
+      ...items.flatMap((item) => {
+        const [primera, ...resto] = envolver(texto(item.nombre_producto), producto);
+        const monto = conSubtotal ? Number(item.monto_subtotal ?? 0).toFixed(2).padStart(subtotal) : '';
+        return [
+          cantidad(item.cantidad).padEnd(cant) + (conSubtotal ? primera.padEnd(producto) : primera) + monto,
+          ...resto.map((linea) => sangria + linea),
+          ...extras(item).flatMap((extra) => envolver(extra, producto).map((linea) => sangria + linea)),
+        ];
+      }),
+    ];
+  }
+
+  /** Línea de importe alineada a la derecha. */
+  const importe = (etiqueta: string, valor: unknown) => `${etiqueta}  ${soles(valor)}`.padStart(ancho);
+
+  return { separador, envolver, dato, grande, tabla, importe };
 }
 
-/** Línea de importe alineada a la derecha. */
-const importe = (etiqueta: string, valor: unknown) => `${etiqueta}  ${soles(valor)}`.padStart(ANCHO);
-
-export function formatearComanda(comanda: ComandaImpresion, empresa?: EmpresaTicket | null): string {
-  if (comanda.tipo === 'COMPROBANTE') return formatearComprobante(comanda, empresa);
-  if (comanda.tipo === 'PRECUENTA') return formatearPrecuenta(comanda);
+export function formatearComanda(comanda: ComandaImpresion, empresa?: EmpresaTicket | null, papel: AnchoPapel = 80): string {
+  if (comanda.tipo === 'COMPROBANTE') return formatearComprobante(comanda, empresa, papel);
+  if (comanda.tipo === 'PRECUENTA') return formatearPrecuenta(comanda, papel);
+  const { separador, envolver, dato, grande, tabla } = maqueta(papel);
   const lineas = [
     NEGRITA + texto(comanda.estacion).toUpperCase(),
     ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
     '',
     // La mesa es lo primero que busca cocina: va con el número lo más grande posible.
     ...(comanda.mesa ? [tamano(1, 2) + 'MESA' + NORMAL, grande(texto(comanda.mesa))] : [grande(destino(comanda), 2)]),
-    NORMAL_PESO + IZQUIERDA + SEPARADOR,
+    NORMAL_PESO + IZQUIERDA + separador,
     ...dato('Comanda', `${texto(comanda.id)} / Lote ${comanda.numero}`),
     ...dato('Fecha', fecha(comanda.fecha)),
     ...dato('Pedido', comanda.pedido),
     ...(comanda.mozo ? dato('Mozo', comanda.mozo) : []),
-    SEPARADOR,
+    separador,
     ...tabla(comanda.items, false, (item) => [
       ...(item.adicionales ?? []).map((a) => `+ ${texto(a.nombre)}`),
       ...(item.observacion ? [`NOTA: ${texto(item.observacion)}`] : []),
     ]),
-    SEPARADOR,
-    ...(comanda.observacion ? [...envolver(`OBS: ${texto(comanda.observacion)}`), SEPARADOR] : []),
+    separador,
+    ...(comanda.observacion ? [...envolver(`OBS: ${texto(comanda.observacion)}`), separador] : []),
   ];
-  return INICIO + CENTRO + lineas.join('\n') + CORTE;
+  return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;
 }
 
-function formatearPrecuenta(comanda: ComandaImpresion): string {
+function formatearPrecuenta(comanda: ComandaImpresion, papel: AnchoPapel): string {
+  const { separador, dato, tabla, importe } = maqueta(papel);
   const lineas = [
     NEGRITA + tamano(1, 2) + 'PRECUENTA' + NORMAL + NORMAL_PESO,
     'No valido como comprobante de pago',
     ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
-    IZQUIERDA + SEPARADOR,
+    IZQUIERDA + separador,
     ...dato('Mesa', destino(comanda)),
     ...dato('Pedido', comanda.pedido),
     ...(comanda.mozo ? dato('Mozo', comanda.mozo) : []),
     ...dato('Fecha', fecha(comanda.fecha)),
-    SEPARADOR,
+    separador,
     ...tabla(comanda.items, true, (item) => (item.adicionales ?? []).map((a) => `+ ${texto(a.nombre)}`)),
-    SEPARADOR,
+    separador,
     NEGRITA + tamano(1, 2) + importe('TOTAL', comanda.total) + NORMAL + NORMAL_PESO,
   ];
-  return INICIO + CENTRO + lineas.join('\n') + CORTE;
+  return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;
 }
 
 /** Ticket del comprobante emitido (Ventas → Imprimir). Todavía no hay envío a SUNAT, por eso no lleva QR. */
-function formatearComprobante(comanda: ComandaImpresion, empresa?: EmpresaTicket | null): string {
+function formatearComprobante(comanda: ComandaImpresion, empresa: EmpresaTicket | null | undefined, papel: AnchoPapel): string {
+  const { separador, envolver, dato, grande, tabla, importe } = maqueta(papel);
   const c = comanda.comprobante;
   const numero = texto(c?.numero);
   const documento = texto(c?.receptor_num_doc);
@@ -150,31 +162,33 @@ function formatearComprobante(comanda: ComandaImpresion, empresa?: EmpresaTicket
     ...(empresa?.razon_social ? envolver(texto(empresa.razon_social)).map((l) => NEGRITA + l + NORMAL_PESO) : []),
     ...(empresa?.ruc ? [`RUC ${texto(empresa.ruc)}`] : []),
     ...(empresa?.direccion ? envolver(texto(empresa.direccion)) : []),
-    IZQUIERDA + SEPARADOR,
+    IZQUIERDA + separador,
     ...dato('Fecha', fecha(comanda.fecha)),
     ...dato('Pedido', `${texto(comanda.pedido)} - ${comanda.mesa ? `Mesa ${texto(comanda.mesa)}` : destino(comanda)}`),
     ...dato('Cliente', c?.receptor_razon_social || 'CLIENTES VARIOS'),
     ...(documento && documento !== '00000000'
       ? dato(documento.length === 11 ? 'RUC' : documento.length === 8 ? 'DNI' : 'Doc', documento) : []),
-    SEPARADOR,
+    separador,
     ...tabla(comanda.items, true, () => []),
-    SEPARADOR,
+    separador,
     importe('OP. GRAVADA', c?.monto_gravado),
     importe('IGV', c?.monto_igv),
     NEGRITA + tamano(1, 2) + importe('TOTAL', c?.monto_total ?? comanda.total) + NORMAL + NORMAL_PESO,
-    ...((comanda.pagos ?? []).length ? [SEPARADOR, ...(comanda.pagos ?? []).map((p) => importe(texto(p.nombre_medio), p.monto))] : []),
-    SEPARADOR,
+    ...((comanda.pagos ?? []).length ? [separador, ...(comanda.pagos ?? []).map((p) => importe(texto(p.nombre_medio), p.monto))] : []),
+    separador,
     CENTRO + 'Gracias por su preferencia',
   ];
-  return INICIO + CENTRO + lineas.join('\n') + CORTE;
+  return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;
 }
 
-export function formatearPrueba(estacion: string, host: string, fecha = new Date()): string {
+export function formatearPrueba(estacion: string, host: string, fecha = new Date(), papel: AnchoPapel = 80): string {
+  const { separador } = maqueta(papel);
   const lineas = ['HOJA DE PRUEBA', texto(estacion).toUpperCase(), `Impresora: ${texto(host)}:9100`,
+    `Papel: ${papel} mm (${COLUMNAS[papel] ?? COLUMNAS[80]} columnas)`,
     fecha.toLocaleString('es-PE', { timeZone: 'America/Lima' }),
-    SEPARADOR,
+    separador,
     'Si lees este ticket, la estacion', 'imprime correctamente desde esta PC.',
-    SEPARADOR, '', '', '',
+    separador,
   ];
-  return '\x1b@' + lineas.join('\n') + '\n\x1dV\x00';
+  return INICIO + lineas.join('\n') + '\n' + FINAL;
 }

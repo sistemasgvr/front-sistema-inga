@@ -45,6 +45,7 @@ export async function createEstacion(values: EstacionFormValues): Promise<Estaci
     nombre: values.nombre.trim(),
     impresora_nombre: values.impresora_nombre?.trim() || null,
     impresora_ip: values.impresora_ip?.trim() || null,
+    ancho_papel: values.ancho_papel,
   });
   return response;
 }
@@ -59,6 +60,7 @@ export async function updateEstacion(
     nombre: values.nombre.trim(),
     impresora_nombre: values.impresora_nombre?.trim() || null,
     impresora_ip: values.impresora_ip?.trim() || null,
+    ancho_papel: values.ancho_papel,
   });
   return response;
 }
