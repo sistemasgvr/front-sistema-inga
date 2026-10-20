@@ -14,7 +14,7 @@ function load(file, imports = {}) {
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true,
   } }).outputText;
   const compiledModule = { exports: {} };
-  vm.runInNewContext(code, { exports: compiledModule.exports, module: compiledModule, TextEncoder, crypto: webcrypto,
+  vm.runInNewContext(code, { exports: compiledModule.exports, module: compiledModule, TextEncoder, crypto: webcrypto, setTimeout,
     require: (id) => { if (!(id in imports)) throw new Error(`Unexpected import ${id}`); return imports[id]; },
   });
   return compiledModule.exports;
@@ -174,4 +174,16 @@ test('un error de la impresora no se confunde con un rechazo de firma', async ()
   const { service, qz } = setup();
   qz.print = async () => { throw new Error('Connection refused'); };
   await assert.rejects(service.imprimirPrueba('192.168.1.101', 'Cocina'), (error) => !(error instanceof service.ErrorFirmaQz));
+});
+test('si la firma falla una vez (corte breve), se reintenta solo y el ticket sale sin pausar', async () => {
+  const { service, qz, calls } = setup();
+  let intentos = 0;
+  qz.print = async (...args) => {
+    intentos += 1;
+    if (intentos === 1) throw new Error('Failed to sign request');
+    calls.push(['print', ...args]);
+  };
+  await service.imprimirComanda({ id: '42', host: '192.168.1.101', contenido: ticket });
+  assert.equal(intentos, 2);
+  assert.match(calls.find(([name]) => name === 'print')[2][0].data, /Pollo/);
 });

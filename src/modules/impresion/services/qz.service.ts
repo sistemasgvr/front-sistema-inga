@@ -48,23 +48,34 @@ export async function probarConexion(host: string) {
   await qz.socket.close(host.trim(), 9100);
 }
 
+/** Esperas antes de reintentar cuando el servidor no firmó (p. ej. un corte breve de red o del API). */
+const REINTENTOS_FIRMA_MS = [500, 2000];
+
 async function imprimirRaw(host: string, data: string, logo?: string | null) {
   const qz = await conectarQz();
-  const texto = { type: 'raw', format: 'command', flavor: 'plain', data } as const;
-  ultimoErrorFirma = null;
-  try {
-    await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), logo ? [
+  // QZ modifica los objetos al enviarlos: se arman de nuevo en cada intento.
+  const datos = () => {
+    const texto = { type: 'raw', format: 'command', flavor: 'plain', data } as const;
+    return logo ? [
       { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO_LOGO },
       { type: 'raw', format: 'image', flavor: 'base64', data: logo, options: { language: 'ESCPOS', dotDensity: 'double' } },
       texto,
-    ] : [texto]);
-  } catch (error) {
-    // Sólo el rechazo de firma garantiza que nada llegó a la impresora.
-    const firma = ultimoErrorFirma;
-    if (/failed to sign/i.test(error instanceof Error ? error.message : String(error))) {
-      throw new ErrorFirmaQz(`El servidor no autorizó la impresión${firma ? `: ${firma}` : ''}`);
+    ] as const : [texto];
+  };
+  for (let intento = 0; ; intento++) {
+    ultimoErrorFirma = null;
+    try {
+      await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), [...datos()]);
+      return;
+    } catch (error) {
+      // Sólo el rechazo de firma garantiza que nada llegó a la impresora: reintentar no duplica el ticket.
+      if (!/failed to sign/i.test(error instanceof Error ? error.message : String(error))) throw error;
+      if (intento >= REINTENTOS_FIRMA_MS.length) {
+        const firma = ultimoErrorFirma;
+        throw new ErrorFirmaQz(`El servidor no autorizó la impresión${firma ? `: ${firma}` : ''}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, REINTENTOS_FIRMA_MS[intento]));
     }
-    throw error;
   }
 }
 
