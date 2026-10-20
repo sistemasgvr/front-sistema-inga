@@ -3,6 +3,11 @@ import { ENCABEZADO_LOGO, formatearComanda, formatearPrueba } from '../utils/com
 import type { EmpresaTicket, TrabajoImpresion } from '../types/impresion.types';
 
 let conexion: Promise<typeof import('qz-tray')['default']> | null = null;
+// QZ sólo informa «Failed to sign request»; se guarda el motivo real que dio el servidor.
+let ultimoErrorFirma: string | null = null;
+
+/** QZ no firmó el envío: el ticket no llegó a la impresora y puede reintentarse sin duplicar. */
+export class ErrorFirmaQz extends Error {}
 
 export async function conectarQz() {
   if (conexion) return conexion;
@@ -24,7 +29,9 @@ export async function conectarQz() {
         const mensaje = mensajes.get(hash);
         if (!mensaje) { reject(new Error('No se encontró el mensaje QZ para firmar')); return; }
         apiPost<{ firma: string }>('/impresion/qz/firmar', { mensaje })
-          .then(({ firma }) => resolve(firma)).catch(reject).finally(() => mensajes.delete(hash));
+          .then(({ firma }) => resolve(firma))
+          .catch((error: unknown) => { ultimoErrorFirma = error instanceof Error ? error.message : String(error); reject(error); })
+          .finally(() => mensajes.delete(hash));
       });
       try { await qz.websocket.connect({ retries: 1, delay: 1 }); }
       catch { throw new Error('No se pudo conectar con QZ Tray. Instálalo y ábrelo en esta PC; autoriza el sitio si aparece una solicitud.'); }
@@ -44,11 +51,21 @@ export async function probarConexion(host: string) {
 async function imprimirRaw(host: string, data: string, logo?: string | null) {
   const qz = await conectarQz();
   const texto = { type: 'raw', format: 'command', flavor: 'plain', data } as const;
-  await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), logo ? [
-    { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO_LOGO },
-    { type: 'raw', format: 'image', flavor: 'base64', data: logo, options: { language: 'ESCPOS', dotDensity: 'double' } },
-    texto,
-  ] : [texto]);
+  ultimoErrorFirma = null;
+  try {
+    await qz.print(qz.configs.create({ host: host.trim(), port: 9100 }, { encoding: 'US-ASCII' }), logo ? [
+      { type: 'raw', format: 'command', flavor: 'plain', data: ENCABEZADO_LOGO },
+      { type: 'raw', format: 'image', flavor: 'base64', data: logo, options: { language: 'ESCPOS', dotDensity: 'double' } },
+      texto,
+    ] : [texto]);
+  } catch (error) {
+    // Sólo el rechazo de firma garantiza que nada llegó a la impresora.
+    const firma = ultimoErrorFirma;
+    if (/failed to sign/i.test(error instanceof Error ? error.message : String(error))) {
+      throw new ErrorFirmaQz(`El servidor no autorizó la impresión${firma ? `: ${firma}` : ''}`);
+    }
+    throw error;
+  }
 }
 
 // Logo y datos fiscales cambian muy poco: se piden una vez cada pocos minutos, no por ticket.

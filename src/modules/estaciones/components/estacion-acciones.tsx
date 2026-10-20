@@ -24,7 +24,7 @@ type EstacionAccionesProps = {
 type Posicion = { top?: number; bottom?: number; right: number };
 
 export function EstacionAcciones({ estacion, permisos, isLoading, onEdit, onToggleStatus, onMarcarPrincipal }: EstacionAccionesProps) {
-  const { busy, pendientes, probar, imprimirHojaPrueba, resolver, verCola, cerrarCola } = useEstacionImpresion(estacion);
+  const { busy, pendientes, probar, imprimirHojaPrueba, resolver, descargar, verCola, cerrarCola } = useEstacionImpresion(estacion);
   const [posicion, setPosicion] = useState<Posicion | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -149,6 +149,7 @@ export function EstacionAcciones({ estacion, permisos, isLoading, onEdit, onTogg
         busy={busy}
         onClose={cerrarCola}
         onResolver={(item, enviado) => void resolver(item, enviado)}
+        onDescargar={(item) => void descargar(item)}
       />
     </div>
   );

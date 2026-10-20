@@ -26,7 +26,7 @@ const ticket = { id: '42', numero: 1, pedido: 'P-1', mesa: 'M5', mozo: 'José', 
 };
 // Quita los comandos ESC/POS para comparar sólo el texto impreso.
 const limpio = (data) => data.replace(/\x1b@|\x1b[aE][\s\S]|\x1d![\s\S]|\x1dV[\s\S]/g, '');
-function setup(empresa = null) {
+function setup(empresa = null, rechazoFirma = null) {
   let active = false;
   const calls = [];
   const security = {};
@@ -46,7 +46,11 @@ function setup(empresa = null) {
       if (empresa instanceof Error) throw empresa;
       return empresa;
     },
-    apiPost: async (url, body) => { calls.push(['sign', url, body]); return { firma: 'signature' }; } };
+    apiPost: async (url, body) => {
+      calls.push(['sign', url, body]);
+      if (rechazoFirma) throw new Error(rechazoFirma);
+      return { firma: 'signature' };
+    } };
   const service = load('services/qz.service.ts', { 'qz-tray': qz, '@/shared/api/api-client': api, '../utils/comanda': comanda });
   return { service, qz, calls, security };
 }
@@ -151,4 +155,23 @@ test('el comprobante impreso desde Ventas lleva número, empresa, receptor, tota
 test('una comanda reimpresa se marca para no confundirla con un pedido nuevo', () => {
   assert.match(comanda.formatearComanda({ ...ticket, reimpresion: true }), /\*\*\* REIMPRESION \*\*\*\n/);
   assert.doesNotMatch(comanda.formatearComanda(ticket), /REIMPRESION/);
+});
+test('si el servidor no firma, se informa el motivo y se marca como reintentable (no salió papel)', async () => {
+  const { service, qz, security } = setup(null, 'Sólo se permite texto de comanda RAW');
+  await service.conectarQz();
+  // Igual que QZ Tray: pide la firma y, si se rechaza, sólo informa «Failed to sign request».
+  qz.print = async () => {
+    const hash = await security.hash(JSON.stringify({ call: 'print', timestamp: 1 }));
+    try { await new Promise(security.sign(hash)); } catch { throw new Error('Failed to sign request'); }
+  };
+  await assert.rejects(service.imprimirPrueba('192.168.1.101', 'Cocina'), (error) => {
+    assert.ok(error instanceof service.ErrorFirmaQz);
+    assert.match(error.message, /Sólo se permite texto de comanda RAW/);
+    return true;
+  });
+});
+test('un error de la impresora no se confunde con un rechazo de firma', async () => {
+  const { service, qz } = setup();
+  qz.print = async () => { throw new Error('Connection refused'); };
+  await assert.rejects(service.imprimirPrueba('192.168.1.101', 'Cocina'), (error) => !(error instanceof service.ErrorFirmaQz));
 });

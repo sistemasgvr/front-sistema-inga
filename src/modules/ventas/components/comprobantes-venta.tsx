@@ -14,6 +14,7 @@ type ComprobantesVentaProps = {
   puedeReemitir: boolean;
   procesando: string | null;
   onImprimir: (idComprobante: number) => Promise<boolean>;
+  onDescargar: (idComprobante: number, nombre: string) => Promise<void>;
   onReemitir: (values: ReemitirValues) => Promise<boolean>;
 };
 
@@ -30,6 +31,7 @@ export function ComprobantesVenta({
   puedeReemitir,
   procesando,
   onImprimir,
+  onDescargar,
   onReemitir,
 }: ComprobantesVentaProps) {
   const vigente = comprobantes.find((c) => c.estado === 1) ?? null;
@@ -82,6 +84,15 @@ export function ComprobantesVenta({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!!procesando}
+                onClick={() => void onDescargar(vigente.id, vigente.numero)}
+                startIcon={<Icon name="mdi:file-pdf-box" size={16} />}
+              >
+                {procesando === `pdf-comprobante-${vigente.id}` ? "Generando..." : "PDF"}
+              </Button>
               {puedeImprimir && (
                 <Button
                   size="sm"
@@ -164,6 +175,15 @@ export function ComprobantesVenta({
               <Badge size="sm" color="light">{TIPO_COMPROBANTE[c.tipo_comprobante]}</Badge>
               <span className="line-through">{c.numero}</span>
               <span>· emitido {fechaHora(c.fecha_emision)}</span>
+              <button
+                type="button"
+                disabled={!!procesando}
+                onClick={() => void onDescargar(c.id, `${c.numero}-anulado`)}
+                className="inline-flex items-center gap-0.5 font-medium text-brand-600 hover:underline disabled:opacity-50 dark:text-brand-400"
+              >
+                <Icon name="mdi:file-pdf-box" size={14} />
+                PDF
+              </button>
             </p>
           ))}
         </div>

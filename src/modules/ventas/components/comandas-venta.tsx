@@ -10,9 +10,10 @@ type ComandasVentaProps = {
   puedeReimprimir: boolean;
   procesando: string | null;
   onReimprimir: (idComanda: number) => Promise<boolean>;
+  onDescargar: (idComanda: number, nombre: string) => Promise<void>;
 };
 
-export function ComandasVenta({ comandas, puedeReimprimir, procesando, onReimprimir }: ComandasVentaProps) {
+export function ComandasVenta({ comandas, puedeReimprimir, procesando, onReimprimir, onDescargar }: ComandasVentaProps) {
   return (
     <section>
       <h5 className="mb-2 text-sm font-semibold text-gray-800 dark:text-white/90">Comandas e impresiones</h5>
@@ -37,6 +38,18 @@ export function ComandasVenta({ comandas, puedeReimprimir, procesando, onReimpri
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge size="sm" color={estado?.color ?? "light"}>{estado?.label ?? "Sin registro"}</Badge>
+                  {c.estado_impresion && (
+                    <button
+                      type="button"
+                      disabled={!!procesando}
+                      onClick={() => void onDescargar(c.id, `${c.tipo.toLowerCase()}-${c.numero}-${c.id}`)}
+                      title="Descargar el ticket en PDF"
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-brand-300 hover:text-brand-600 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+                    >
+                      <Icon name="mdi:file-pdf-box" size={15} />
+                      {procesando === `pdf-${c.id}` ? "Generando..." : "PDF"}
+                    </button>
+                  )}
                   {puedeReimprimir && (
                     <button
                       type="button"

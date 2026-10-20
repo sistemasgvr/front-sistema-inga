@@ -1,5 +1,5 @@
 export type PreferenciasImpresion = { estaciones: number[] };
-export type ConfirmacionImpresion = { id: string; propietario: string; enviado: boolean; error?: string };
+export type ConfirmacionImpresion = { id: string; propietario: string; enviado: boolean; error?: string; reintentable?: boolean };
 export type EstadoImpresion = { mensaje: string; nivel: 'inactivo' | 'ok' | 'error' | 'pausado' };
 export type ContextoImpresion = {
   estaciones: number[];
@@ -46,7 +46,7 @@ export interface ComandaImpresion {
   items: { cantidad: number | string; nombre_producto: string; observacion?: string; monto_subtotal?: number;
     adicionales?: { nombre: string }[] }[];
 }
-export interface TrabajoImpresion { id: string; host: string; contenido: ComandaImpresion; }
+export interface TrabajoImpresion { id: string; id_estacion: number; host: string; contenido: ComandaImpresion; }
 export interface PendienteImpresion {
   id: string; id_estacion: number; estacion: string; pedido: string;
   estado: 'pendiente' | 'procesando' | 'revision'; error?: string; actualizado: string;

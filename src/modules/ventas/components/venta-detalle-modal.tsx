@@ -15,6 +15,8 @@ type VentaDetalleModalProps = {
   procesando: string | null;
   permisos: { reimprimir: boolean; cambiarPago: boolean; reemitir: boolean };
   onReimprimirComanda: (idComanda: number) => Promise<boolean>;
+  onDescargarTicket: (idComanda: number, nombre: string) => Promise<void>;
+  onDescargarComprobante: (idComprobante: number, nombre: string) => Promise<void>;
   onImprimirComprobante: (idComprobante: number) => Promise<boolean>;
   onCambiarMedio: (idPago: number, medio: number) => Promise<boolean>;
   onReemitir: (values: ReemitirValues) => Promise<boolean>;
@@ -28,6 +30,8 @@ export function VentaDetalleModal({
   procesando,
   permisos,
   onReimprimirComanda,
+  onDescargarTicket,
+  onDescargarComprobante,
   onImprimirComprobante,
   onCambiarMedio,
   onReemitir,
@@ -68,6 +72,7 @@ export function VentaDetalleModal({
                 puedeReemitir={permisos.reemitir}
                 procesando={procesando}
                 onImprimir={onImprimirComprobante}
+                onDescargar={onDescargarComprobante}
                 onReemitir={onReemitir}
               />
 
@@ -96,6 +101,7 @@ export function VentaDetalleModal({
                 puedeReimprimir={permisos.reimprimir}
                 procesando={procesando}
                 onReimprimir={onReimprimirComanda}
+                onDescargar={onDescargarTicket}
               />
             </>
           )}

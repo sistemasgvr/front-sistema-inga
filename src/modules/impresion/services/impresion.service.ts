@@ -5,8 +5,8 @@ export function listarPendientesImpresion(estacion: number) {
   return apiGet<PendienteImpresion[]>('/impresion/pendientes', { params: { estacion } });
 }
 
-export function confirmarImpresion({ id, propietario, enviado, error }: ConfirmacionImpresion) {
-  return apiPost<{ confirmado: boolean }>(`/impresion/${id}/confirmar`, { propietario, enviado, error });
+export function confirmarImpresion({ id, propietario, enviado, error, reintentable }: ConfirmacionImpresion) {
+  return apiPost<{ confirmado: boolean }>(`/impresion/${id}/confirmar`, { propietario, enviado, error, reintentable });
 }
 
 export function resolverImpresion(id: string, enviado: boolean) {

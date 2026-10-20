@@ -144,6 +144,8 @@ export function VentasView() {
         procesando={v.procesando}
         permisos={v.permisos}
         onReimprimirComanda={v.reimprimirComanda}
+        onDescargarTicket={v.descargarTicket}
+        onDescargarComprobante={v.descargarComprobante}
         onImprimirComprobante={v.imprimirComprobante}
         onCambiarMedio={v.cambiarMedioPago}
         onReemitir={v.reemitirComprobante}

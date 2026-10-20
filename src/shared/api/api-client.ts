@@ -185,6 +185,20 @@ export async function apiGet<T>(url: string, config?: AxiosRequestConfig): Promi
   return unwrapResponse(response);
 }
 
+/** Descarga binaria (p. ej. PDF). Si falla, el backend responde JSON dentro del Blob. */
+export async function apiGetBlob(url: string, config?: AxiosRequestConfig): Promise<Blob> {
+  const response = await apiClient.get<Blob>(url, { ...config, responseType: 'blob', validateStatus: () => true });
+  if (response.status < 400) return response.data;
+  if (response.status === 401 && getAccessToken()) handleUnauthorized({ sessionExpired: true });
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(await response.data.text());
+  } catch {
+    // Sin cuerpo JSON: se usa el mensaje genérico.
+  }
+  throw new ApiError(normalizeApiMessage(payload, 'No se pudo descargar el archivo'), response.status);
+}
+
 export async function apiGetPaginated<T, R = unknown>(
   url: string,
   config?: AxiosRequestConfig,

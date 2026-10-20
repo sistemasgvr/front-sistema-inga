@@ -7,6 +7,8 @@ import { useFeedback } from "@/shared/hooks/use-feedback";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import {
   cambiarMedioPago,
+  descargarComprobante,
+  descargarTicket,
   getVenta,
   imprimirComprobante,
   listVentas,
@@ -146,6 +148,18 @@ export function useVentas() {
     }
   }
 
+  // Descarga el PDF archivado por el backend; no cambia la venta, así que no recarga el detalle.
+  async function descargar(accion: string, operacion: () => Promise<void>) {
+    setProcesando(accion);
+    try {
+      await operacion();
+    } catch (error) {
+      setFeedback({ variant: "error", title: "No se pudo descargar el ticket", message: mensaje(error, "Intenta de nuevo.") });
+    } finally {
+      setProcesando(null);
+    }
+  }
+
   return {
     filtros,
     cambiarFiltro,
@@ -174,6 +188,10 @@ export function useVentas() {
         title: "Enviado a impresión",
         message: "La comanda volvió a la cola de su estación.",
       }),
+    descargarTicket: (idComanda: number, nombre: string) =>
+      descargar(`pdf-${idComanda}`, () => descargarTicket(idComanda, nombre)),
+    descargarComprobante: (idComprobante: number, nombre: string) =>
+      descargar(`pdf-comprobante-${idComprobante}`, () => descargarComprobante(idComprobante, nombre)),
     imprimirComprobante: (idComprobante: number) =>
       ejecutar(`comprobante-${idComprobante}`, () => imprimirComprobante(idComprobante), {
         title: "Enviado a impresión",

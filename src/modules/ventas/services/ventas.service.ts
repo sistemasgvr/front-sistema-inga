@@ -4,6 +4,7 @@ import {
   apiPatch,
   apiPost,
 } from "@/shared/api/api-client";
+import { descargarTicketPdf } from "@/modules/impresion";
 import type {
   ListVentasParams,
   ListVentasResult,
@@ -54,6 +55,14 @@ export const reemitirComprobante = (idVenta: number, values: ReemitirValues) =>
 
 export const reimprimirComanda = (idComanda: number) =>
   apiPost<VentaDetalle>(`/ventas/comandas/${idComanda}/reimprimir`);
+
+/** PDF con forma de ticket, archivado en Storage por el backend (comanda, precuenta o comprobante impreso). */
+export const descargarTicket = (idComanda: number, nombre: string) =>
+  descargarTicketPdf(`/ventas/comandas/${idComanda}/pdf`, nombre);
+
+/** PDF del comprobante (boleta, factura o nota de venta) archivado en Storage. */
+export const descargarComprobante = (idComprobante: number, nombre: string) =>
+  descargarTicketPdf(`/ventas/comprobantes/${idComprobante}/pdf`, nombre);
 
 export const imprimirComprobante = (idComprobante: number) =>
   apiPost<VentaDetalle>(`/ventas/comprobantes/${idComprobante}/imprimir`);

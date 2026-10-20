@@ -6,7 +6,7 @@ import { env } from '@/config/env';
 import { getStoredToken, getStoredUser } from '@/modules/auth/services/auth.service';
 import { ApiError } from '@/shared/api/api-client';
 import { confirmarImpresion } from '../services/impresion.service';
-import { conectarQz, imprimirComanda } from '../services/qz.service';
+import { conectarQz, ErrorFirmaQz, imprimirComanda } from '../services/qz.service';
 import type { TrabajoImpresion, PreferenciasImpresion, ConfirmacionImpresion, EstadoImpresion } from '../types/impresion.types';
 
 const INACTIVO: EstadoImpresion = { mensaje: 'Esta PC no imprime comandas', nivel: 'inactivo' };
@@ -37,7 +37,6 @@ export function useReceptorImpresion() {
     if (!estaciones.length) return;
     let stopped = false;
     let busy = false;
-    let blocked = false;
     let ready = false;
     const userId = getStoredUser()?.id;
     const ackKey = `inga-impresion-confirmaciones:${userId}`;
@@ -59,32 +58,44 @@ export function useReceptorImpresion() {
         localStorage.setItem(ackKey, JSON.stringify(readAcks().filter((r) => r.id !== receipt.id)));
       }
     }
+    // Un fallo pausa sólo la estación afectada; las demás impresoras siguen recibiendo sus comandas.
+    const pausadas = new Map<number, string>();
+    const esperando = () => {
+      if (!pausadas.size) { status('Conectado · esperando comandas'); return; }
+      const siguen = estaciones.length > pausadas.size ? ' Las demás estaciones siguen imprimiendo.' : '';
+      status(`Impresión pausada en ${[...pausadas.values()].join(' · ')}. Revisa la impresora y la cola, luego pulsa «Reanudar».${siguen}`, 'pausado');
+    };
     async function drain() {
-      if (busy || blocked || stopped || !ready || !socket.connected) return;
+      if (busy || stopped || !ready || !socket.connected) return;
       busy = true;
       try {
         await flush(); // Reintenta sólo el ACK; jamás vuelve a enviar el papel.
         await conectarQz();
         while (!stopped && socket.connected) {
-          const response = await socket.timeout(15000).emitWithAck('impresion:solicitar', { estaciones }) as {
+          const activas = estaciones.filter((id) => !pausadas.has(id));
+          if (!activas.length) { esperando(); break; }
+          const response = await socket.timeout(15000).emitWithAck('impresion:solicitar', { estaciones: activas }) as {
             ok: boolean; message?: string; trabajo: TrabajoImpresion | null; propietario: string;
           };
           if (!response.ok) throw new Error(response.message);
-          if (!response.trabajo) { status('Conectado · esperando comandas'); break; }
-          const receipt: ConfirmacionImpresion = { id: response.trabajo.id, propietario: response.propietario, enviado: false };
+          const trabajo = response.trabajo;
+          if (!trabajo) { esperando(); break; }
+          const receipt: ConfirmacionImpresion = { id: trabajo.id, propietario: response.propietario, enviado: false };
           try {
             if (stopped) throw new Error('Se detuvo el receptor antes de enviar');
-            status(`Enviando comanda ${response.trabajo.id} a ${response.trabajo.contenido.estacion}`);
-            await imprimirComanda(response.trabajo);
+            status(`Enviando comanda ${trabajo.id} a ${trabajo.contenido.estacion}`);
+            await imprimirComanda(trabajo);
             receipt.enviado = true;
           } catch (error) {
             receipt.error = (error instanceof Error ? error.message : String(error)).slice(0, 500);
-            blocked = true;
-            status(`Impresión pausada. Comanda ${receipt.id}: ${receipt.error}. Revisa la impresora y la cola, luego pulsa «Reanudar».`, 'pausado');
+            // Sin firma no salió nada: vuelve a la cola y se reenvía al pulsar «Reanudar».
+            receipt.reintentable = error instanceof ErrorFirmaQz;
+            const motivo = `${trabajo.contenido.estacion} (comanda ${receipt.id}: ${receipt.error})`;
+            for (const id of Number.isSafeInteger(trabajo.id_estacion) ? [trabajo.id_estacion] : activas) pausadas.set(id, motivo);
+            esperando();
           }
           localStorage.setItem(ackKey, JSON.stringify([...readAcks().filter((r) => r.id !== receipt.id), receipt]));
           await flush();
-          if (!receipt.enviado) break;
         }
       } catch (error) {
         status(error instanceof Error ? error.message : 'No se pudo procesar la cola de impresión', 'error');

@@ -7,6 +7,7 @@ import type { PendienteImpresion } from "../types/impresion.types";
 import { useImpresion } from "./use-impresion";
 import { listarPendientesImpresion, resolverImpresion } from "../services/impresion.service";
 import { imprimirPrueba, probarConexion } from "../services/qz.service";
+import { descargarTicketPdf } from "../services/ticket-pdf.service";
 
 export function useEstacionImpresion(estacion: EstacionItem) {
   const { toast } = useToast();
@@ -49,6 +50,9 @@ export function useEstacionImpresion(estacion: EstacionItem) {
     const id = Number(estacion.id);
     configurar(checked ? [...estaciones.filter((e) => e !== id), id] : estaciones.filter((e) => e !== id));
   }
-  return { busy, pendientes, selected, seleccionar, probar, imprimirHojaPrueba, resolver,
+  function descargar(item: PendienteImpresion) {
+    return ejecutar(() => descargarTicketPdf(`/impresion/${item.id}/pdf`, `ticket-${item.pedido}-${item.id}`));
+  }
+  return { busy, pendientes, selected, seleccionar, probar, imprimirHojaPrueba, resolver, descargar,
     verCola: () => ejecutar(cargar), cerrarCola: () => setPendientes(null) };
 }

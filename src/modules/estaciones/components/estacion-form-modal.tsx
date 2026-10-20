@@ -95,6 +95,11 @@ function EstacionFormContent({
     if (!currentValues.nombre.trim()) next.nombre = "El nombre de la estación es obligatorio.";
     if (!currentValues.id_sucursal) next.id_sucursal = "La sucursal es obligatoria.";
     if (!currentValues.tipo_estacion) next.tipo_estacion = "El tipo de estación es obligatorio.";
+    const ip = currentValues.impresora_ip?.trim();
+    // QZ sólo firma envíos a una IPv4 válida: una IP mal escrita pausaría la impresión.
+    if (ip && !/^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/.test(ip)) {
+      next.impresora_ip = "Ingresa una IP válida, por ejemplo 192.168.1.50.";
+    }
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -246,8 +251,11 @@ function EstacionFormContent({
             id="impresora_ip"
             value={values.impresora_ip}
             onChange={(e) => setValues((p) => ({ ...p, impresora_ip: e.target.value }))}
+            onBlur={() => handleBlur("impresora_ip")}
             placeholder="Ej. 192.168.1.50"
             disabled={isSaving}
+            error={Boolean(showError("impresora_ip"))}
+            hint={showError("impresora_ip")}
           />
         </div>
       </div>
