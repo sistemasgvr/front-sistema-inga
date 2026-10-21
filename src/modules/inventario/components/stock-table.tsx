@@ -4,6 +4,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Icon } from "@/components/ui/icon";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
+import { platosLibres } from "../utils/stock.utils";
 import type { StockItem } from "../types/inventario.types";
 import type { User } from "@/modules/users/types/user.types";
 
@@ -12,6 +13,7 @@ type StockTableProps = {
   currentUser?: User | null;
   isLoading: boolean;
   onAdjust: (item: StockItem) => void;
+  onDiscard: (item: StockItem) => void;
 };
 
 export function StockTable({
@@ -19,6 +21,7 @@ export function StockTable({
   currentUser,
   isLoading,
   onAdjust,
+  onDiscard,
 }: StockTableProps) {
   const safeItems = Array.isArray(items) ? items : [];
 
@@ -62,8 +65,11 @@ export function StockTable({
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white mt-0.5">
                       {item.producto_nombre || "Producto"}
                     </h4>
-                    <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    </span>
+                    {item.tiene_receta && (
+                      <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400">
+                        Libres: {platosLibres(item)} · Reservados: {Number(item.stock_reservado ?? 0)}
+                      </span>
+                    )}
                   </div>
                   <Badge size="sm" color={isBajoStock ? "error" : "success"}>
                     {isBajoStock ? "Bajo mínimo" : "Stock OK"}
@@ -112,6 +118,15 @@ export function StockTable({
                       title="Ajuste manual de stock"
                     >
                       <Icon name="mdi:tune-vertical" size={20} />
+                    </button>
+                  ) : canManageStock && item.tiene_receta && platosLibres(item) > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => onDiscard(item)}
+                      className="p-1.5 text-gray-500 hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Descartar platos libres (merma)"
+                    >
+                      <Icon name="mdi:trash-can-outline" size={20} />
                     </button>
                   ) : (
                     <span className="text-xs italic text-gray-400">{item.tiene_receta ? "Gestionado por cocina" : "Protegido"}</span>
@@ -185,8 +200,11 @@ export function StockTable({
                           <span className="block text-sm font-bold text-gray-900 dark:text-white">
                             {item.producto_nombre || "Producto"}
                           </span>
-                          <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400 mt-0.5">
-                          </span>
+                          {item.tiene_receta && (
+                            <span className="block text-xs font-semibold text-brand-600 dark:text-brand-400 mt-0.5">
+                              Libres: {platosLibres(item)} · Reservados: {Number(item.stock_reservado ?? 0)}
+                            </span>
+                          )}
                         </TableCell>
 
                         <TableCell className="px-5 py-4 text-center">
@@ -229,6 +247,15 @@ export function StockTable({
                                 title="Ajuste manual de stock"
                               >
                                 <Icon name="mdi:tune-vertical" size={19} />
+                              </button>
+                            ) : canManageStock && item.tiene_receta && platosLibres(item) > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => onDiscard(item)}
+                                className="text-gray-500 hover:text-rose-600 transition-colors cursor-pointer"
+                                title="Descartar platos libres (merma)"
+                              >
+                                <Icon name="mdi:trash-can-outline" size={19} />
                               </button>
                             ) : (
                               <span className="text-xs italic text-gray-400">{item.tiene_receta ? "Gestionado por cocina" : "Protegido"}</span>

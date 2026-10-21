@@ -9,6 +9,7 @@ import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import { useStock } from "../hooks/use-stock";
 import { StockTable } from "./stock-table";
 import { AjusteStockModal } from "./ajuste-stock-modal";
+import { DescarteStockModal } from "./descarte-stock-modal";
 
 export function InventarioView() {
   const {
@@ -36,6 +37,11 @@ export function InventarioView() {
     openAjusteModal,
     closeAjusteModal,
     saveAjuste,
+
+    descartingStockItem,
+    openDescarteModal,
+    closeDescarteModal,
+    saveDescarte,
   } = useStock();
 
   const isSuper = Boolean(currentUser?.es_super_admin || currentUser?.sesion?.es_super_admin);
@@ -91,6 +97,7 @@ export function InventarioView() {
         currentUser={currentUser}
         isLoading={isLoading}
         onAdjust={openAjusteModal}
+        onDiscard={openDescarteModal}
       />
 
       <div className="mt-5">
@@ -109,6 +116,14 @@ export function InventarioView() {
         onClose={closeAjusteModal}
         onSubmit={saveAjuste}
         stockItem={adjustingStockItem}
+        isSaving={isSaving}
+      />
+
+      <DescarteStockModal
+        isOpen={Boolean(descartingStockItem)}
+        onClose={closeDescarteModal}
+        onSubmit={saveDescarte}
+        stockItem={descartingStockItem}
         isSaving={isSaving}
       />
     </div>

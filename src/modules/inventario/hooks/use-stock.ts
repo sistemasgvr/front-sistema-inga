@@ -45,6 +45,7 @@ export function useStock() {
 
   const [adjustingStockItem, setAdjustingStockItem] = useState<StockItem | null>(null);
   const [isAjusteModalOpen, setIsAjusteModalOpen] = useState(false);
+  const [descartingStockItem, setDescartingStockItem] = useState<StockItem | null>(null);
 
   useEffect(() => {
     async function syncSessionUser() {
@@ -129,15 +130,19 @@ export function useStock() {
 
   useReiniciarPagina([debouncedSearch, selectedAlmacenId], setPagina);
 
-  function openAjusteModal(item: StockItem) {
+  function puedeGestionar() {
     const isSuper = Boolean(currentUser?.es_super_admin);
     const userPermisos = currentUser?.permisos ?? [];
 
     if (!isSuper && !userPermisos.includes(PermisoBanderas.INVENTARIO_GESTIONAR)) {
-      toast("error", "Permiso denegado", "No cuentas con el permiso para realizar ajustes de stock.");
-      return;
+      toast("error", "Permiso denegado", "No cuentas con el permiso para registrar movimientos de stock.");
+      return false;
     }
+    return true;
+  }
 
+  function openAjusteModal(item: StockItem) {
+    if (!puedeGestionar()) return;
     setAdjustingStockItem(item);
     setIsAjusteModalOpen(true);
   }
@@ -160,6 +165,31 @@ export function useStock() {
       await loadStockData();
     } catch (error) {
       toast("error", "Error al guardar", error instanceof Error ? error.message : "No se pudo registrar el ajuste.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function openDescarteModal(item: StockItem) {
+    if (!puedeGestionar()) return;
+    setDescartingStockItem(item);
+  }
+
+  function closeDescarteModal() {
+    if (isSaving) return;
+    setDescartingStockItem(null);
+  }
+
+  // El error se relanza para que el modal lo muestre y siga abierto.
+  async function saveDescarte(values: RegistrarMovimientoValues) {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    try {
+      await registrarAjusteStock(values);
+      toast("success", "Descarte registrado", "Los platos libres se dieron de baja del inventario.");
+      setDescartingStockItem(null);
+      await loadStockData();
     } finally {
       setIsSaving(false);
     }
@@ -193,5 +223,10 @@ export function useStock() {
     openAjusteModal,
     closeAjusteModal,
     saveAjuste,
+
+    descartingStockItem,
+    openDescarteModal,
+    closeDescarteModal,
+    saveDescarte,
   };
 }
