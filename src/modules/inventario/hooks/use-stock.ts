@@ -2,6 +2,7 @@
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listAlmacenes } from "@/modules/almacenes/services/almacenes.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -23,13 +24,13 @@ export function useStock() {
 
   const [registros, setRegistros] = useState<StockItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("stock.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("stock.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("stock.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<StockStatusFilter>("todos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<StockStatusFilter>("stock.estadoFiltro", "todos");
   const [selectedAlmacenId, setSelectedAlmacenId] = useState<number | undefined>(undefined);
 
   const [resumen, setResumen] = useState<StockResumen>({ total: 0, alertas: 0, normales: 0 });
@@ -126,9 +127,7 @@ export function useStock() {
     return ()=>request.current?.abort();
   }, [loadStockData]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch, selectedAlmacenId]);
+  useReiniciarPagina([debouncedSearch, selectedAlmacenId], setPagina);
 
   function openAjusteModal(item: StockItem) {
     const isSuper = Boolean(currentUser?.es_super_admin);

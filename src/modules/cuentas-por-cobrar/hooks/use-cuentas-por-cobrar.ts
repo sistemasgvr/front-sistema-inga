@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoVigente } from "@/modules/caja/services/caja.service";
@@ -54,13 +55,13 @@ export function useCuentasPorCobrar() {
 
   const [registros, setRegistros] = useState<SaldoCliente[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("cxc.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("cxc.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("cxc.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
-  const [soloConDeuda, setSoloConDeuda] = useState(false);
-  const [convenioFiltro, setConvenioFiltro] = useState<number | null>(null);
+  const [soloConDeuda, setSoloConDeuda] = useEstadoPersistente("cxc.soloConDeuda", false);
+  const [convenioFiltro, setConvenioFiltro] = useEstadoPersistente<number | null>("cxc.convenioFiltro", null);
 
   const [resumen, setResumen] = useState<SaldosResumenCxc>({
     deuda_total: 0,
@@ -71,9 +72,9 @@ export function useCuentasPorCobrar() {
 
   // El período arranca en la quincena en curso, que es lo que se quiere ver el
   // 95% de las veces. Solo al cerrar mes se retrocede a la anterior.
-  const [anio, setAnio] = useState(hoy.getFullYear());
-  const [mes, setMes] = useState(hoy.getMonth() + 1);
-  const [quincena, setQuincena] = useState<number>(quincenaDe(hoyISO()));
+  const [anio, setAnio] = useEstadoPersistente("cxc.anio", hoy.getFullYear());
+  const [mes, setMes] = useEstadoPersistente("cxc.mes", hoy.getMonth() + 1);
+  const [quincena, setQuincena] = useEstadoPersistente<number>("cxc.quincena", quincenaDe(hoyISO()));
   const [reporte, setReporte] = useState<ReporteCxc | null>(null);
 
   const [convenios, setConvenios] = useState<ConvenioItem[]>([]);

@@ -9,20 +9,15 @@ import { FormEvent, ReactNode } from "react";
 type FormModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  /**
-   * Debe devolver la promesa del guardado y resolverse cuando responda el
-   * backend: mientras tanto el modal ignora nuevos envíos.
-   */
   onSubmit: (e: FormEvent) => Promise<unknown>;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   isSaving: boolean;
   submitDisabled?: boolean;
   maxWidth?: string;
   children: ReactNode;
   submitText?: string;
   cancelText?: string;
-  /** En escritorio, el contenido administra el scroll de sus paneles. */
   panelScroll?: boolean;
 };
 
@@ -44,13 +39,9 @@ export function FormModal({
   const ocupado = isSaving || enviando;
 
   function handleSubmit(e: FormEvent) {
-    // Siempre se cancela el envío nativo, también cuando se descarta por estar ocupado.
     e.preventDefault();
-    // El submit no se propaga por el árbol de React: con el portal, un formulario abierto
-    // desde otro modal (p. ej. el panel del pedido junto a la carta) dispararía también el del padre.
     e.stopPropagation();
     if (isSaving) return;
-    // Un segundo clic, Enter o doble clic mientras responde el backend no vuelve a llamar a onSubmit.
     void ejecutar(() => onSubmit(e));
   }
 

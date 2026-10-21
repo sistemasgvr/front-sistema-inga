@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
@@ -26,14 +27,14 @@ export function useCategorias() {
 
   const [registros, setRegistros] = useState<CategoriaItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("categorias.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("categorias.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("categorias.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<CategoriaStatusFilter>("activos");
-  const [filtroEsCarta, setFiltroEsCarta] = useState<boolean | undefined>(undefined);
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<CategoriaStatusFilter>("categorias.estadoFiltro", "activos");
+  const [filtroEsCarta, setFiltroEsCarta] = useEstadoPersistente<boolean | undefined>("categorias.filtroEsCarta", undefined);
 
   const [resumen, setResumen] = useState<CategoriasResumen>({
     total: 0,
@@ -166,9 +167,7 @@ export function useCategorias() {
     void loadCategorias();
   }, [loadCategorias]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: CategoriaStatusFilter) {
     setEstadoFiltro(status);

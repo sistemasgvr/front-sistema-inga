@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
@@ -30,13 +31,13 @@ export function useRoles() {
 
   const [registros, setRegistros] = useState<RoleItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("roles.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("roles.pageSize", PAGE_SIZE);
   
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("roles.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<RoleStatusFilter>("activos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<RoleStatusFilter>("roles.estadoFiltro", "activos");
 
   const [resumen, setResumen] = useState<RolesResumen>({
     total: 0,
@@ -178,9 +179,7 @@ useEffect(() => {
     void loadRoles();
   }, [loadRoles]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: RoleStatusFilter) {
     setEstadoFiltro(status);

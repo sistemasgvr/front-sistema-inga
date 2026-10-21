@@ -1,6 +1,7 @@
 "use client";
 import { ESTADO_PEDIDO_STYLES } from "./pedido-panel";
 import type { PedidoResumen } from "../types/mesas.types";
+import { plural } from "@/shared/utils/plural";
 
 const TIPO_LABEL: Record<number, string> = { 2: "Para llevar", 3: "Delivery" };
 const money = (value: number) => `S/ ${Number(value).toFixed(2)}`;
@@ -20,7 +21,7 @@ export function PedidosExternosTable({ pedidos, loading, selectedId, disabled, o
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-semibold text-gray-900 dark:text-white">Delivery y para llevar en curso</h3>
-        <span className="text-sm text-gray-500">{loading ? "Actualizando..." : `${pedidos.length} pedidos`}</span>
+        <span className="text-sm text-gray-500">{loading ? "Actualizando..." : plural(pedidos.length, "pedido")}</span>
       </div>
 
       {loading ? (
@@ -60,7 +61,11 @@ export function PedidosExternosTable({ pedidos, loading, selectedId, disabled, o
                       <span className="block font-medium text-gray-900 dark:text-white">{p.nombre_cliente || "—"}</span>
                       {p.telefono_cliente && <span className="block text-xs text-gray-500">{p.telefono_cliente}</span>}
                     </td>
-                    <td className="max-w-xs truncate px-3 py-3 text-gray-600 dark:text-gray-400" title={p.observacion ?? undefined}>{p.observacion || "—"}</td>
+                    {/* El max-w va en un div: en una celda de tabla no se respeta y una
+                        observación larga estiraba la tabla hacia los lados. */}
+                    <td className="px-3 py-3 text-gray-600 dark:text-gray-400" title={p.observacion ?? undefined}>
+                      <div className="max-w-xs truncate">{p.observacion || "—"}</div>
+                    </td>
                     <td className="whitespace-nowrap px-3 py-3 text-gray-600 dark:text-gray-400">{p.nombre_mozo || "—"}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-gray-600 dark:text-gray-400">{hora(p.fecha_apertura)}</td>
                     <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{p.cantidad_items}</td>

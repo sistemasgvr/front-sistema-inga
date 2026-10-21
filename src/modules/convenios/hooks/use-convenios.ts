@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import {
   createConvenio,
@@ -31,15 +32,15 @@ const PAGE_SIZE = 10;
 export function useConvenios() {
   const [registros, setRegistros] = useState<ConvenioItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("convenios.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("convenios.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("convenios.searchInput", "");
   // Espero 400 ms desde la última tecla para no disparar una consulta por letra.
   const debouncedSearch = useDebounce(searchInput, 400);
 
   const [estadoFiltro, setEstadoFiltro] =
-    useState<ConvenioStatusFilter>("activos");
+    useEstadoPersistente<ConvenioStatusFilter>("convenios.estadoFiltro", "activos");
   const [resumen, setResumen] = useState<ConveniosResumen>({
     total: 0,
     activos: 0,
@@ -173,6 +174,14 @@ export function useConvenios() {
     setIsToggling(true);
     try {
       await toggleConvenioStatus(confirmConvenio);
+      const desactivado = confirmConvenio.estado === 1;
+      setFeedback({
+        variant: "success",
+        title: desactivado ? "Convenio dado de baja" : "Convenio reactivado",
+        message: desactivado
+          ? `'${confirmConvenio.nombre}' ya no se podrá asignar a nuevos clientes.`
+          : `'${confirmConvenio.nombre}' vuelve a estar disponible.`,
+      });
       closeConfirmModal();
       await loadConvenios();
     } catch (error) {

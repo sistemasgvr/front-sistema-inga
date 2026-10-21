@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listConvenios } from "@/modules/convenios/services/convenios.service";
 import type { ConvenioItem } from "@/modules/convenios/types/convenios.types";
@@ -25,14 +26,14 @@ const PAGE_SIZE = 10;
 export function usePersonas() {
   const [registros, setRegistros] = useState<PersonaItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("personas.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("personas.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("personas.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<PersonaStatusFilter>("activos");
-  const [rolFiltro, setRolFiltro] = useState<PersonaRolFilter>("todos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<PersonaStatusFilter>("personas.estadoFiltro", "activos");
+  const [rolFiltro, setRolFiltro] = useEstadoPersistente<PersonaRolFilter>("personas.rolFiltro", "todos");
 
   const [resumen, setResumen] = useState<PersonasResumen>({
     total: 0,

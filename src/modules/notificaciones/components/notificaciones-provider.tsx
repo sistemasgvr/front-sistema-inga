@@ -53,7 +53,7 @@ export function NotificacionesProvider({ children }: { children: React.ReactNode
     if (vistos.current.has(n.id)) return;
     vistos.current.add(n.id);
     setNotificaciones((prev) => [n, ...prev].slice(0, 50));
-    toast(n.severidad === 'error' ? 'error' : n.severidad === 'warning' ? 'warning' : n.severidad === 'success' ? 'success' : 'info', n.titulo, n.mensaje);
+    toast(n.severidad === 'error' ? 'error' : n.severidad === 'warning' ? 'warning' : n.severidad === 'success' ? 'success' : 'info', n.titulo, n.mensaje, { agruparPorTitulo: true });
   }, [toast]);
 
   useNotificacionesSocket({

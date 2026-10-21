@@ -13,8 +13,16 @@ export interface ToastMessage {
   message: string;
 }
 
+export interface ToastOptions {
+  /**
+   * No repetir si hace poco se mostró un aviso con el mismo título. Lo usan las
+   * notificaciones en vivo: quien cerró el turno ya vio "Turno cerrado".
+   */
+  agruparPorTitulo?: boolean;
+}
+
 interface ToastContextType {
-  toast: (variant: ToastVariant, title: string, message: string) => void;
+  toast: (variant: ToastVariant, title: string, message: string, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -23,6 +31,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const recent = useRef(new Map<string, number>());
+  const recentTitles = useRef(new Map<string, number>());
+  const groupedByTitle = useRef(new Map<string, string>());
 
   useEffect(() => {
     const activeTimers = timers.current;
@@ -38,7 +48,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback((variant: ToastVariant, title: string, message: string) => {
+  const toast = useCallback((variant: ToastVariant, title: string, message: string, options?: ToastOptions) => {
     // Un error puede llegar al hook de la pantalla y al formulario que lo captura.
     // Agrupar solo emisiones simultáneas; un nuevo intento debe volver a avisar.
     const now = Date.now();
@@ -46,11 +56,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     for (const [entry, time] of recent.current) {
       if (now - time >= 1000) recent.current.delete(entry);
     }
+    for (const [entry, time] of recentTitles.current) {
+      if (now - time >= 5000) recentTitles.current.delete(entry);
+    }
     if (recent.current.has(key)) return;
+    if (options?.agruparPorTitulo && recentTitles.current.has(title)) return;
+    // Si la notificación llegó antes que la respuesta, queda el aviso propio.
+    const agrupado = groupedByTitle.current.get(title);
+    if (!options?.agruparPorTitulo && agrupado && recentTitles.current.has(title)) {
+      removeToast(agrupado);
+    }
     recent.current.set(key, now);
+    recentTitles.current.set(title, now);
     const id = Math.random().toString(36).substring(2, 9);
+    if (options?.agruparPorTitulo) groupedByTitle.current.set(title, id);
+    else groupedByTitle.current.delete(title);
     setToasts((prev) => [...prev, { id, variant, title, message }]);
-  }, []);
+  }, [removeToast]);
 
   useEffect(() => {
     // Los avisos en espera empiezan a expirar solo cuando llegan a mostrarse.

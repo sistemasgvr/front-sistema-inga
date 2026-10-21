@@ -14,6 +14,7 @@ import {
   type TurnoItem,
 } from "../types/caja.types";
 import { formatearSoles } from "../utils/formato";
+import { CANTIDAD_BILLETES_MAXIMA } from "@/shared/constants/limites";
 
 type CierreTurnoModalProps = {
   isOpen: boolean;
@@ -145,11 +146,17 @@ export function CierreTurnoModal({
                         <input
                           type="number"
                           min={0}
+                          max={CANTIDAD_BILLETES_MAXIMA}
+                          step={1}
                           value={cantidad || ""}
                           placeholder="0"
                           disabled={isSaving}
                           onChange={(e) => {
-                            const valor = Math.max(0, Number(e.target.value) || 0);
+                            // Entero y con tope: 99,999,999 billetes daba "Error interno".
+                            const valor = Math.min(
+                              CANTIDAD_BILLETES_MAXIMA,
+                              Math.max(0, Math.trunc(Number(e.target.value) || 0)),
+                            );
                             setCantidades((p) => ({ ...p, [den]: valor }));
                           }}
                           className="w-full rounded-lg border border-gray-200 px-2 py-1 text-center text-sm focus:border-brand-400 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"

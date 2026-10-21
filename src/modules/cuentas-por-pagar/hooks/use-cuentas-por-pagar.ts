@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoVigente } from "@/modules/caja/services/caja.service";
@@ -47,12 +48,12 @@ export function useCuentasPorPagar() {
 
   const [registros, setRegistros] = useState<SaldoProveedor[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("cxp.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("cxp.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("cxp.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
-  const [soloConDeuda, setSoloConDeuda] = useState(false);
+  const [soloConDeuda, setSoloConDeuda] = useEstadoPersistente("cxp.soloConDeuda", false);
 
   const [resumen, setResumen] = useState<SaldosResumen>({
     deuda_total: 0,
@@ -60,8 +61,8 @@ export function useCuentasPorPagar() {
     proveedores_total: 0,
   });
 
-  const [anio, setAnio] = useState(hoy.getFullYear());
-  const [mes, setMes] = useState(hoy.getMonth() + 1);
+  const [anio, setAnio] = useEstadoPersistente("cxp.anio", hoy.getFullYear());
+  const [mes, setMes] = useEstadoPersistente("cxp.mes", hoy.getMonth() + 1);
   const [reporte, setReporte] = useState<ReporteCxp | null>(null);
 
   const [turnoAbierto, setTurnoAbierto] = useState<TurnoItem | null>(null);

@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
@@ -30,14 +31,14 @@ const PAGE_SIZE = 10;
 export function useTrabajadores() {
   const [registros, setRegistros] = useState<TrabajadorItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("trabajadores.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("trabajadores.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("trabajadores.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
   const [estadoFiltro, setEstadoFiltro] =
-    useState<TrabajadorStatusFilter>("activos");
+    useEstadoPersistente<TrabajadorStatusFilter>("trabajadores.estadoFiltro", "activos");
 
   const [resumen, setResumen] = useState<TrabajadoresResumen>({
     total: 0,

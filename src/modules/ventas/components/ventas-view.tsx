@@ -10,6 +10,7 @@ import { useVentas } from "../hooks/use-ventas";
 import { TIPO_COMPROBANTE, hoyLima, soles } from "../utils/formato";
 import { VentaDetalleModal } from "./venta-detalle-modal";
 import { VentasTable } from "./ventas-table";
+import { plural } from "@/shared/utils/plural";
 
 const FILTROS_COMPROBANTE = [
   { valor: "", etiqueta: "Todos" },
@@ -39,7 +40,7 @@ export function VentasView() {
               className="text-gray-700 dark:text-gray-200"
             />
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {v.resumen?.cantidad ?? 0} ventas
+              {plural(v.resumen?.cantidad ?? 0, "venta")}
             </span>
           </div>
           <p className="mt-1.5 text-2xl font-bold text-gray-800 dark:text-white">

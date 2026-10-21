@@ -1,6 +1,7 @@
 "use client";
 import { useCallback,useEffect,useRef,useState } from "react";
 import { getMe } from "@/modules/auth/services/auth.service";
+import { ApiError } from "@/shared/api/api-client";
 import { listSucursales } from "@/modules/mesas/services/mesas.service";
 import { listEstaciones } from "@/modules/estaciones/services/estaciones.service";
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
@@ -58,7 +59,12 @@ export function useCocina(){
   useEffect(()=>{if(sucursal)void estaciones.load();},[sucursal,estaciones.load]);
   async function estado(item:CocinaItem,valor:3|4){
     if(saving)return;setSaving(true);setError("");
-    try{await cambiarPreparacion(item,valor);reload();}catch(e){setError(e instanceof Error?e.message:"No se pudo actualizar el plato.");}finally{setSaving(false);}
+    // Marcar el estado es idempotente en la BD: si se cortó la conexión se reintenta una vez,
+    // y pase lo que pase se recarga la lista para no dejar el plato a medias en pantalla.
+    try{
+      await cambiarPreparacion(item,valor).catch(e=>{if(e instanceof ApiError&&e.statusCode===0)return cambiarPreparacion(item,valor);throw e;});
+    }catch(e){setError(e instanceof Error?e.message:"No se pudo actualizar el plato.");}
+    finally{setSaving(false);reload();}
   }
   return {sucursal,estacion,historial,pagina,setPagina,revision,items,total,loading,saving,error,sucursales,estaciones,
     puedePreparar,puedeAnular,preparacion,setPreparacion,accion,setAccion,estado,reload,

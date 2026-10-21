@@ -15,6 +15,7 @@ import { formatoMoneda, formatoNumero, formatoPorcentaje } from "../utils/format
 import { Indicador } from "./indicador";
 import { ReporteShell } from "./reporte-shell";
 import { TablaSeccion } from "./seccion-reporte";
+import { plural } from "@/shared/utils/plural";
 
 const COLUMNAS_PLATOS: ColumnaReporte<ProductoRentabilidad>[] = [
   { clave: "nombre", titulo: "Producto", valor: (p) => p.nombre },
@@ -171,7 +172,7 @@ export function ReporteVentasView() {
               detalle={`${formatoNumero(d.resumen_ventas.comensales)} comensales`}
               icono="mdi:receipt-text-outline"
             />
-            <Indicador titulo="Platos y productos" valor={formatoNumero(s.totales.cantidad)} detalle={`${s.platos.filas.length} productos distintos`} icono="mdi:silverware-fork-knife" />
+            <Indicador titulo="Platos y productos" valor={formatoNumero(s.totales.cantidad)} detalle={s.platos.filas.length === 1 ? "1 producto" : `${s.platos.filas.length} productos distintos`} icono="mdi:silverware-fork-knife" />
             <Indicador
               titulo="Margen sobre costo de receta"
               valor={formatoMoneda(s.totales.margen)}
@@ -190,7 +191,7 @@ export function ReporteVentasView() {
             <TablaSeccion seccion={s.mozos} claveFila={(m) => m.id_mozo} />
           </div>
 
-          <TablaSeccion seccion={s.detalle} claveFila={(v) => v.id} descripcion={`${d.ventas.length} pedidos cobrados en el período.`} />
+          <TablaSeccion seccion={s.detalle} claveFila={(v) => v.id} descripcion={`${plural(d.ventas.length, "pedido cobrado", "pedidos cobrados")} en el período.`} />
         </>
       )}
     </ReporteShell>

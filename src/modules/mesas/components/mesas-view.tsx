@@ -16,6 +16,7 @@ import { AgregarItemModal } from "./agregar-item-modal";
 import { NuevoPedidoExternoModal } from "./nuevo-pedido-externo-modal";
 import { PedidosExternosTable } from "./pedidos-externos-table";
 import type { AbrirPedidoValues, Mesa } from "../types/mesas.types";
+import { plural } from "@/shared/utils/plural";
 
 export function MesasView() {
   const m = useMesas();
@@ -180,7 +181,7 @@ export function MesasView() {
               <span className="text-sm text-gray-500">
                 {m.loadingMesas
                   ? "Actualizando..."
-                  : `${mesasDelSalon.length} mesas`}
+                  : plural(mesasDelSalon.length, "mesa")}
               </span>
             </div>
 
@@ -266,7 +267,7 @@ export function MesasView() {
       <AgregarItemModal
         key={m.pedido?.id ?? "consulta-carta"}
         isOpen={showAgregarItem}
-        canAdd={!!m.pedido && [1, 2].includes(m.pedido.estado_pedido)}
+        canAdd={!!m.pedido && [1, 2, 3].includes(m.pedido.estado_pedido)}
         isSaving={m.saving}
         error={m.feedback?.variant === "error" ? m.feedback.message : undefined}
         onClose={() => {
@@ -294,7 +295,7 @@ export function MesasView() {
           key={`editor-${m.pedido.id}`}
           isOpen={showEditorExterno}
           title={`Pedido ${m.pedido.codigo}: añadir platos`}
-          canAdd={[1, 2].includes(m.pedido.estado_pedido)}
+          canAdd={[1, 2, 3].includes(m.pedido.estado_pedido)}
           isSaving={m.saving}
           error={m.feedback?.variant === "error" ? m.feedback.message : undefined}
           closeOnSave={false}

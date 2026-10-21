@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/components/ui/toast/ToastContext";
@@ -35,16 +36,16 @@ export function useProductos() {
 
   const [registros, setRegistros] = useState<ProductoItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("productos.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("productos.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("productos.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<ProductoStatusFilter>("activos");
-  const [tipoFiltro, setTipoFiltro] = useState<number | undefined>(undefined);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | undefined>(undefined);
-  const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<number | undefined>(undefined);
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<ProductoStatusFilter>("productos.estadoFiltro", "activos");
+  const [tipoFiltro, setTipoFiltro] = useEstadoPersistente<number | undefined>("productos.tipoFiltro", undefined);
+  const [categoriaFiltro, setCategoriaFiltro] = useEstadoPersistente<number | undefined>("productos.categoriaFiltro", undefined);
+  const [subcategoriaFiltro, setSubcategoriaFiltro] = useEstadoPersistente<number | undefined>("productos.subcategoriaFiltro", undefined);
 
   /**
    * Cambiar de categoría vuelve a pedir al backend y limpia la subcategoría:
@@ -235,9 +236,7 @@ export function useProductos() {
     void loadProductos();
   }, [loadProductos]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: ProductoStatusFilter) {
     setEstadoFiltro(status);

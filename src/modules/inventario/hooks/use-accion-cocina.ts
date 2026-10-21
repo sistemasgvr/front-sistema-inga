@@ -25,8 +25,15 @@ export function useAccionCocina(item:CocinaItem,tipo:CocinaAccion,onSaved:()=>vo
       onSaved();
     }catch(e){setError(e instanceof Error?e.message:"No se pudo guardar.");}finally{setSaving(false);}
   }
-  const valido=Number.isFinite(cantidad)&&cantidad>0&&cantidad<=Number(item.cantidad_pendiente)&&(tipo==="entregar"
-    ?cantidad<=Number(item.cantidad_reservada)
-    :!!motivo.trim()&&(!reparto.pideDestinoPreparado||!!destino)&&(!reparto.pideDestinoInsumos||!!destinoInsumos));
-  return {cantidad,setCantidad,motivo,setMotivo,destino,setDestino,destinoInsumos,setDestinoInsumos,reparto,saving,error,guardar,valido};
+  // Motivo por el que el botón está apagado: antes se apagaba sin explicar nada.
+  const pendiente=Number(item.cantidad_pendiente);
+  const razon=!Number.isFinite(cantidad)||cantidad<=0?"Ingresa una cantidad mayor a cero."
+    :cantidad>pendiente?`No puedes ${tipo==="entregar"?"entregar":"cancelar"} más de lo pendiente (${pendiente}).`
+    :tipo==="entregar"&&cantidad>Number(item.cantidad_reservada)?`Solo hay ${Number(item.cantidad_reservada)} listo(s) para entregar.`
+    :tipo==="cancelar"&&!motivo.trim()?"Escribe el motivo de la cancelación."
+    :tipo==="cancelar"&&reparto.pideDestinoInsumos&&!destinoInsumos?"Elige qué hacer con los ingredientes en preparación."
+    :tipo==="cancelar"&&reparto.pideDestinoPreparado&&!destino?"Elige qué hacer con lo ya preparado."
+    :"";
+  const valido=!razon;
+  return {cantidad,setCantidad,motivo,setMotivo,destino,setDestino,destinoInsumos,setDestinoInsumos,reparto,saving,error,guardar,valido,razon};
 }

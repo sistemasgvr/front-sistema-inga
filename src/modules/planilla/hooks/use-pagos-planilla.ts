@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import type { TurnoItem } from "@/modules/caja/types/caja.types";
@@ -35,14 +36,14 @@ const PAGE_SIZE = 10;
 export function usePagosPlanilla() {
   const hoy = new Date();
 
-  const [anio, setAnio] = useState(hoy.getFullYear());
-  const [mes, setMes] = useState(hoy.getMonth() + 1);
-  const [quincena, setQuincena] = useState<number | null>(null);
+  const [anio, setAnio] = useEstadoPersistente("planilla-pagos.anio", hoy.getFullYear());
+  const [mes, setMes] = useEstadoPersistente("planilla-pagos.mes", hoy.getMonth() + 1);
+  const [quincena, setQuincena] = useEstadoPersistente<number | null>("planilla-pagos.quincena", null);
 
   const [registros, setRegistros] = useState<PagoItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("planilla-pagos.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("planilla-pagos.pageSize", PAGE_SIZE);
 
   const [resumen, setResumen] = useState<PagosResumen>({
     monto_total: 0,

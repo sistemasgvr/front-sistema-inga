@@ -131,6 +131,14 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (axios.isAxiosError<{ message?: unknown; cause?: string; errors?: string[] | null }>(error)) {
+      // Sin respuesta (servidor caído o reiniciando, conexión cortada): no se sabe si la
+      // operación se aplicó, así que se avisa en español en vez del "Network Error" de axios.
+      if (!error.response && error.code !== 'ERR_CANCELED') {
+        throw new ApiError(
+          'No se pudo conectar con el servidor. Revisa la conexión y vuelve a intentar.',
+          0,
+        );
+      }
       const statusCode = error.response?.status ?? 500;
       const payload = error.response?.data;
 

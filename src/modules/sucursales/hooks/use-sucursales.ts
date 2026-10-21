@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import {
   getMe,
   getStoredUser,
@@ -29,10 +30,10 @@ const PAGE_SIZE = 10;
 export function useSucursales() {
   const [registros, setRegistros] = useState<Sucursal[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("sucursales.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("sucursales.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("sucursales.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
   const [estadoFiltro, setEstadoFiltro] =
@@ -168,9 +169,7 @@ export function useSucursales() {
     void loadSucursales();
   }, [loadSucursales]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: SucursalStatusFilter) {
     setEstadoFiltro(status);

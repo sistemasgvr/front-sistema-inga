@@ -4,7 +4,7 @@ import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import { FormModal } from "@/components/ui/modal/FormModal";
-import type { Mesa, AbrirPedidoValues } from "../types/mesas.types";
+import { MAX_OBSERVACION, type Mesa, type AbrirPedidoValues } from "../types/mesas.types";
 import { LISTA_IDS, ListaSelect } from "@/modules/listas";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 
@@ -48,7 +48,9 @@ function AbrirPedidoContent({
     if (
       isSaving ||
       !idMozo ||
-      Number(numComensales) <= 0
+      Number(numComensales) <= 0 ||
+      !Number.isInteger(Number(numComensales)) ||
+      Number(numComensales) > 20
     )
       return;
 
@@ -110,6 +112,7 @@ function AbrirPedidoContent({
             onChange={(e) => setNumComensales(e.target.value)}
             min="1"
             max="20"
+            step={1}
           />
         </div>
 
@@ -119,6 +122,8 @@ function AbrirPedidoContent({
             value={observacion}
             onChange={setObservacion}
             rows={2}
+            maxLength={MAX_OBSERVACION}
+            hint={`${observacion.length}/${MAX_OBSERVACION}`}
             placeholder="Ej: Mesa cerca de la ventana"
           />
         </div>

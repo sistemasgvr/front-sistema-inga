@@ -8,6 +8,7 @@ import { formatoMoneda, formatoNumero } from "../utils/formato";
 import { Indicador } from "./indicador";
 import { ReporteShell } from "./reporte-shell";
 import { TablaSeccion } from "./seccion-reporte";
+import { plural } from "@/shared/utils/plural";
 
 const COLUMNAS_DIAS: ColumnaReporte<GastoDiarioDia>[] = [
   { clave: "fecha", titulo: "Fecha", valor: (g) => g.fecha, formato: "fecha" },
@@ -105,7 +106,7 @@ export function ReporteGastosView() {
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Indicador titulo="Total de gastos" valor={formatoMoneda(s.totales.diarios + s.totales.admin)} icono="mdi:cash-minus" />
-            <Indicador titulo="Compras del día" valor={formatoMoneda(s.totales.diarios)} detalle={`${s.dias.length} días con compras`} icono="mdi:cart-outline" />
+            <Indicador titulo="Compras del día" valor={formatoMoneda(s.totales.diarios)} detalle={`${plural(s.dias.length, "día", "días")} con compras`} icono="mdi:cart-outline" />
             <Indicador titulo="A crédito de proveedor" valor={formatoMoneda(s.totales.credito)} detalle="Pasa a Cuentas por pagar" icono="mdi:truck-outline" />
             <Indicador
               titulo="Gastos administrativos"

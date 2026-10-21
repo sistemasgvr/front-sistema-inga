@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoVigente } from "@/modules/caja/services/caja.service";
@@ -38,17 +39,17 @@ const PAGE_SIZE = 10;
 export function useGastos() {
   const hoy = new Date();
 
-  const [anio, setAnio] = useState(hoy.getFullYear());
-  const [mes, setMes] = useState(hoy.getMonth() + 1);
-  const [tipoFiltro, setTipoFiltro] = useState<number | null>(null);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<number | null>(null);
+  const [anio, setAnio] = useEstadoPersistente("gastos.anio", hoy.getFullYear());
+  const [mes, setMes] = useEstadoPersistente("gastos.mes", hoy.getMonth() + 1);
+  const [tipoFiltro, setTipoFiltro] = useEstadoPersistente<number | null>("gastos.tipoFiltro", null);
+  const [categoriaFiltro, setCategoriaFiltro] = useEstadoPersistente<number | null>("gastos.categoriaFiltro", null);
 
   const [registros, setRegistros] = useState<GastoItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("gastos.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("gastos.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("gastos.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
   const [resumen, setResumen] = useState<GastosResumen>({

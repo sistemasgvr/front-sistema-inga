@@ -4,6 +4,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { Icon } from "@/components/ui/icon";
 import type { ComandaVenta } from "../types/ventas.types";
 import { ESTADO_IMPRESION, TIPO_COMANDA, fechaHora } from "../utils/formato";
+import { plural } from "@/shared/utils/plural";
 
 type ComandasVentaProps = {
   comandas: ComandaVenta[];
@@ -32,7 +33,7 @@ export function ComandasVenta({ comandas, puedeReimprimir, procesando, onReimpri
                   </p>
                   <p className="text-xs text-gray-400">
                     {fechaHora(c.fecha_envio)}
-                    {c.tipo === "COMANDA" ? ` · ${c.cantidad_items} ítems` : ""}
+                    {c.tipo === "COMANDA" ? ` · ${plural(c.cantidad_items, "ítem")}` : ""}
                   </p>
                   {c.error_impresion && <p className="text-xs text-error-500">{c.error_impresion}</p>}
                 </div>

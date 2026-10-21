@@ -28,6 +28,7 @@ import {
   textoLinea,
 } from "../utils/estado-cuenta";
 import { seccionesEstadoCuenta } from "../utils/estado-cuenta-secciones";
+import { plural } from "@/shared/utils/plural";
 
 const textoPeriodo = (rango: { desde: string; hasta: string }) =>
   rango.desde && rango.hasta ? formatearRango(rango) : "Todo el historial";
@@ -266,11 +267,11 @@ export function EstadoCuentaDetalleView({ idPersona }: { idPersona: number }) {
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Indicador titulo="Saldo anterior" valor={formatoMoneda(d.saldo_anterior)} detalle={d.periodo.fecha_desde ? `Al ${formatoFecha(d.periodo.fecha_desde)}` : "Sin movimientos previos"} />
-            <Indicador titulo="Consumos" valor={formatoMoneda(d.total_cargos)} detalle={`${d.movimientos.filter((m) => m.tipo_movimiento === 1).length} consumos en el período`} />
+            <Indicador titulo="Consumos" valor={formatoMoneda(d.total_cargos)} detalle={`${plural(d.movimientos.filter((m) => m.tipo_movimiento === 1).length, "consumo")} en el período`} />
             <Indicador
               titulo="Abonos"
               valor={formatoMoneda(d.total_abonos)}
-              detalle={d.total_ajustes ? `Ajustes: ${formatoMoneda(d.total_ajustes)}` : `${d.movimientos.filter((m) => m.tipo_movimiento === 2).length} abonos en el período`}
+              detalle={d.total_ajustes ? `Ajustes: ${formatoMoneda(d.total_ajustes)}` : `${plural(d.movimientos.filter((m) => m.tipo_movimiento === 2).length, "abono")} en el período`}
             />
             <Indicador
               titulo="Saldo al cierre"

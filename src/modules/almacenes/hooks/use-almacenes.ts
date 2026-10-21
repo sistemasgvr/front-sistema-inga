@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -27,13 +28,13 @@ export function useAlmacenes() {
 
   const [registros, setRegistros] = useState<AlmacenItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("almacenes.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("almacenes.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("almacenes.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<AlmacenStatusFilter>("activos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<AlmacenStatusFilter>("almacenes.estadoFiltro", "activos");
 
   const [resumen, setResumen] = useState<AlmacenesResumen>({
     total: 0,
@@ -168,9 +169,7 @@ export function useAlmacenes() {
     void loadAlmacenes();
   }, [loadAlmacenes]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: AlmacenStatusFilter) {
     setEstadoFiltro(status);

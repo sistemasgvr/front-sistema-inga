@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -28,14 +29,14 @@ export function useEstaciones() {
 
   const [registros, setRegistros] = useState<EstacionItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("estaciones.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("estaciones.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("estaciones.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<EstacionStatusFilter>("activos");
-  const [sucursalFiltro, setSucursalFiltro] = useState<number | undefined>(undefined);
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<EstacionStatusFilter>("estaciones.estadoFiltro", "activos");
+  const [sucursalFiltro, setSucursalFiltro] = useEstadoPersistente<number | undefined>("estaciones.sucursalFiltro", undefined);
 
   const [resumen, setResumen] = useState<EstacionesResumen>({
     total: 0,
@@ -171,9 +172,7 @@ export function useEstaciones() {
     void loadEstaciones();
   }, [loadEstaciones]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: EstacionStatusFilter) {
     setEstadoFiltro(status);

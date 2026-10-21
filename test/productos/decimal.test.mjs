@@ -24,3 +24,8 @@ test('permite valores de edición intermedios sin reemplazar su texto', () => {
   assert.equal(validarDecimal(''), '');
   assert.equal(validarDecimal('12,50', '0', undefined, 0.01), '');
 });
+test('el tope se muestra con separador de miles y los enteros rechazan decimales', () => {
+  assert.equal(validarDecimal('999999999999', '0', '9999999'), 'El máximo es 9,999,999.');
+  assert.equal(validarDecimal('2.5', '1', '20', 1), 'Introduce un número entero, sin decimales.');
+  assert.equal(validarDecimal('3', '1', '20', 1), '');
+});

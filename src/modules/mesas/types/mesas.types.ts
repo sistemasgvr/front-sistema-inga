@@ -158,6 +158,9 @@ export type Feedback = {
   message: string;
 };
 
+/** Largo máximo de las observaciones del pedido y de cada plato (comandas y pantallas). */
+export const MAX_OBSERVACION = 200;
+
 export const ESTADOS_MESA: Record<
   EstadoMesa,
   { label: string; className: string; icon: string }

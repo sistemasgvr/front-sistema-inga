@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "@/shared/api/api-client";
+import { limpiarEstadosPersistentes } from "@/shared/hooks/use-estado-persistente";
 import type {
   AuthUser,
   LoginCredentials,
@@ -88,6 +89,7 @@ export async function logout(): Promise<void> {
     if (typeof window !== "undefined") {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      limpiarEstadosPersistentes();
       window.location.href = "/login";
     }
   }

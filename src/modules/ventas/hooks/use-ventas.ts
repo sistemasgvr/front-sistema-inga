@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { useFeedback } from "@/shared/hooks/use-feedback";
@@ -34,7 +35,7 @@ const mensaje = (error: unknown, porDefecto: string) =>
 
 export function useVentas() {
   const hoy = hoyLima();
-  const [filtros, setFiltros] = useState<FiltrosVentas>({
+  const [filtros, setFiltros] = useEstadoPersistente<FiltrosVentas>("ventas.filtros", {
     buscar: "",
     fecha_desde: hoy,
     fecha_hasta: hoy,
@@ -42,8 +43,8 @@ export function useVentas() {
     medio_pago: "",
   });
   const buscar = useDebounce(filtros.buscar, 400);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("ventas.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("ventas.pageSize", PAGE_SIZE);
   const [revision, setRevision] = useState(0);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
 

@@ -11,11 +11,13 @@ import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { LISTA_IDS, ListaSelect } from "@/modules/listas";
 import { crearClienteRapido } from "@/modules/personas";
 import { useBuscarClientes } from "../hooks/use-buscar-clientes";
-import type { AbrirPedidoValues } from "../types/mesas.types";
+import { MAX_OBSERVACION, type AbrirPedidoValues } from "../types/mesas.types";
 
 // Pedidos sin mesa: solo para llevar (2) y delivery (3).
 const CODIGOS_TIPO_EXTERNO = ["LLEVAR", "DELIVERY"];
 const TIPO_DELIVERY = 3;
+// El teléfono de contacto solo admite números (también al venir del cliente registrado).
+const soloDigitos = (valor: string) => valor.replace(/\D/g, "");
 
 type ClienteElegido = {
   id: number;
@@ -83,10 +85,11 @@ function NuevoPedidoExternoContent({
     clienteListo &&
     (!esDelivery || !!direccion.trim());
 
+  // Lo ya escrito para este pedido se respeta; los datos del cliente solo completan lo vacío.
   const elegirCliente = (c: ClienteElegido, datos: { telefono: string | null; direccion: string | null }) => {
     setCliente(c);
-    setTelefono(datos.telefono ?? "");
-    setDireccion(datos.direccion ?? "");
+    setTelefono((actual) => actual || soloDigitos(datos.telefono ?? ""));
+    setDireccion((actual) => (actual.trim() ? actual : datos.direccion ?? ""));
   };
 
   const cambiarModo = (nuevo: "buscar" | "nuevo") => {
@@ -131,7 +134,7 @@ function NuevoPedidoExternoContent({
     // El cliente queda vinculado por id_persona; la observación guarda solo lo propio de
     // este pedido: un teléfono distinto al registrado, la dirección de entrega y las notas.
     const observacion = [
-      telefono.trim() && telefono.trim() !== (elegido.telefono ?? "") && `Tel: ${telefono.trim()}`,
+      telefono && telefono !== soloDigitos(elegido.telefono ?? "") && `Tel: ${telefono}`,
       esDelivery && `Dirección: ${direccion.trim()}`,
       observaciones.trim(),
     ]
@@ -270,8 +273,8 @@ function NuevoPedidoExternoContent({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="externo-telefono">Teléfono de contacto (opcional)</Label>
-            <InputField id="externo-telefono" type="tel" value={telefono} maxLength={20} disabled={ocupado}
-              onChange={(e) => setTelefono(e.target.value)} placeholder="999 999 999" />
+            <InputField id="externo-telefono" type="tel" value={telefono} maxLength={15} disabled={ocupado}
+              onChange={(e) => setTelefono(soloDigitos(e.target.value))} placeholder="999999999" />
           </div>
           <div>
             <Label htmlFor="externo-direccion">{esDelivery ? "Dirección de entrega" : "Dirección (opcional)"}</Label>
@@ -283,6 +286,7 @@ function NuevoPedidoExternoContent({
         <div>
           <Label>Observaciones del pedido (opcional)</Label>
           <TextArea value={observaciones} onChange={setObservaciones} rows={3} disabled={ocupado}
+            maxLength={MAX_OBSERVACION} hint={`${observaciones.length}/${MAX_OBSERVACION}`}
             placeholder={esDelivery ? "Ej: Frente al parque, puerta verde. Pagará con S/ 100" : "Ej: Recoge a las 8 p. m., sin cubiertos"} />
         </div>
 

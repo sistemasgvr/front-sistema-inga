@@ -27,11 +27,13 @@ import {
   listarCategoriasCarta,
   listarSubcategoriasCarta,
 } from "../services/carta.service";
-import type {
-  AgregarItemValues,
-  FiltrosCarta,
-  ProductoOption,
+import {
+  MAX_OBSERVACION,
+  type AgregarItemValues,
+  type FiltrosCarta,
+  type ProductoOption,
 } from "../types/mesas.types";
+import { plural } from "@/shared/utils/plural";
 
 interface AgregarItemModalProps {
   isOpen: boolean;
@@ -206,6 +208,15 @@ function CartaContent({
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!canAdd || isSaving || !lineas.length) return;
+    // Vender a S/ 0 se permite (cortesías), pero se confirma por si falta el precio en la carta.
+    const gratis = lineas.filter((l) => importeLinea(l) === 0);
+    if (
+      gratis.length &&
+      !window.confirm(
+        `Se venderán a S/ 0.00: ${gratis.map((l) => l.producto.nombre).join(", ")}. ¿Deseas guardarlos así en el pedido?`,
+      )
+    )
+      return;
     const { ok, guardados } = await onSubmit(
       lineas.map((l) => ({
         id_producto: Number(l.producto.id),
@@ -250,14 +261,17 @@ function CartaContent({
       submitDisabled={!canAdd || !lineas.length}
       panelScroll
     >
+      {/* Con panel lateral: apilados (flex, la carta ocupa el alto visible y el panel queda
+          debajo con scroll) hasta xl; en xl lado a lado en una fila de alto fijo. Con grid en
+          ambos casos la fila se colapsaba y el panel se dibujaba encima del buscador. */}
       <div
         className={
           sidePanel
-            ? "grid gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto xl:overflow-hidden xl:grid-cols-[minmax(0,1fr)_380px]"
+            ? "flex flex-col gap-5 lg:h-full lg:min-h-0 lg:overflow-y-auto xl:grid xl:overflow-hidden xl:grid-cols-[minmax(0,1fr)_380px] xl:grid-rows-[minmax(0,1fr)]"
             : "lg:h-full lg:min-h-0"
         }
       >
-        <div className="min-w-0 space-y-4 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+        <div className="min-w-0 space-y-4 lg:flex lg:h-full lg:min-h-0 lg:shrink-0 lg:flex-col">
           {!canAdd && (
             <Alert
               variant="info"
@@ -339,7 +353,7 @@ function CartaContent({
                   <span>
                     {carta.isLoading
                       ? "Consultando carta..."
-                      : `${carta.productos.length} productos`}
+                      : plural(carta.productos.length, "producto")}
                   </span>
                   <span>Disponibilidad al momento de consultar</span>
                 </div>
@@ -520,9 +534,18 @@ function CartaContent({
                           value={observacion}
                           onChange={setObservacion}
                           rows={2}
+                          maxLength={MAX_OBSERVACION}
+                          hint={`${observacion.length}/${MAX_OBSERVACION}`}
                           placeholder="Sin sal, término de cocción..."
                         />
                       </div>
+                      {cantidadValida && importe === 0 && (
+                        <Alert
+                          variant="warning"
+                          title="Se venderá a S/ 0.00"
+                          message="Este producto no tiene precio en la carta. Si no es una cortesía, corrige su precio en Productos."
+                        />
+                      )}
                       <div className="flex justify-between border-t border-gray-200 pt-3 text-sm dark:border-gray-700">
                         <span className="text-gray-500">Importe de carta</span>
                         <strong className="text-brand-600">
@@ -579,7 +602,7 @@ function CartaContent({
                                 </p>
                               )}
                               {l.observacion && (
-                                <p className="text-xs italic text-gray-500">
+                                <p className="break-words text-xs italic text-gray-500">
                                   {l.observacion}
                                 </p>
                               )}
@@ -641,7 +664,7 @@ function CartaContent({
           </fieldset>
         </div>
         {sidePanel && (
-          <div className="min-w-0 xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain" onKeyDown={bloquearEnter}>
+          <div className="min-w-0 shrink-0 xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain" onKeyDown={bloquearEnter}>
             {sidePanel}
           </div>
         )}

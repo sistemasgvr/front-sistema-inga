@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente, useReiniciarPagina } from "@/shared/hooks/use-estado-persistente";
 import { getMe, getStoredUser, logout } from "@/modules/auth/services/auth.service";
 import { listRoles } from "@/modules/roles/services/roles.service";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -27,13 +28,13 @@ export function useUsers() {
 
   const [registros, setRegistros] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("usuarios.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("usuarios.pageSize", PAGE_SIZE);
   
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("usuarios.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<UserStatusFilter>("activos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<UserStatusFilter>("usuarios.estadoFiltro", "activos");
 
   const [resumen, setResumen] = useState<UsersResumen>({
     total: 0,
@@ -156,9 +157,7 @@ export function useUsers() {
     void loadUsers();
   }, [loadUsers]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [debouncedSearch]);
+  useReiniciarPagina(debouncedSearch, setPagina);
 
   function handleFilterStatus(status: UserStatusFilter) {
     setEstadoFiltro(status);

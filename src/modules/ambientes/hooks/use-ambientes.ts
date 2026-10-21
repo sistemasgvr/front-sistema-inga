@@ -109,7 +109,10 @@ export function useAmbientes() {
     return invalidate;
   }, [reload, invalidate]);
 
-  async function mutate(action: () => Promise<unknown>): Promise<boolean> {
+  async function mutate(
+    action: () => Promise<unknown>,
+    aviso = { titulo: "Guardado", mensaje: "Los cambios se guardaron correctamente." },
+  ): Promise<boolean> {
     if (pending.current) return false;
     pending.current = true;
     setSaving(true);
@@ -120,8 +123,8 @@ export function useAmbientes() {
       if (loaded)
         setFeedback({
           variant: "success",
-          title: "Guardado",
-          message: "Los cambios se guardaron correctamente.",
+          title: aviso.titulo,
+          message: aviso.mensaje,
         });
       return true;
     } catch (e) {

@@ -160,11 +160,22 @@ export function TrabajadoresView() {
                         size={40}
                         className="mx-auto mb-3 text-gray-300 dark:text-gray-600"
                       />
+                      {/* El vacío depende del filtro: en "Bajas" no es que falte personal. */}
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        No hay personal registrado
+                        {searchInput.trim()
+                          ? "No se encontró personal con esa búsqueda"
+                          : estadoFiltro === "inactivos"
+                            ? "No hay personal dado de baja"
+                            : estadoFiltro === "activos"
+                              ? "No hay personal activo"
+                              : "No hay personal registrado"}
                       </p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Agrega a los trabajadores para poder registrar sus pagos.
+                        {searchInput.trim()
+                          ? "Prueba con otro nombre o documento."
+                          : estadoFiltro === "inactivos"
+                            ? "Aquí aparecerán los trabajadores que des de baja."
+                            : "Agrega a los trabajadores para poder registrar sus pagos."}
                       </p>
                     </TableCell>
                   </TableRow>

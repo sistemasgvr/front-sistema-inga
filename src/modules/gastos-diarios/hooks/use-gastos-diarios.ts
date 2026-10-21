@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import { getTurnoVigente } from "@/modules/caja/services/caja.service";
 import { useTurnoPendiente } from "@/modules/caja/hooks/use-turno-pendiente";
@@ -47,7 +48,7 @@ import { hoyISO } from "../utils/formato";
  *     stock, así que se recargan después de cada compra o anulación
  */
 export function useGastosDiarios() {
-  const [fecha, setFecha] = useState(hoyISO());
+  const [fecha, setFecha] = useEstadoPersistente("gastos-diarios.fecha", hoyISO());
 
   const [dia, setDia] = useState<DiaConDetalle | null>(null);
   const [reporte, setReporte] = useState<ReporteDia | null>(null);

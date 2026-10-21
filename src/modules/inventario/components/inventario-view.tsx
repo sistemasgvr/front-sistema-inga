@@ -1,10 +1,10 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import SinPermiso from "@/components/common/SinPermiso";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import Pagination from "@/components/tables/Pagination";
-import { Icon } from "@/components/ui/icon";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import { useStock } from "../hooks/use-stock";
 import { StockTable } from "./stock-table";
@@ -43,22 +43,7 @@ export function InventarioView() {
   const hasListPermission = isSuper || userPermisos.includes(PermisoBanderas.INVENTARIO_VER);
 
   if (currentUser && !hasListPermission) {
-    return (
-      <div>
-        <PageBreadcrumb pageTitle="Control de Stock" />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.05]">
-          <div className="rounded-2xl bg-error-50 p-4 text-error-600 dark:bg-error-500/10 dark:text-error-400 mb-4">
-            <Icon name="mdi:shield-lock-outline" size={48} />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-            Acceso Restringido
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-            No cuentas con el permiso requerido (<code className="font-semibold text-gray-700 dark:text-gray-300">inventario.ver</code>) para visualizar las existencias.
-          </p>
-        </div>
-      </div>
-    );
+    return <SinPermiso pageTitle="Control de Stock" />;
   }
 
   const almacenesOptions = [

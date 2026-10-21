@@ -61,13 +61,14 @@ export function CreditoPedidoModal({isOpen,total,saving,documento,onDocumento,cl
     e.preventDefault();
     setEnviado(true);
     if(saving||!valido)return;
+    if(total===0&&!window.confirm('El pedido suma S/ 0.00: se registrará la venta en la cuenta del cliente sin generar deuda. ¿Deseas continuar?'))return;
     await onSubmit();
   }
 
   return (
     <FormModal isOpen={isOpen} onClose={onClose} onSubmit={handleSubmit} isSaving={saving} submitDisabled={!valido}
       title="Venta a crédito" subtitle={`Registra el pedido en la cuenta del convenio del cliente. Total del pedido: ${soles(total)}.`}
-      submitText={aCredito===0&&tieneConvenio?'Registrar pago en efectivo':'Registrar crédito'}>
+      submitText={aCredito===0&&tieneConvenio?'Registrar venta':'Registrar crédito'}>
 
       <div>
         <Label htmlFor="credito_dni">DNI del cliente *</Label>
@@ -77,6 +78,9 @@ export function CreditoPedidoModal({isOpen,total,saving,documento,onDocumento,cl
           error={Boolean(mostrarErrorDni)}
           hint={mostrarErrorDni?errorDni:buscando?'Buscando cliente…':`${documento.length}/8 dígitos`}/>
       </div>
+
+      {total===0&&<Alert variant="warning" title="Venta a crédito de S/ 0.00"
+        message="El pedido no tiene importe. Se permite (p. ej. cortesía del convenio), pero revisa que los precios de los platos sean correctos."/>}
 
       {errorBusqueda&&<ToastNotification variant="error" title="No se pudo buscar el cliente" message={errorBusqueda}/>}
 

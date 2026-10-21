@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import SinPermiso from "@/components/common/SinPermiso";
 import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
@@ -56,22 +57,7 @@ export function UsersView() {
   const canCreateUser = isSuper || userPermisos.includes(PermisoBanderas.USUARIOS_CREAR);
 
   if (currentUser && !isSuper && !hasListPermission) {
-    return (
-      <div>
-        <PageBreadcrumb pageTitle="Usuarios" />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-white dark:bg-white/[0.03] rounded-xl border border-gray-200 dark:border-white/[0.05]">
-          <div className="rounded-2xl bg-error-50 p-4 text-error-600 dark:bg-error-500/10 dark:text-error-400 mb-4">
-            <Icon name="mdi:shield-lock-outline" size={48} />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-            Acceso Restringido
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-            No cuentas con el permiso requerido (<code className="font-semibold text-gray-700 dark:text-gray-300">usuarios.listar</code>) para visualizar este módulo.
-          </p>
-        </div>
-      </div>
-    );
+    return <SinPermiso pageTitle="Usuarios" />;
   }
 
   return (

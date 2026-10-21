@@ -229,7 +229,8 @@ export function PedidoPanel({
         onSubmit={async e=>{e.preventDefault();if(itemCancelar&&await onCancelarItem(itemCancelar.id,motivoItem))setItemCancelar(null);}}>
         <p>{itemCancelar?.nombre_producto}</p>
         <p className="text-sm text-gray-500">Se cancelará este ítem completo. Si ya fue comandado, cocina recibirá un aviso.</p>
-        <Label>Motivo de cancelación</Label><InputField value={motivoItem} disabled={saving} onChange={e=>setMotivoItem(e.target.value)}/>
+        <Label>Motivo de cancelación *</Label><InputField value={motivoItem} disabled={saving} onChange={e=>setMotivoItem(e.target.value)}
+          hint={motivoItem.trim()?undefined:"Escribe el motivo para poder cancelar el plato."}/>
 
       </FormModal>
       {/* Totales y cobro siguen a los platos sin reducir su espacio. */}
@@ -320,7 +321,7 @@ function PedidoItemRow({ item, onEntregar, onCancelar, entregando }: {
           {Number(item.cantidad_cancelada) > 0 && <><span aria-hidden>·</span><span className="text-error-600">Cancelados: {item.cantidad_cancelada}</span></>}
         </p>
         {item.observacion && (
-          <p className="mt-0.5 text-xs italic text-gray-500">{item.observacion}</p>
+          <p className="mt-0.5 break-words text-xs italic text-gray-500">{item.observacion}</p>
         )}
         {item.adicionales.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">

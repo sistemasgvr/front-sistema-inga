@@ -75,6 +75,7 @@ export function ProductoFormModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [showConfirmRemoveImage, setShowConfirmRemoveImage] = useState(false);
+  const [intentoGuardar, setIntentoGuardar] = useState(false);
 
   const [values, setValues] = useState<ProductoFormValues>({
     id_subcategoria: 0,
@@ -118,6 +119,7 @@ export function ProductoFormModal({
     if (!isOpen) return;
 
     setIsTipoOpen(false);
+    setIntentoGuardar(false);
     setSelectedFile(null);
     setShowConfirmRemoveImage(false);
 
@@ -246,6 +248,7 @@ export function ProductoFormModal({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving || uploadingImage) return;
+    setIntentoGuardar(true);
 
     if (!tipoSeleccionado || tipos.isLoading || tipos.error) {
       notifyError(
@@ -567,6 +570,15 @@ export function ProductoFormModal({
                   disabled={isSaving || !selectedCategoriaId}
                   onChange={(val) =>
                     setValues((p) => ({ ...p, id_subcategoria: Number(val) }))
+                  }
+                  // Se avisa al elegir la categoría, no recién al guardar.
+                  error={(intentoGuardar || !!selectedCategoriaId) && !values.id_subcategoria}
+                  hint={
+                    values.id_subcategoria
+                      ? undefined
+                      : !selectedCategoriaId
+                        ? "Obligatoria. Primero elige la categoría."
+                        : "Obligatoria. Elige una subcategoría para poder guardar."
                   }
                 />
               </div>

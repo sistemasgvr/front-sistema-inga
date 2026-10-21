@@ -26,5 +26,6 @@ export function AccionCocinaModal({item,tipo,onClose,onSaved}:{item:CocinaItem;t
         options={[{value:"DISPONIBLE",label:"Guardar en inventario para revender"},{value:"MERMA",label:"Descartar y registrar merma"}]}/>
         <p className="text-sm text-gray-500">Los ingredientes de los platos preparados no se devuelven al almacén.</p></>}
     </>}
+    {a.razon&&<p className="text-sm text-warning-700 dark:text-warning-400">{a.razon}</p>}
   </FormModal>;
 }

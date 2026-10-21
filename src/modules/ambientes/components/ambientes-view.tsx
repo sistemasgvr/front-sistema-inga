@@ -24,6 +24,7 @@ import { ESTADOS_MESA } from "../types/ambientes.types";
 import type { Mesa, Salon } from "../types/ambientes.types";
 import { PlanoSalones } from "./plano-salones";
 import { MesaFormModal, SalonFormModal } from "./ambiente-form-modal";
+import { plural } from "@/shared/utils/plural";
 
 export function AmbientesView() {
   const a = useAmbientes();
@@ -205,7 +206,7 @@ export function AmbientesView() {
                   {selected.nombre}
                 </h4>
                 <p className="text-xs text-gray-500">
-                  {selected.codigo} · {selectedMesas.length} mesas ·{" "}
+                  {selected.codigo} · {plural(selectedMesas.length, "mesa")} ·{" "}
                   {selectedMesas
                     .filter((m) => m.estado === 1)
                     .reduce((sum, m) => sum + m.capacidad_personas, 0)}{" "}
@@ -389,7 +390,10 @@ export function AmbientesView() {
             if (!a.saving) setSalonForm(null);
           }}
           onSubmit={async (values) => {
-            if (await a.mutate(() => saveSalon(values, salonForm.salon?.id)))
+            if (await a.mutate(() => saveSalon(values, salonForm.salon?.id), {
+              titulo: salonForm.salon ? "Salón actualizado" : "Salón creado",
+              mensaje: `«${values.nombre}» se guardó correctamente.`,
+            }))
               setSalonForm(null);
           }}
         />
@@ -404,7 +408,10 @@ export function AmbientesView() {
             if (!a.saving) setMesaForm(null);
           }}
           onSubmit={async (values) => {
-            if (await a.mutate(() => saveMesa(values, mesaForm.mesa?.id)))
+            if (await a.mutate(() => saveMesa(values, mesaForm.mesa?.id), {
+              titulo: mesaForm.mesa ? "Mesa actualizada" : "Mesa creada",
+              mensaje: `La mesa «${values.codigo}» se guardó correctamente.`,
+            }))
               setMesaForm(null);
           }}
         />
@@ -415,17 +422,19 @@ export function AmbientesView() {
           if (!a.saving) setConfirm(null);
         }}
         isLoading={a.saving}
-        title={
-          confirm?.estado === 1 ? "Desactivar ambiente" : "Reactivar ambiente"
-        }
-        description={`¿Deseas ${confirm?.estado === 1 ? "desactivar" : "reactivar"} «${confirm?.nombre ?? ""}»?`}
+        title={`${confirm?.estado === 1 ? "Desactivar" : "Reactivar"} ${confirm?.tipo === "mesas" ? "mesa" : "salón"}`}
+        description={`¿Deseas ${confirm?.estado === 1 ? "desactivar" : "reactivar"} ${confirm?.tipo === "mesas" ? "la mesa" : "el salón"} «${confirm?.nombre ?? ""}»?`}
         confirmText={confirm?.estado === 1 ? "Desactivar" : "Reactivar"}
         variant={confirm?.estado === 1 ? "danger" : "info"}
         onConfirm={async () => {
           if (
             confirm &&
-            (await a.mutate(() =>
-              toggleEstado(confirm.tipo, confirm.id, confirm.estado),
+            (await a.mutate(
+              () => toggleEstado(confirm.tipo, confirm.id, confirm.estado),
+              {
+                titulo: `${confirm.tipo === "mesas" ? "Mesa" : "Salón"} ${confirm.estado === 1 ? "desactivad" : "reactivad"}${confirm.tipo === "mesas" ? "a" : "o"}`,
+                mensaje: `«${confirm.nombre}» ${confirm.estado === 1 ? "ya no está disponible" : "vuelve a estar disponible"}.`,
+              },
             ))
           )
             setConfirm(null);

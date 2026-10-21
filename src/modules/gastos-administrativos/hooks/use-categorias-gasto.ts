@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import {
   createCategoria,
   listCategorias,
@@ -25,9 +26,9 @@ export function useCategoriasGasto() {
     inactivos: 0,
   });
 
-  const [estadoFiltro, setEstadoFiltro] = useState<
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<
     "todos" | "activos" | "inactivos"
-  >("activos");
+  >("gastos-categorias.estadoFiltro", "activos");
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);

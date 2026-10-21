@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 import {
   cerrarTurno,
@@ -31,10 +32,10 @@ const PAGE_SIZE = 10;
 export function useTurnos() {
   const [registros, setRegistros] = useState<TurnoItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("turnos.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("turnos.pageSize", PAGE_SIZE);
 
-  const [filtros, setFiltros] = useState<Omit<ListTurnosParams, "pagina" | "limite">>({});
+  const [filtros, setFiltros] = useEstadoPersistente<Omit<ListTurnosParams, "pagina" | "limite">>("turnos.filtros", {});
 
   const [resumen, setResumen] = useState<TurnosResumen>({
     abiertos: 0,

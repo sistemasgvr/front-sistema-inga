@@ -270,9 +270,10 @@ export function useMesas() {
     [error, setFeedback],
   );
 
+  // Cada acción dice qué pasó; un "Guardado" genérico al abrir un pedido no informa nada.
   async function mutate(
     action: () => Promise<unknown>,
-    mensaje = "Los cambios se guardaron correctamente.",
+    aviso: { titulo: string; mensaje: string },
   ): Promise<boolean> {
     if (pending.current) return false;
     pending.current = true;
@@ -285,8 +286,8 @@ export function useMesas() {
       await Promise.all([reload(), loadPedidosExternos()]);
       setFeedback({
         variant: "success",
-        title: "Guardado",
-        message: mensaje,
+        title: aviso.titulo,
+        message: aviso.mensaje,
       });
       return true;
     } catch (e) {
@@ -305,12 +306,12 @@ export function useMesas() {
   const abrirPedido = (values: AbrirPedidoValues) =>
     mutate(async () => {
       setPedido(await api.abrirPedido(values));
-    });
+    }, { titulo: "Pedido abierto", mensaje: "Ya puedes agregar productos." });
   const agregarItem = (values: AgregarItemValues) =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
       setPedido(await api.agregarItem(pedido.id, values));
-    });
+    }, { titulo: "Producto agregado", mensaje: "Se agregó al pedido." });
   const agregarItems = async (items: AgregarItemValues[]) => {
     let guardados = 0;
     const ok = await mutate(async () => {
@@ -319,14 +320,14 @@ export function useMesas() {
         setPedido(await api.agregarItem(pedido.id, values));
         guardados++;
       }
-    });
+    }, { titulo: "Productos agregados", mensaje: `Se ${items.length === 1 ? "agregó 1 producto" : `agregaron ${items.length} productos`} al pedido.` });
     return { ok, guardados };
   };
   const comandar = () =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
       setPedido(await api.comandarPedido(pedido.id));
-    });
+    }, { titulo: "Pedido comandado", mensaje: "Los productos se enviaron a preparación." });
   const entregarItem = (idItem: number) =>
     mutate(async () => {
       const item = pedido?.items.find(i => i.id === idItem);
@@ -337,7 +338,7 @@ export function useMesas() {
       if (objetivo <= Number(item.cantidad_entregada))
         throw new Error("Este plato ya fue entregado.");
       setPedido(await api.entregarItemPedido(pedido.id, item.id, objetivo));
-    }, "Plato entregado al cliente.");
+    }, { titulo: "Plato entregado", mensaje: "Plato entregado al cliente." });
   const cancelarItem = (idItem: number, motivo: string) => mutate(async()=>{
     const item=pedido?.items.find(i=>i.id===idItem);
     const usuario=getStoredUser();
@@ -345,21 +346,23 @@ export function useMesas() {
       throw new Error("Solo se puede cancelar desde el resumen antes de iniciar la preparación.");
     setPedido(await api.anularItem(pedido.id,item.id,{id_usuario_autoriza:usuario.id,motivo:motivo.trim(),
       cantidad_cancelada:Number(item.cantidad)-Number(item.cantidad_entregada),solo_sin_preparar:true}));
-  },"Plato cancelado.");
+  },{ titulo: "Plato cancelado", mensaje: "Se canceló la cantidad pendiente del plato." });
   const cambiarEstado = (estado_pedido: number) =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
       setPedido(await api.cambiarEstadoPedido(pedido.id, { estado_pedido }));
-    });
+    }, { titulo: "Estado actualizado", mensaje: "Se actualizó el estado del pedido." });
   const cerrarPedido = (accion:'precuenta'|'cobrar'|'credito',datos:{id_estacion?:number;tipo_comprobante?:number;medio_pago?:number;documento?:string}) =>
     mutate(async()=>{if(!pedido)throw new Error('Seleccione un pedido.');setPedido(await api.cerrarPedido(pedido.id,accion,datos));},
-      accion==='precuenta'?`Precuenta enviada a la estación de caja. El pedido ${pedido?.codigo} queda por cobrar.`:accion==='credito'?'Cuenta por cobrar registrada.':'Cobro registrado.');
+      accion==='precuenta'?{titulo:'Precuenta enviada',mensaje:`Precuenta enviada a la estación de caja. El pedido ${pedido?.codigo} queda por cobrar.`}
+        :accion==='credito'?{titulo:'Venta a crédito registrada',mensaje:'Cuenta por cobrar registrada.'}
+        :{titulo:'Cobro registrado',mensaje:`Se cobró el pedido ${pedido?.codigo ?? ''}.`.replace(' .','.')});
   const descartar = () =>
     mutate(async () => {
       if (!pedido) throw new Error("Seleccione un pedido.");
       await api.descartarPedido(pedido.id);
       setPedido(null);
-    }, `El pedido ${pedido?.codigo ?? ""} se canceló porque no se agregaron productos.`);
+    }, { titulo: "Pedido cancelado", mensaje: `El pedido ${pedido?.codigo ?? ""} se canceló porque no se agregaron productos.` });
   const anular = (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) =>
     mutate(async () => {
       const usuario = getStoredUser();
@@ -370,7 +373,7 @@ export function useMesas() {
         ...values,
       });
       setPedido(null);
-    });
+    }, { titulo: "Pedido anulado", mensaje: `Se anuló el pedido ${pedido?.codigo ?? ""}.`.replace(" .", ".") });
 
   return {
     sucursales,

@@ -3,6 +3,7 @@
 import { useFeedback } from "@/shared/hooks/use-feedback";
 
 import { useCallback, useEffect, useState } from "react";
+import { useEstadoPersistente } from "@/shared/hooks/use-estado-persistente";
 import { useDebounce } from "@/hooks/useDebounce";
 import { listSucursales } from "@/modules/sucursales/services/sucursales.service";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
@@ -25,13 +26,13 @@ const PAGE_SIZE = 10;
 export function useCajas() {
   const [registros, setRegistros] = useState<CajaItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pagina, setPagina] = useEstadoPersistente("cajas.pagina", 1);
+  const [pageSize, setPageSize] = useEstadoPersistente("cajas.pageSize", PAGE_SIZE);
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useEstadoPersistente("cajas.searchInput", "");
   const debouncedSearch = useDebounce(searchInput, 400);
 
-  const [estadoFiltro, setEstadoFiltro] = useState<CajaStatusFilter>("activos");
+  const [estadoFiltro, setEstadoFiltro] = useEstadoPersistente<CajaStatusFilter>("cajas.estadoFiltro", "activos");
   const [resumen, setResumen] = useState<CajasResumen>({
     total: 0,
     activos: 0,
