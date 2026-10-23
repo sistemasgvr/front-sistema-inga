@@ -11,10 +11,20 @@ import { ESTADOS_PREPARACION } from "../utils/cocina.utils";
 import { PreparacionModal } from "./preparacion-modal";
 import { AccionCocinaModal } from "./accion-cocina-modal";
 import { AvisosCocina } from "./avisos-cocina";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 
 export function CocinaView() {
   const c = useCocina();
+  // Pedido que llegó desde una notificación: sus platos se resaltan.
+  const [resaltado, setResaltado] = useState<number | null>(null);
+  const atenderRuta = ({ pedido }: Record<string, string>) => {
+    const id = Number(pedido);
+    if (!Number.isInteger(id) || id <= 0) return;
+    setResaltado(id);
+    if (c.historial) c.cambiarHistorial(false);
+    else c.reload();
+  };
   useEffect(() => {
     if (!c.sucursal && c.sucursales.options.length > 0) {
       const primeraSucursalId = c.sucursales.options[0].id;
@@ -24,6 +34,7 @@ export function CocinaView() {
   return (
     <div className="space-y-5">
       <PageBreadcrumb pageTitle="Cocina y preparaciones" />
+      <ParametrosRuta nombres={["pedido"]} onParametros={atenderRuta} />
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <Label>Sucursal</Label>
@@ -109,7 +120,11 @@ export function CocinaView() {
           {c.items.map((item) => (
             <article
               key={item.id}
-              className="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+              className={`flex flex-col overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-gray-900 ${
+                resaltado !== null && Number(item.id_pedido) === resaltado
+                  ? "border-brand-500 ring-2 ring-brand-500/40"
+                  : "border-gray-200 dark:border-gray-800"
+              }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/70 px-5 py-3 dark:border-gray-800 dark:bg-gray-800/40">
                 <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">

@@ -2,7 +2,6 @@
 
 import BrandLogo from "@/components/common/BrandLogo";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { Icon } from "@/components/ui/icon";
 import { useSidebar } from "@/context/SidebarContext";

@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import Pagination from "@/components/tables/Pagination";
 import Badge from "@/components/ui/badge/Badge";
 import { Icon } from "@/components/ui/icon";
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useTurnos } from "../hooks/use-turnos";
-import { ESTADO_TURNO } from "../types/caja.types";
+import { ESTADO_TURNO, type TurnoItem } from "../types/caja.types";
 import { formatearFechaHora, formatearSoles } from "../utils/formato";
 import { CierreTurnoModal } from "./cierre-turno-modal";
 import { TurnoDetalleModal } from "./turno-detalle-modal";
@@ -46,6 +47,14 @@ export function TurnosView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Historial de turnos" />
+      {/* Enlace desde una notificación: /caja/turnos?turno=ID abre su detalle. */}
+      <ParametrosRuta
+        nombres={["turno"]}
+        onParametros={({ turno }) => {
+          const id = Number(turno);
+          if (Number.isInteger(id) && id > 0) void verDetalle({ id } as TurnoItem);
+        }}
+      />
 
       {/* Los descuadres van primero porque es lo que el administrador entra a
           buscar: turnos cerrados donde lo contado no coincidió con el sistema. */}

@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import { TurnoPendienteGuard } from "@/modules/caja/components/turno-pendiente-guard";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCuentasPorPagar } from "../hooks/use-cuentas-por-pagar";
-import { MESES } from "../types/cxp.types";
+import { MESES, type SaldoProveedor } from "../types/cxp.types";
 import {
   etiquetaMes,
   formatearFecha,
@@ -77,6 +78,14 @@ export function CuentasPorPagarView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Cuentas por pagar" />
+      {/* Enlace desde una notificación: abre el estado de cuenta del proveedor. */}
+      <ParametrosRuta
+        nombres={["proveedor"]}
+        onParametros={({ proveedor }) => {
+          const id = Number(proveedor);
+          if (Number.isInteger(id) && id > 0) void verEstadoCuenta({ id_persona: id } as SaldoProveedor);
+        }}
+      />
 
       <div className="mb-5 flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
         <Icon

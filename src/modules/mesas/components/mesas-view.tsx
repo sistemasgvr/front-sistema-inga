@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
@@ -78,6 +79,20 @@ export function MesasView() {
     m.clearError();
   };
 
+  // Enlace desde una notificación: /ambientes/mesas?pedido=ID abre ese pedido.
+  const abrirPedidoDesdeRuta = ({ pedido }: Record<string, string>) => {
+    const id = Number(pedido);
+    if (!Number.isInteger(id) || id <= 0) return;
+    const mesa = m.mesas.find((x) => Number(x.id_pedido_activo) === id);
+    if (mesa) {
+      setSalonId(Number(mesa.id_salon));
+      m.selectMesa(mesa);
+    } else {
+      m.selectMesa(null);
+    }
+    void m.loadPedido(id);
+  };
+
   const abrirPedidoExterno = async (values: AbrirPedidoValues) => {
     const ok = await m.abrirPedido(values);
     if (ok) {
@@ -114,6 +129,7 @@ export function MesasView() {
   return (
     <div className="@container min-w-0">
       <PageBreadcrumb pageTitle="Mesas" />
+      <ParametrosRuta nombres={["pedido"]} onParametros={abrirPedidoDesdeRuta} />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">

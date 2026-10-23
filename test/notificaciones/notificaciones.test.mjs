@@ -204,3 +204,30 @@ test('cada intento de formulario puede emitir el mismo error sin depender de un 
   r.flush();
   assert.equal(r.tree, notify);
 });
+
+test('la campana solo navega a rutas internas de la app', () => {
+  const { esRutaInterna, normalizarNotificacion } = load('modules/notificaciones/utils/notificaciones.utils.ts', {});
+  assert.equal(esRutaInterna('/ventas?venta=12'), true);
+  assert.equal(esRutaInterna('/productos/stock?estado=alertas&buscar=Pollo%20%26%20papas'), true);
+  for (const ruta of ['https://malicioso.com', '//malicioso.com', 'javascript:alert(1)', '/a b', 12, null]) {
+    assert.equal(esRutaInterna(ruta), false, String(ruta));
+  }
+  assert.equal(normalizarNotificacion({ id: 'x', ruta: 'https://otro.com' }), null);
+  const n = normalizarNotificacion({ id: 'x', ruta: '/caja/turnos?turno=3', severidad: 'rara', idReferencia: 3 });
+  assert.equal(n.severidad, 'info');
+  assert.equal(n.leida, false);
+  assert.equal(n.idReferencia, 3);
+});
+
+test('el tiempo relativo de las notificaciones es legible', () => {
+  const { tiempoRelativo } = load('modules/notificaciones/utils/notificaciones.utils.ts', {});
+  const ahora = new Date(2026, 9, 22, 12, 0).getTime();
+  const hace = (min) => new Date(ahora - min * 60_000).toISOString();
+  assert.equal(tiempoRelativo(hace(0), ahora), 'hace un momento');
+  assert.equal(tiempoRelativo(hace(5), ahora), 'hace 5 min');
+  assert.equal(tiempoRelativo(hace(180), ahora), 'hace 3 h');
+  assert.equal(tiempoRelativo(hace(60 * 30), ahora), 'ayer');
+  assert.equal(tiempoRelativo(hace(60 * 24 * 3), ahora), 'hace 3 días');
+  assert.equal(tiempoRelativo(new Date(2026, 8, 1, 9).toISOString(), ahora), '01/09/2026');
+  assert.equal(tiempoRelativo('no es fecha', ahora), '');
+});

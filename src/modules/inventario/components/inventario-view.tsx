@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import SinPermiso from "@/components/common/SinPermiso";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
@@ -61,6 +62,14 @@ export function InventarioView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Control de Stock" />
+      {/* Enlace desde una alerta de stock: filtra el producto bajo el mínimo. */}
+      <ParametrosRuta
+        nombres={["estado", "buscar"]}
+        onParametros={({ estado, buscar }) => {
+          if (buscar !== undefined) setSearchInput(buscar);
+          if (estado === "alertas" || estado === "normales" || estado === "todos") handleFilterStatus(estado);
+        }}
+      />
 
       <div className="mb-5 flex flex-wrap gap-2" aria-label="Indicadores de stock">
         {([{ estado: "todos", label: "Ítems en stock", valor: resumen.total }, { estado: "alertas", label: "Bajo mínimo", valor: resumen.alertas }, { estado: "normales", label: "Stock OK", valor: resumen.normales }] as const).map(item => (

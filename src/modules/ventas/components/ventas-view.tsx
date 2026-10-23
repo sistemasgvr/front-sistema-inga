@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import { DateRangePicker } from "@/components/form/DateRangePicker";
 import Input from "@/components/form/input/InputField";
 import Pagination from "@/components/tables/Pagination";
@@ -29,6 +30,14 @@ export function VentasView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Ventas" />
+      {/* Enlace desde una notificación: /ventas?venta=ID abre el detalle. */}
+      <ParametrosRuta
+        nombres={["venta"]}
+        onParametros={({ venta }) => {
+          const id = Number(venta);
+          if (Number.isInteger(id) && id > 0) void v.abrirDetalle(id);
+        }}
+      />
 
       {/* Resumen del filtro: total vendido y cuánto entró por cada medio. */}
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">

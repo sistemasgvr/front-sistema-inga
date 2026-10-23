@@ -1,6 +1,7 @@
 "use client";
 
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import ParametrosRuta from "@/components/common/ParametrosRuta";
 import Pagination from "@/components/tables/Pagination";
 import Alert from "@/components/ui/alert/Alert";
 import Badge from "@/components/ui/badge/Badge";
@@ -68,6 +69,17 @@ export function PagosPlanillaView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Pagos de planilla" />
+      {/* Enlace desde una notificación: abre el período y la quincena del aviso. */}
+      <ParametrosRuta
+        nombres={["anio", "mes", "quincena"]}
+        onParametros={(p) => {
+          const anio = Number(p.anio);
+          const mes = Number(p.mes);
+          const q = Number(p.quincena);
+          if (Number.isInteger(anio) && mes >= 1 && mes <= 12) cambiarPeriodo(anio, mes);
+          if (q === 1 || q === 2) cambiarQuincena(q);
+        }}
+      />
 
       {/* Selector de período. Va arriba de todo porque define qué muestran
           todas las tarjetas y tablas de abajo. */}
