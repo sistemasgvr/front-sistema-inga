@@ -1,3 +1,5 @@
+import type { EstadoSunat } from "@/modules/sunat";
+
 export type PagoResumen = {
   id: number;
   medio_pago: number;
@@ -22,6 +24,9 @@ export type VentaItem = {
   numero_comprobante: string | null;
   receptor_num_doc: string | null;
   receptor_razon_social: string | null;
+  /** Estado SUNAT del comprobante vigente (boleta/factura). */
+  estado_sunat: EstadoSunat | null;
+  fecha_limite_envio: string | null;
   reemitido: boolean;
   pagos: PagoResumen[];
   cajas: string | null;
@@ -40,6 +45,7 @@ export type FiltrosVentas = {
   fecha_hasta: string;
   tipo_comprobante: string;
   medio_pago: string;
+  estado_sunat: string;
 };
 
 export type ListVentasParams = Partial<FiltrosVentas> & {
@@ -80,6 +86,15 @@ export type ComprobanteVenta = {
   fecha_emision: string;
   estado: number;
   id_comprobante_origen: number | null;
+  estado_sunat: EstadoSunat;
+  sunat_mensaje: string | null;
+  codigo_respuesta_sunat: string | null;
+  observaciones_sunat: string | null;
+  fecha_limite_envio: string | null;
+  fecha_envio_sunat: string | null;
+  forma_envio: 1 | 2 | null;
+  tiene_xml: boolean;
+  tiene_cdr: boolean;
   items: {
     descripcion: string;
     cantidad: number;

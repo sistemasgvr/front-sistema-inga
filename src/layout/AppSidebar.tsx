@@ -165,6 +165,12 @@ const navItems: NavItem[] = [
           permission: PermisoBanderas.VENTAS_LISTAR,
       },
       {
+        icon: "ri:file-paper-2-line",
+        name: "Comprobantes SUNAT",
+        path: "/ventas/sunat",
+        permission: PermisoBanderas.SUNAT_LISTAR,
+      },
+      {
         name: "Reporte general",
         path: "/reportes",
         icon: "mdi:file-chart-outline",

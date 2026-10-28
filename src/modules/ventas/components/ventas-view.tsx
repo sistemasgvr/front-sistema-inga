@@ -12,6 +12,8 @@ import { TIPO_COMPROBANTE, hoyLima, soles } from "../utils/formato";
 import { VentaDetalleModal } from "./venta-detalle-modal";
 import { VentasTable } from "./ventas-table";
 import { plural } from "@/shared/utils/plural";
+import Link from "next/link";
+import { ESTADO_SUNAT, usePermisosSunat } from "@/modules/sunat";
 
 const FILTROS_COMPROBANTE = [
   { valor: "", etiqueta: "Todos" },
@@ -21,8 +23,15 @@ const FILTROS_COMPROBANTE = [
   { valor: "0", etiqueta: "Crédito" },
 ];
 
+/** Estados SUNAT que se filtran desde Ventas (boletas y facturas). */
+const FILTROS_SUNAT = [
+  { valor: "", etiqueta: "Todos" },
+  ...([1, 5, 2, 3, 4] as const).map((e) => ({ valor: String(e), etiqueta: ESTADO_SUNAT[e].label })),
+];
+
 export function VentasView() {
   const v = useVentas();
+  const permisosSunat = usePermisosSunat();
   // Se fija al montar la vista: el límite del calendario no debe cambiar de valor
   // a mitad de la sesión.
   const hoy = useMemo(() => hoyLima(), []);
@@ -30,6 +39,15 @@ export function VentasView() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Ventas" />
+      {permisosSunat.listar && (
+        <div className="mb-4 flex justify-end">
+          <Link href="/ventas/sunat"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
+            <Icon name="ri:file-paper-2-line" size={18} />
+            Comprobantes SUNAT
+          </Link>
+        </div>
+      )}
       {/* Enlace desde una notificación: /ventas?venta=ID abre el detalle. */}
       <ParametrosRuta
         nombres={["venta"]}
@@ -127,6 +145,25 @@ export function VentasView() {
             {f.etiqueta}
           </button>
         ))}
+        {permisosSunat.listar && (
+          <>
+            <span className="ml-3 text-xs font-medium text-gray-500 dark:text-gray-400">SUNAT:</span>
+            {FILTROS_SUNAT.map((f) => (
+              <button
+                key={f.valor}
+                type="button"
+                onClick={() => v.cambiarFiltro("estado_sunat", f.valor)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  (v.filtros.estado_sunat ?? "") === f.valor
+                    ? "bg-brand-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                }`}
+              >
+                {f.etiqueta}
+              </button>
+            ))}
+          </>
+        )}
       </div>
 
       <VentasTable
@@ -159,6 +196,7 @@ export function VentasView() {
         onImprimirComprobante={v.imprimirComprobante}
         onCambiarMedio={v.cambiarMedioPago}
         onReemitir={v.reemitirComprobante}
+        onCambioSunat={v.recargarDetalle}
       />
     </div>
   );

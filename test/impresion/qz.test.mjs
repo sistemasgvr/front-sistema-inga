@@ -156,6 +156,25 @@ test('el comprobante impreso desde Ventas lleva número, empresa, receptor, tota
   assert.match(contenido, /Yape {2}S\/ 80\.00/);
   assert.doesNotMatch(contenido, /COMANDA|QR/);
 });
+test('la boleta electrónica lleva el QR de SUNAT, igual que el PDF del backend', () => {
+  const crudo = comanda.formatearComanda({ ...ticket, tipo: 'COMPROBANTE', total: 41.5,
+    items: [{ cantidad: 2, nombre_producto: 'Arroz con pato', monto_subtotal: 41.5 }],
+    comprobante: { tipo_comprobante: 1, nombre_tipo: 'BOLETA DE VENTA', numero: 'B001-00000012', receptor_tipo_doc: 1,
+      receptor_num_doc: '45678912', receptor_razon_social: 'Juan', monto_gravado: 35.17, monto_igv: 6.33, monto_total: 41.5,
+      fecha_emision: '2026-10-19' } },
+  { ruc: '20123456789', razon_social: 'INGA SAC', direccion: null, logo: null }, 58);
+  const qr = '20123456789|03|B001|12|6.33|41.50|2026-10-19|1|45678912|';
+  assert.match(crudo, /BOLETA DE VENTA ELECTRONICA/);
+  // GS ( k pL pH 1 P 0 <datos>: pL/pH = largo de los datos + 3; luego GS ( k … 1 Q 0 imprime.
+  assert.ok(crudo.includes(`\x1d(k${String.fromCharCode(qr.length + 3)}\x001P0${qr}`));
+  assert.ok(crudo.includes('\x1d(k\x03\x001Q0'));
+  assert.match(crudo, /Representacion impresa de la\nBOLETA DE VENTA ELECTRONICA\nConsulte en www\.sunat\.gob\.pe/);
+  // La nota de venta no lleva QR.
+  const nota = comanda.formatearComanda({ ...ticket, tipo: 'COMPROBANTE', total: 10,
+    comprobante: { tipo_comprobante: 3, nombre_tipo: 'NOTA DE VENTA', numero: 'NV01-1', monto_gravado: 0, monto_igv: 0, monto_total: 10 } },
+  { ruc: '20123456789', razon_social: 'INGA SAC', direccion: null, logo: null });
+  assert.ok(!nota.includes('\x1d(k'));
+});
 test('una comanda reimpresa se marca para no confundirla con un pedido nuevo', () => {
   assert.match(comanda.formatearComanda({ ...ticket, reimpresion: true }), /\*\*\* REIMPRESION \*\*\*\n/);
   assert.doesNotMatch(comanda.formatearComanda(ticket), /REIMPRESION/);

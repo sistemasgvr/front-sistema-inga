@@ -23,6 +23,36 @@ export const ESPACIO_INFERIOR = 4;
 // Deja renglones en blanco y hace un corte parcial con GS V 66: la impresora avanza
 // primero el papel hasta la cuchilla, así nunca corta sobre el texto, y el ticket
 // queda colgando como tira para desprenderlo a mano.
+/** Puntos por módulo del QR: ~2 cm en el rollo de 58 mm y algo más en el de 80 mm. */
+const PUNTOS_MODULO_QR: Record<AnchoPapel, number> = { 58: 4, 80: 5 };
+
+/** QR nativo de la ticketera (GS ( k, modelo 2, corrección M): guardar datos e imprimir. */
+function qrEscPos(datos: string, papel: AnchoPapel): string {
+  const comando = (fn: number, parametros: string) => {
+    const largo = parametros.length + 2;
+    return `\x1d(k${String.fromCharCode(largo % 256, Math.floor(largo / 256))}1${String.fromCharCode(fn)}${parametros}`;
+  };
+  return comando(65, '2\x00') + comando(67, String.fromCharCode(PUNTOS_MODULO_QR[papel] ?? 5))
+    + comando(69, '1') + comando(80, `0${datos}`) + comando(81, '0');
+}
+
+/**
+ * Texto del QR de la representación impresa (RS 097-2012/SUNAT), igual que el backend:
+ * RUC | TIPO | SERIE | NUMERO | IGV | TOTAL | FECHA | TIPO DOC ADQ | NUM DOC ADQ | [HASH |]
+ */
+function textoQr(ruc: string, comanda: ComandaImpresion): string {
+  const c = comanda.comprobante!;
+  const [serie, correlativo = '0'] = c.numero.split('-');
+  return [
+    ruc, c.tipo_comprobante === 2 ? '01' : '03', serie, String(Number(correlativo)),
+    Number(c.monto_igv ?? 0).toFixed(2), Number(c.monto_total ?? 0).toFixed(2),
+    c.fecha_emision ?? comanda.fecha.slice(0, 10),
+    String(c.receptor_tipo_doc ?? (c.tipo_comprobante === 2 ? 6 : 1)),
+    (c.receptor_num_doc ?? '').trim() || '00000000',
+    ...(c.hash ? [c.hash] : []),
+  ].join('|') + '|';
+}
+
 const FINAL = `\x1bd${String.fromCharCode(ESPACIO_INFERIOR)}\x1dVB\x00`;
 
 /** Inicializa la impresora, deja margen en blanco arriba y centra (el logo raster sale centrado). */
@@ -152,14 +182,21 @@ function formatearPrecuenta(comanda: ComandaImpresion, papel: AnchoPapel): strin
   return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;
 }
 
-/** Ticket del comprobante emitido (Ventas → Imprimir). Todavía no hay envío a SUNAT, por eso no lleva QR. */
+/**
+ * Ticket del comprobante (cobro y Ventas → Imprimir). La boleta y la factura son
+ * electrónicas: se imprimen al cobrar como representación impresa, con el QR de
+ * SUNAT, aunque su envío ocurra después (dentro del plazo configurado).
+ */
 function formatearComprobante(comanda: ComandaImpresion, empresa: EmpresaTicket | null | undefined, papel: AnchoPapel): string {
   const { separador, envolver, dato, grande, tabla, importe } = maqueta(papel);
   const c = comanda.comprobante;
   const numero = texto(c?.numero);
   const documento = texto(c?.receptor_num_doc);
+  const electronico = (c?.tipo_comprobante === 1 || c?.tipo_comprobante === 2) && Boolean(empresa?.ruc);
+  const nombreTipo = texto(c?.nombre_tipo).toUpperCase() + (electronico ? ' ELECTRONICA' : '');
+  const qr = electronico ? textoQr(empresa!.ruc!, comanda) : null;
   const lineas = [
-    NEGRITA + texto(c?.nombre_tipo).toUpperCase(),
+    NEGRITA + nombreTipo,
     grande(numero, 2) + NORMAL_PESO,
     ...(comanda.reimpresion ? ['*** REIMPRESION ***'] : []),
     '',
@@ -176,10 +213,18 @@ function formatearComprobante(comanda: ComandaImpresion, empresa: EmpresaTicket 
     ...tabla(comanda.items, true, () => []),
     separador,
     importe('OP. GRAVADA', c?.monto_gravado),
+    ...(Number(c?.monto_exonerado ?? 0) > 0 ? [importe('OP. EXONERADA', c?.monto_exonerado)] : []),
     importe('IGV', c?.monto_igv),
     NEGRITA + tamano(1, 2) + importe('TOTAL', c?.monto_total ?? comanda.total) + NORMAL + NORMAL_PESO,
     ...((comanda.pagos ?? []).length ? [separador, ...(comanda.pagos ?? []).map((p) => importe(texto(p.nombre_medio), p.monto))] : []),
     separador,
+    ...(qr ? [
+      CENTRO + qrEscPos(qr, papel),
+      ...envolver(`Representacion impresa de la ${nombreTipo}`),
+      ...(c?.hash ? envolver(`Resumen: ${texto(c.hash)}`) : []),
+      'Consulte en www.sunat.gob.pe',
+      separador,
+    ] : []),
     CENTRO + 'Gracias por su preferencia',
   ];
   return INICIO + CENTRO + lineas.join('\n') + '\n' + FINAL;

@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EstadoSunatBadge, esElectronico } from "@/modules/sunat";
 import type { VentaItem } from "../types/ventas.types";
 import { TIPO_COMPROBANTE, fechaHora, lugarPedido, soles } from "../utils/formato";
 
@@ -76,6 +77,11 @@ export function VentasTable({ ventas, isLoading, onVer }: VentasTableProps) {
                               <Badge size="sm" color="info">Reemitido</Badge>
                             )}
                           </div>
+                          {esElectronico(venta.tipo_comprobante) && (
+                            <div className="mt-1">
+                              <EstadoSunatBadge estado={venta.estado_sunat} />
+                            </div>
+                          )}
                         </>
                       ) : (
                         <Badge size="sm" color="warning">Crédito · sin comprobante</Badge>

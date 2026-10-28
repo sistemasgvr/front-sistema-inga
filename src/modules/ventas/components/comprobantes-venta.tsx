@@ -5,6 +5,7 @@ import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import { Icon } from "@/components/ui/icon";
+import { ComprobanteSunatPanel, useAccionesSunat, usePermisosSunat } from "@/modules/sunat";
 import type { ComprobanteVenta, ReemitirValues } from "../types/ventas.types";
 import { TIPO_COMPROBANTE, fechaHora, soles } from "../utils/formato";
 
@@ -16,6 +17,7 @@ type ComprobantesVentaProps = {
   onImprimir: (idComprobante: number) => Promise<boolean>;
   onDescargar: (idComprobante: number, nombre: string) => Promise<void>;
   onReemitir: (values: ReemitirValues) => Promise<boolean>;
+  onCambioSunat: () => void;
 };
 
 /** Mismas reglas que el cobro: la factura exige RUC; la boleta, DNI opcional; la nota de venta, nada. */
@@ -33,7 +35,10 @@ export function ComprobantesVenta({
   onImprimir,
   onDescargar,
   onReemitir,
+  onCambioSunat,
 }: ComprobantesVentaProps) {
+  const permisosSunat = usePermisosSunat();
+  const accionesSunat = useAccionesSunat(onCambioSunat);
   const vigente = comprobantes.find((c) => c.estado === 1) ?? null;
   const anulados = comprobantes.filter((c) => c.estado !== 1);
   const [reemitiendo, setReemitiendo] = useState(false);
@@ -41,6 +46,8 @@ export function ComprobantesVenta({
   const [documento, setDocumento] = useState("");
   const valido = documentoValido(tipo, documento);
   const ocupado = procesando === "reemitir";
+  // SUNAT: un envío o resumen en curso bloquea la reemisión (el backend lo rechaza).
+  const enProcesoSunat = vigente?.estado_sunat === 5;
 
   function abrirReemision() {
     if (!vigente) return;
@@ -108,7 +115,8 @@ export function ComprobantesVenta({
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!!procesando}
+                  disabled={!!procesando || enProcesoSunat}
+                  title={enProcesoSunat ? "Espere la respuesta de SUNAT antes de reemitir" : undefined}
                   onClick={abrirReemision}
                   startIcon={<Icon name="mdi:file-replace-outline" size={16} />}
                 >
@@ -118,11 +126,15 @@ export function ComprobantesVenta({
             </div>
           </div>
 
+          <ComprobanteSunatPanel comprobante={vigente} permisos={permisosSunat} acciones={accionesSunat} />
+
           {reemitiendo && (
             <div className="mt-3 space-y-3 border-t border-gray-100 pt-3 dark:border-gray-800">
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {vigente.numero} quedará anulado y se emitirá un comprobante nuevo con otro número por el mismo
                 monto. Los pagos no cambian.
+                {vigente.estado_sunat === 2 && " Como SUNAT ya lo aceptó, se enviará su baja automáticamente."}
+                {vigente.estado_sunat === 1 && " Aún no se envió a SUNAT: solo se anula aquí."}
               </p>
               <div role="radiogroup" aria-label="Tipo de comprobante" className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
                 {[1, 2, 3].map((valor) => (
@@ -171,7 +183,7 @@ export function ComprobantesVenta({
         <div className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
           <p className="font-medium">Comprobantes anulados</p>
           {anulados.map((c) => (
-            <p key={c.id} className="flex flex-wrap items-center gap-1">
+            <div key={c.id} className="flex flex-wrap items-center gap-1 py-0.5">
               <Badge size="sm" color="light">{TIPO_COMPROBANTE[c.tipo_comprobante]}</Badge>
               <span className="line-through">{c.numero}</span>
               <span>· emitido {fechaHora(c.fecha_emision)}</span>
@@ -184,7 +196,10 @@ export function ComprobantesVenta({
                 <Icon name="mdi:file-pdf-box" size={14} />
                 PDF
               </button>
-            </p>
+              <div className="basis-full">
+                <ComprobanteSunatPanel comprobante={c} permisos={permisosSunat} acciones={accionesSunat} compacto />
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -29,6 +29,7 @@ export async function listVentas(
         fecha_hasta: params.fecha_hasta || undefined,
         tipo_comprobante: params.tipo_comprobante || undefined,
         medio_pago: params.medio_pago || undefined,
+        estado_sunat: params.estado_sunat || undefined,
       },
       signal,
     },

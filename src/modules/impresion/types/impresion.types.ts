@@ -20,13 +20,21 @@ export interface EmpresaTicket {
 }
 
 export interface ComprobanteImpresion {
+  /** 1 boleta, 2 factura (electrónicas: llevan QR), 3 nota de venta. */
+  tipo_comprobante?: number;
   nombre_tipo: string;
   numero: string;
+  receptor_tipo_doc?: number | null;
   receptor_num_doc?: string | null;
   receptor_razon_social?: string | null;
   monto_gravado: number;
+  monto_exonerado?: number;
   monto_igv: number;
   monto_total: number;
+  /** AAAA-MM-DD (Lima), para el QR. */
+  fecha_emision?: string;
+  /** Resumen de la firma; solo existe después de enviarlo a SUNAT. */
+  hash?: string | null;
 }
 
 export interface ComandaImpresion {

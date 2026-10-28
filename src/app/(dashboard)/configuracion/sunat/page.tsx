@@ -1,11 +1,6 @@
-import { RoleGuard } from "@/modules/auth/guards/RoleGuard";
-import  WorkingInProgress  from "@/components/common/WorkInProgress";
+import { redirect } from "next/navigation";
 
+/** La configuración SUNAT vive en Configuración → Empresa. */
 export default function SunatPage() {
-  return (
-    <RoleGuard requiredPermission="sunat.listar">
-        <WorkingInProgress />
-    </RoleGuard>
-    );
+  redirect("/configuracion/empresa");
 }
-

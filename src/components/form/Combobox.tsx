@@ -21,6 +21,10 @@ interface ComboboxProps {
   error?: boolean;
   hint?: string;
   isLoading?: boolean;
+  /** Se llama al abrir la lista (p. ej. para cargar opciones remotas). */
+  onOpen?: () => void;
+  /** Texto mientras carga; por defecto el del buscador de insumos. */
+  loadingText?: string;
 }
 
 export const Combobox: React.FC<ComboboxProps> = ({
@@ -35,6 +39,8 @@ export const Combobox: React.FC<ComboboxProps> = ({
   error = false,
   hint,
   isLoading = false,
+  onOpen,
+  loadingText = "Buscando insumos...",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState<string>(defaultValue);
@@ -97,7 +103,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => { if (!isOpen) onOpen?.(); setIsOpen((prev) => !prev); }}
         className={`flex h-11 w-full items-center justify-between rounded-xl border bg-white px-4 py-2.5 text-left text-sm font-medium shadow-xs transition-all duration-200 cursor-pointer
           ${
             error
@@ -147,7 +153,7 @@ export const Combobox: React.FC<ComboboxProps> = ({
           <div className="max-h-52 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-200 dark:[&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
             {isLoading ? (
               <div className="px-3 py-3 text-center text-xs text-gray-400">
-                Buscando insumos...
+                {loadingText}
               </div>
             ) : filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-center text-xs text-gray-400">

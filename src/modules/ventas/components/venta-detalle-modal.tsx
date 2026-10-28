@@ -20,6 +20,8 @@ type VentaDetalleModalProps = {
   onImprimirComprobante: (idComprobante: number) => Promise<boolean>;
   onCambiarMedio: (idPago: number, medio: number) => Promise<boolean>;
   onReemitir: (values: ReemitirValues) => Promise<boolean>;
+  /** Una acción SUNAT cambió el estado: recargar la venta. */
+  onCambioSunat: () => void;
 };
 
 export function VentaDetalleModal({
@@ -35,6 +37,7 @@ export function VentaDetalleModal({
   onImprimirComprobante,
   onCambiarMedio,
   onReemitir,
+  onCambioSunat,
 }: VentaDetalleModalProps) {
   const items = detalle?.items.filter((i) => i.tipo_linea !== 3 && Number(i.cantidad) > Number(i.cantidad_cancelada)) ?? [];
 
@@ -74,6 +77,7 @@ export function VentaDetalleModal({
                 onImprimir={onImprimirComprobante}
                 onDescargar={onDescargarComprobante}
                 onReemitir={onReemitir}
+                onCambioSunat={onCambioSunat}
               />
 
               <section>

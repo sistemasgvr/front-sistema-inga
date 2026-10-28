@@ -41,6 +41,7 @@ export function useVentas() {
     fecha_hasta: hoy,
     tipo_comprobante: "",
     medio_pago: "",
+    estado_sunat: "",
   });
   const buscar = useDebounce(filtros.buscar, 400);
   const [pagina, setPagina] = useEstadoPersistente("ventas.pagina", 1);
@@ -123,6 +124,18 @@ export function useVentas() {
     }
   }
 
+  /** Tras una acción SUNAT: vuelve a leer la venta abierta y el listado. */
+  const recargarDetalle = useCallback(async () => {
+    const id = detalle?.id;
+    recargar();
+    if (!id) return;
+    try {
+      setDetalle(await getVenta(id));
+    } catch {
+      // El listado ya se recargó; el detalle se actualizará al reabrirlo.
+    }
+  }, [detalle?.id, recargar]);
+
   function cerrarDetalle() {
     if (procesando) return;
     setDetalleAbierto(false);
@@ -184,6 +197,7 @@ export function useVentas() {
     procesando,
     abrirDetalle,
     cerrarDetalle,
+    recargarDetalle,
     reimprimirComanda: (idComanda: number) =>
       ejecutar(`comanda-${idComanda}`, () => reimprimirComanda(idComanda), {
         title: "Enviado a impresión",
