@@ -14,6 +14,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { RoleItem } from "@/modules/roles/types/roles.types";
 import type { User, UserFormValues } from "../types/user.types";
 import { useTrabajadorUsuario } from "../hooks/use-trabajador-usuario";
+import { useSucursalesEmpresa } from "../hooks/use-sucursales-empresa";
 
 type Props = {
   isOpen: boolean;
@@ -29,6 +30,8 @@ const initial: UserFormValues = {
   password: "",
   pin: "",
   rolesIds: [],
+  sucursalesIds: [],
+  idSucursalPredeterminada: null,
 };
 
 export function UserFormModal({
@@ -42,6 +45,7 @@ export function UserFormModal({
   const [values, setValues] = useState<UserFormValues>(initial);
   const notifyError = useErrorNotification("No se pudo guardar");
   const trabajadores = useTrabajadorUsuario(isOpen && !user);
+  const sucursales = useSucursalesEmpresa(isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -53,11 +57,39 @@ export function UserFormModal({
             password: "",
             pin: "",
             rolesIds: user.roles?.map((r) => r.id) ?? [],
+            sucursalesIds: user.sucursales?.map((s) => s.id) ?? [],
+            idSucursalPredeterminada:
+              user.sucursales?.find((s) => s.es_predeterminada)?.id ?? null,
           }
-        : { ...initial, rolesIds: [] },
+        : { ...initial, rolesIds: [], sucursalesIds: [] },
     );
 
   }, [isOpen, user]);
+
+  // Usuario nuevo: por defecto trabaja en la sucursal de su trabajador.
+  const sucursalTrabajador = trabajadores.selected?.id_sucursal ?? null;
+  useEffect(() => {
+    if (user || !sucursalTrabajador) return;
+    queueMicrotask(() =>
+      setValues((p) =>
+        p.sucursalesIds.length
+          ? p
+          : { ...p, sucursalesIds: [sucursalTrabajador], idSucursalPredeterminada: sucursalTrabajador },
+      ),
+    );
+  }, [user, sucursalTrabajador]);
+
+  function alternarSucursal(id: number) {
+    setValues((p) => {
+      const sucursalesIds = p.sucursalesIds.includes(id)
+        ? p.sucursalesIds.filter((s) => s !== id)
+        : [...p.sucursalesIds, id];
+      const idSucursalPredeterminada = sucursalesIds.includes(p.idSucursalPredeterminada ?? -1)
+        ? p.idSucursalPredeterminada
+        : (sucursalesIds[0] ?? null);
+      return { ...p, sucursalesIds, idSucursalPredeterminada };
+    });
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -86,6 +118,10 @@ export function UserFormModal({
         (values.password.length < 8 || values.password.length > 100))
     ) {
       notifyError("La contraseña debe tener entre 8 y 100 caracteres.");
+      return;
+    }
+    if (sucursales.sucursales.length > 0 && values.sucursalesIds.length === 0) {
+      notifyError("Asigna al menos una sucursal en la que trabaja el usuario.");
       return;
     }
     if (values.pin && (values.pin.length < 4 || values.pin.length > 10)) {
@@ -212,6 +248,45 @@ export function UserFormModal({
             onChange={(e) => setValues((p) => ({ ...p, pin: e.target.value }))}
           />
         </div>
+      </div>
+      <div>
+        <Label>Sucursales donde trabaja *</Label>
+        <p className="mb-2 text-xs text-gray-500">
+          Solo de su empresa. La predeterminada es la que abre al iniciar sesión; si tiene varias, cambia desde «Trabajando en».
+        </p>
+        {sucursales.cargando ? (
+          <p className="text-sm text-gray-500">Cargando sucursales…</p>
+        ) : sucursales.error ? (
+          <p className="text-sm text-error-600">{sucursales.error}</p>
+        ) : sucursales.sucursales.length === 0 ? (
+          <p className="text-sm text-gray-500">La empresa no tiene sucursales activas.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {sucursales.sucursales.map((s) => {
+              const asignada = values.sucursalesIds.includes(s.id);
+              const predeterminada = values.idSucursalPredeterminada === s.id;
+              return (
+                <div key={s.id}
+                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm ${asignada
+                    ? "border-brand-300 bg-brand-50/50 dark:border-brand-500/40 dark:bg-brand-500/10"
+                    : "border-gray-200 dark:border-gray-700"}`}>
+                  <label className="flex cursor-pointer items-center gap-2 text-gray-800 dark:text-white/90">
+                    <input type="checkbox" checked={asignada} disabled={isSaving}
+                      onChange={() => alternarSucursal(s.id)} className="h-4 w-4 rounded border-gray-300" />
+                    {s.nombre}
+                  </label>
+                  {asignada && (
+                    <label className="flex cursor-pointer items-center gap-1 text-xs text-gray-500">
+                      <input type="radio" name="sucursal-predeterminada" checked={predeterminada} disabled={isSaving}
+                        onChange={() => setValues((p) => ({ ...p, idSucursalPredeterminada: s.id }))} />
+                      Predeterminada
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div>
         <Label>Roles asignados</Label>

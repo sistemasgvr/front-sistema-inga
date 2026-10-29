@@ -4,6 +4,14 @@ export type LoginCredentials = {
   rememberMe?: boolean;
 };
 
+/** Sucursal en la que puede trabajar el usuario. */
+export type SucursalUsuario = {
+  id: number;
+  codigo: string;
+  nombre: string;
+  es_predeterminada: boolean;
+};
+
 export type AuthUser = {
   id: number;
   username: string;
@@ -16,6 +24,14 @@ export type AuthUser = {
   /** Roles activos; llegan en el login (no en /auth/me). */
   roles?: { id: number; codigo: string; nombre: string }[];
   permisos: string[];
+  /** Empresa del usuario (la de su trabajador). */
+  id_empresa?: number | null;
+  empresa?: { id: number; ruc: string; razon_social: string } | null;
+  /** Sucursales en las que puede trabajar. */
+  sucursales?: SucursalUsuario[];
+  /** Sucursal activa de la sesión: el login la envía como id_sucursal_activa y /auth/me como id_sucursal. */
+  id_sucursal_activa?: number | null;
+  id_sucursal?: number | null;
   sesion?: {
     id: number;
     id_usuario: number;

@@ -52,6 +52,8 @@ export type TrabajadorItem = {
   id: number;
   id_sucursal: number | null;
   nombre_sucursal: string | null;
+  id_empresa?: number | null;
+  nombre_empresa?: string | null;
   nombres: string;
   apellidos: string;
   nombre_completo: string;

@@ -1,4 +1,5 @@
 import type { RoleItem } from "@/modules/roles/types/roles.types";
+import type { SucursalUsuario } from "@/modules/auth/types/auth.types";
 
 export type UserStatus = 1 | 0;
 
@@ -21,6 +22,9 @@ export type User = {
   fecha_creacion: string;
   fecha_modificacion?: string;
   roles?: RoleItem[];
+  /** Sucursales en las que trabaja (la predeterminada primero). */
+  sucursales?: SucursalUsuario[];
+  id_empresa?: number | null;
   permisos?: string[];
   sesion?: {
     id_usuario?: number;
@@ -40,6 +44,8 @@ export type UserFormValues = {
   password?: string;
   pin?: string;
   rolesIds: number[];
+  sucursalesIds: number[];
+  idSucursalPredeterminada: number | null;
 };
 
 export type TrabajadorUsuarioOption = {
@@ -48,6 +54,7 @@ export type TrabajadorUsuarioOption = {
   apellidos: string;
   email: string;
   telefono: string | null;
+  id_sucursal?: number | null;
   nombre_sucursal: string | null;
 };
 

@@ -75,10 +75,35 @@ export function getStoredUser(): AuthUser | null {
 
 export async function getMe(): Promise<AuthUser | null> {
   try {
-    return await apiGet<AuthUser>("/auth/me");
+    const me = await apiGet<AuthUser>("/auth/me");
+    if (me) guardarUsuario({ id_empresa: me.id_empresa, sucursales: me.sucursales, id_sucursal: me.id_sucursal });
+    return me;
   } catch {
     return null;
   }
+}
+
+export function getSucursalActiva(user: AuthUser | null = getStoredUser()): number | null {
+  return user?.id_sucursal ?? user?.id_sucursal_activa ?? null;
+}
+
+function guardarUsuario(cambios: Partial<AuthUser>) {
+  if (typeof window === "undefined") return;
+  for (const storage of [localStorage, sessionStorage]) {
+    const raw = storage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw);
+      storage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ ...parsed, user: { ...parsed.user, ...cambios } }));
+    } catch {
+    }
+  }
+}
+
+export async function cambiarSucursal(idSucursal: number): Promise<number> {
+  const r = await apiPost<{ id_sucursal_activa: number }>("/auth/sucursal", { idSucursal });
+  guardarUsuario({ id_sucursal_activa: r.id_sucursal_activa, id_sucursal: r.id_sucursal_activa });
+  return r.id_sucursal_activa;
 }
 
 export async function logout(): Promise<void> {

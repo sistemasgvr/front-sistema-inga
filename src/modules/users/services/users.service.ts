@@ -52,6 +52,8 @@ export async function createUser(values: UserFormValues): Promise<User> {
     password: values.password,
     pin: values.pin?.trim() || undefined,
     rolesIds: values.rolesIds ?? [],
+    sucursalesIds: values.sucursalesIds.length ? values.sucursalesIds : undefined,
+    idSucursalPredeterminada: values.idSucursalPredeterminada ?? undefined,
   });
 }
 
@@ -62,6 +64,8 @@ export async function updateUser(
   const payload: Record<string, unknown> = {
     username: values.username.trim().toLowerCase(),
     rolesIds: values.rolesIds ?? [],
+    sucursalesIds: values.sucursalesIds,
+    idSucursalPredeterminada: values.idSucursalPredeterminada ?? undefined,
   };
 
   if (values.password && values.password.trim() !== "") {

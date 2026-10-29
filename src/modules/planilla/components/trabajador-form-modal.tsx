@@ -8,6 +8,7 @@ import Input from "@/components/form/input/InputField";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
 import { FormEvent, useEffect, useState } from "react";
+import { getStoredUser } from "@/modules/auth/services/auth.service";
 import type {
   TrabajadorFormValues,
   TrabajadorItem,
@@ -51,6 +52,10 @@ export function TrabajadorFormModal({
   const [values, setValues] = useState<TrabajadorFormValues>(VALORES_INICIALES);
   const [intentoEnviar, setIntentoEnviar] = useState(false);
   const notifyError = useErrorNotification("Error al guardar");
+  const [empresaSesion, setEmpresaSesion] = useState<string | null>(null);
+  useEffect(() => {
+    queueMicrotask(() => setEmpresaSesion(getStoredUser()?.empresa?.razon_social ?? null));
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -118,6 +123,13 @@ export function TrabajadorFormModal({
       subtitle="Datos personales y laborales. La cuenta de acceso es opcional y se vincula desde Personal → Usuarios."
       isSaving={isSaving}
     >
+      {/* La empresa es la del usuario que registra: no se elige ni se cambia. */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm dark:border-gray-700 dark:bg-white/[0.03]">
+        <span className="text-gray-500 dark:text-gray-400">Empresa: </span>
+        <span className="font-medium text-gray-800 dark:text-white/90">
+          {trabajador?.nombre_empresa ?? empresaSesion ?? "—"}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -234,7 +246,7 @@ export function TrabajadorFormModal({
 
         {sucursales.length > 1 && (
           <div>
-            <Label htmlFor="id_sucursal">Sucursal</Label>
+            <Label htmlFor="id_sucursal">Sucursal laboral</Label>
             <Select
               options={sucursales.map((s) => ({
                 value: String(s.id),
