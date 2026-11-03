@@ -127,6 +127,8 @@ export type ListGastosParams = {
   anio?: number;
   mes?: number;
   medio_pago?: number;
+  /** Sin sucursal: todas las de la empresa. */
+  id_sucursal?: number;
 };
 
 export type ListGastosResult = {

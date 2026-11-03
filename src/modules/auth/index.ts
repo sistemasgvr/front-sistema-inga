@@ -12,6 +12,10 @@ export {
   cambiarSucursal,
 } from "./services/auth.service";
 export { SelectorSucursal } from "./components/selector-sucursal";
+export { SucursalActivaCampo } from "./components/sucursal-activa-campo";
+export { FiltroSucursal } from "./components/filtro-sucursal";
+export { useSucursalActiva } from "./hooks/use-sucursal-activa";
+export type { SucursalActiva } from "./hooks/use-sucursal-activa";
 export type {
   AuthUser,
   LoginCredentials,

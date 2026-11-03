@@ -11,7 +11,8 @@ import { ESTADOS_PREPARACION } from "../utils/cocina.utils";
 import { PreparacionModal } from "./preparacion-modal";
 import { AccionCocinaModal } from "./accion-cocina-modal";
 import { AvisosCocina } from "./avisos-cocina";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { SucursalActivaCampo } from "@/modules/auth";
 import ParametrosRuta from "@/components/common/ParametrosRuta";
 
 export function CocinaView() {
@@ -25,33 +26,12 @@ export function CocinaView() {
     if (c.historial) c.cambiarHistorial(false);
     else c.reload();
   };
-  useEffect(() => {
-    if (!c.sucursal && c.sucursales.options.length > 0) {
-      const primeraSucursalId = c.sucursales.options[0].id;
-      c.cambiarSucursal(Number(primeraSucursalId));
-    }
-  }, [c, c.sucursal, c.sucursales.options]);
   return (
     <div className="space-y-5">
       <PageBreadcrumb pageTitle="Cocina y preparaciones" />
       <ParametrosRuta nombres={["pedido"]} onParametros={atenderRuta} />
       <div className="grid gap-3 sm:grid-cols-3">
-        <div>
-          <Label>Sucursal</Label>
-          <Select
-            defaultValue={String(
-              c.sucursal || c.sucursales.options[0]?.id || ""
-            )}
-            options={c.sucursales.options.map((s) => ({
-              value: String(s.id),
-              label: s.nombre,
-            }))}
-            onOpen={() => void c.sucursales.load()}
-            isLoading={c.sucursales.isLoading}
-            loadError={c.sucursales.error}
-            onChange={(v) => c.cambiarSucursal(Number(v))}
-          />
-        </div>
+        <SucursalActivaCampo />
         <div>
           <Label>Estación</Label>
           <Select
@@ -110,7 +90,7 @@ export function CocinaView() {
       {c.loading ? (
         <p className="text-center text-gray-500 dark:text-gray-400" role="status">Cargando pedidos…</p>
       ) : !c.sucursal ? (
-        <p className="text-center text-gray-500 dark:text-gray-400">Selecciona una sucursal.</p>
+        <p className="text-center text-gray-500 dark:text-gray-400">Elige la sucursal en «Trabajando en», en el encabezado.</p>
       ) : c.items.length === 0 ? (
         <p className="text-center text-gray-500 dark:text-gray-400">
           No hay platos en esta vista.

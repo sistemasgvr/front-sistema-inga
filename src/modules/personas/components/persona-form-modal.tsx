@@ -5,6 +5,7 @@ import { useErrorNotification } from "@/shared/hooks/use-error-notification";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
+import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { ConvenioItem } from "@/modules/convenios/types/convenios.types";
@@ -16,6 +17,10 @@ import {
   type PersonaFormValues,
   type PersonaItem,
 } from "../types/personas.types";
+import {
+  esDocumentoConsultable,
+  useConsultaDocumento,
+} from "../hooks/use-consulta-documento";
 
 type PersonaFormModalProps = {
   isOpen: boolean;
@@ -59,6 +64,8 @@ export function PersonaFormModal({
   >({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const notifyError = useErrorNotification("Error al guardar");
+  const consulta = useConsultaDocumento();
+  const limpiarConsulta = consulta.limpiar;
 
   const esJuridica = values.tipo_persona === TIPO_PERSONA.JURIDICA;
   const reglaDoc = REGLAS_DOCUMENTO[values.tipo_documento];
@@ -89,18 +96,42 @@ export function PersonaFormModal({
     setErrors({});
     setTouched({});
     setIsSubmitted(false);
+    limpiarConsulta();
+  }, [isOpen, persona, limpiarConsulta]);
 
-  }, [isOpen, persona]);
+  const puedeConsultar =
+    (values.tipo_documento === TIPO_DOCUMENTO.DNI ||
+      values.tipo_documento === TIPO_DOCUMENTO.RUC) &&
+    esDocumentoConsultable(values.num_documento.trim());
 
-  /**
-   * Al cambiar entre natural y jurídica ajusto el tipo de documento solo.
-   *
-   * Una empresa siempre va con RUC, así que lo fuerzo. Al volver a natural,
-   * si había quedado el RUC lo devuelvo a DNI, que es lo normal. Si el usuario
-   * ya había elegido carné de extranjería, se lo respeto.
-   */
+  /** Completa nombres (DNI, RENIEC) o razón social y dirección (RUC, SUNAT) con la consulta. */
+  async function consultarDocumentoForm() {
+    if (!puedeConsultar || consulta.cargando) return;
+    const r = await consulta.consultar(values.num_documento.trim());
+    if (!r || r.origen === "registrado") return;
+    setValues((p) =>
+      r.tipo_documento === TIPO_DOCUMENTO.RUC
+        ? {
+            ...p,
+            tipo_persona: TIPO_PERSONA.JURIDICA,
+            tipo_documento: TIPO_DOCUMENTO.RUC,
+            razon_social: r.razon_social ?? p.razon_social,
+            direccion: r.direccion ?? p.direccion,
+          }
+        : {
+            ...p,
+            nombres: r.nombres ?? p.nombres,
+            apellido_paterno: r.apellido_paterno ?? p.apellido_paterno,
+            apellido_materno: r.apellido_materno ?? p.apellido_materno,
+          },
+    );
+  }
+
+  const registradaOtra =
+    consulta.resultado?.origen === "registrado" &&
+    consulta.resultado.id_persona !== persona?.id;
+
   function cambiarTipoPersona(tipo: number) {
-
     setValues((p) => {
       if (tipo === TIPO_PERSONA.JURIDICA) {
         return { ...p, tipo_persona: tipo, tipo_documento: TIPO_DOCUMENTO.RUC };
@@ -116,13 +147,7 @@ export function PersonaFormModal({
     });
   }
 
-  /**
-   * Si desmarco "Cliente", quito también el convenio.
-   * El backend rechaza un convenio en alguien que no es cliente, así que
-   * prefiero limpiarlo acá antes de que llegue a fallar.
-   */
   function alternarRol(rol: "es_cliente" | "es_proveedor") {
-
     setValues((p) => {
       const siguiente = { ...p, [rol]: !p[rol] };
       if (rol === "es_cliente" && !siguiente.es_cliente) {
@@ -143,9 +168,16 @@ export function PersonaFormModal({
       next.num_documento = "Solo se admiten números.";
     } else if (regla?.longitud && doc.length !== regla.longitud) {
       next.num_documento = `El ${regla.etiqueta} debe tener ${regla.longitud} dígitos.`;
-    } else if (current.tipo_documento === TIPO_DOCUMENTO.PASAPORTE && !/^[A-Za-z0-9]{1,20}$/.test(doc)) {
+    } else if (
+      current.tipo_documento === TIPO_DOCUMENTO.PASAPORTE &&
+      !/^[A-Za-z0-9]{1,20}$/.test(doc)
+    ) {
       next.num_documento = "Usa entre 1 y 20 caracteres alfanuméricos.";
-    } else if (current.tipo_documento !== TIPO_DOCUMENTO.PASAPORTE && !regla?.longitud && (doc.length < 8 || doc.length > 12)) {
+    } else if (
+      current.tipo_documento !== TIPO_DOCUMENTO.PASAPORTE &&
+      !regla?.longitud &&
+      (doc.length < 8 || doc.length > 12)
+    ) {
       next.num_documento = "Debe tener entre 8 y 12 caracteres.";
     }
 
@@ -154,7 +186,8 @@ export function PersonaFormModal({
         next.razon_social = "La razón social es obligatoria para una empresa.";
       }
     } else {
-      if (!current.nombres.trim()) next.nombres = "Los nombres son obligatorios.";
+      if (!current.nombres.trim())
+        next.nombres = "Los nombres son obligatorios.";
       if (!current.apellido_paterno.trim()) {
         next.apellido_paterno = "El apellido paterno es obligatorio.";
       }
@@ -205,7 +238,12 @@ export function PersonaFormModal({
   const opcionesDocumento = (
     esJuridica
       ? [TIPO_DOCUMENTO.RUC]
-      : [TIPO_DOCUMENTO.DNI, TIPO_DOCUMENTO.CE, TIPO_DOCUMENTO.RUC, TIPO_DOCUMENTO.PASAPORTE]
+      : [
+          TIPO_DOCUMENTO.DNI,
+          TIPO_DOCUMENTO.CE,
+          TIPO_DOCUMENTO.RUC,
+          TIPO_DOCUMENTO.PASAPORTE,
+        ]
   ).map((tipo) => ({
     value: String(tipo),
     label: REGLAS_DOCUMENTO[tipo].etiqueta,
@@ -228,7 +266,6 @@ export function PersonaFormModal({
       isSaving={isSaving}
       maxWidth="max-w-[720px]"
     >
-
       {/* Control segmentado: es la decisión que cambia todo el resto del
           formulario, así que va primero y bien visible, no escondido en un
           desplegable. */}
@@ -292,11 +329,14 @@ export function PersonaFormModal({
             options={opcionesDocumento}
             defaultValue={String(values.tipo_documento)}
             onChange={(value) => {
-
               setValues((p) => ({ ...p, tipo_documento: Number(value) }));
             }}
             disabled={isSaving || esJuridica}
-            hint={esJuridica ? "Una empresa siempre se identifica con RUC." : undefined}
+            hint={
+              esJuridica
+                ? "Una empresa siempre se identifica con RUC."
+                : undefined
+            }
           />
         </div>
 
@@ -304,37 +344,92 @@ export function PersonaFormModal({
           <Label htmlFor="num_documento">
             {reglaDoc?.etiqueta ?? "Documento"} *
           </Label>
-          <Input
-            id="num_documento"
-            value={values.num_documento}
-            onChange={(e) => {
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <Input
+                id="num_documento"
+                value={values.num_documento}
+                onChange={(e) => {
+                  consulta.limpiar();
 
-              // Recorto al vuelo a la longitud máxima y, si el documento es
-              // numérico, filtro las letras. Así el usuario no puede llegar a
-              // escribir algo inválido.
-              const limpio = reglaDoc?.soloNumeros
-                ? e.target.value.replace(/\D/g, "")
-                : e.target.value;
-              const recortado = reglaDoc?.longitud
-                ? limpio.slice(0, reglaDoc.longitud)
-                : limpio.slice(0, values.tipo_documento === TIPO_DOCUMENTO.PASAPORTE ? 20 : 12);
-              setValues((p) => ({ ...p, num_documento: recortado }));
-            }}
-            onBlur={() => setTouched((p) => ({ ...p, num_documento: true }))}
-            placeholder={reglaDoc?.soloNumeros ? "45612345" : "AB1234567"}
-            error={Boolean(showError("num_documento"))}
-            hint={
-              showError("num_documento") ??
-              // Contador en vivo: da sensación de progreso y evita el clásico
-              // "¿por qué no me deja guardar?" por un dígito de menos.
-              (reglaDoc?.longitud
-                ? `${longitudDoc}/${reglaDoc.longitud} dígitos`
-                : reglaDoc?.ayuda)
-            }
-            disabled={isSaving}
-          />
+                  // Recorto al vuelo a la longitud máxima y, si el documento es
+                  // numérico, filtro las letras. Así el usuario no puede llegar a
+                  // escribir algo inválido.
+                  const limpio = reglaDoc?.soloNumeros
+                    ? e.target.value.replace(/\D/g, "")
+                    : e.target.value;
+                  const recortado = reglaDoc?.longitud
+                    ? limpio.slice(0, reglaDoc.longitud)
+                    : limpio.slice(
+                        0,
+                        values.tipo_documento === TIPO_DOCUMENTO.PASAPORTE
+                          ? 20
+                          : 12,
+                      );
+                  setValues((p) => ({ ...p, num_documento: recortado }));
+                }}
+                onBlur={() =>
+                  setTouched((p) => ({ ...p, num_documento: true }))
+                }
+                placeholder={reglaDoc?.soloNumeros ? "45612345" : "AB1234567"}
+                error={Boolean(showError("num_documento"))}
+                hint={
+                  showError("num_documento") ??
+                  // Contador en vivo: da sensación de progreso y evita el clásico
+                  // "¿por qué no me deja guardar?" por un dígito de menos.
+                  (reglaDoc?.longitud
+                    ? `${longitudDoc}/${reglaDoc.longitud} dígitos`
+                    : reglaDoc?.ayuda)
+                }
+                disabled={isSaving}
+              />
+            </div>
+            {(values.tipo_documento === TIPO_DOCUMENTO.DNI ||
+              values.tipo_documento === TIPO_DOCUMENTO.RUC) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-11 shrink-0"
+                disabled={isSaving || !puedeConsultar || consulta.cargando}
+                onClick={() => void consultarDocumentoForm()}
+                title={
+                  values.tipo_documento === TIPO_DOCUMENTO.RUC
+                    ? "Consultar en SUNAT"
+                    : "Consultar en RENIEC"
+                }
+                startIcon={
+                  <Icon
+                    name={consulta.cargando ? "mdi:loading" : "mdi:magnify"}
+                    size={18}
+                    className={consulta.cargando ? "animate-spin" : undefined}
+                  />
+                }
+              >
+                Consultar
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {(consulta.error || consulta.resultado) && (
+        <p
+          role="status"
+          className={`-mt-2 rounded-lg px-3 py-2 text-xs ${
+            consulta.error || registradaOtra
+              ? "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400"
+              : "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400"
+          }`}
+        >
+          {consulta.error ??
+            (registradaOtra
+              ? `Ya está registrado: ${consulta.resultado!.nombre}.`
+              : consulta.resultado!.origen === "registrado"
+                ? `Documento de ${consulta.resultado!.nombre}.`
+                : `${consulta.resultado!.origen === "sunat" ? "SUNAT" : "RENIEC"}: ${consulta.resultado!.nombre}${consulta.resultado!.condicion ? ` · ${consulta.resultado!.estado ?? ""} ${consulta.resultado!.condicion}`.trimEnd() : ""}. Datos completados.`)}
+        </p>
+      )}
 
       {/* Muestro los campos de nombre según el tipo elegido. No los oculto con
           CSS: los quito del árbol, para que nadie llene por accidente campos
@@ -346,7 +441,6 @@ export function PersonaFormModal({
             id="razon_social"
             value={values.razon_social}
             onChange={(e) => {
-
               setValues((p) => ({ ...p, razon_social: e.target.value }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, razon_social: true }))}
@@ -364,7 +458,6 @@ export function PersonaFormModal({
               id="nombres"
               value={values.nombres}
               onChange={(e) => {
-
                 setValues((p) => ({ ...p, nombres: e.target.value }));
               }}
               onBlur={() => setTouched((p) => ({ ...p, nombres: true }))}
@@ -380,10 +473,11 @@ export function PersonaFormModal({
               id="apellido_paterno"
               value={values.apellido_paterno}
               onChange={(e) => {
-
                 setValues((p) => ({ ...p, apellido_paterno: e.target.value }));
               }}
-              onBlur={() => setTouched((p) => ({ ...p, apellido_paterno: true }))}
+              onBlur={() =>
+                setTouched((p) => ({ ...p, apellido_paterno: true }))
+              }
               placeholder="Reaño"
               error={Boolean(showError("apellido_paterno"))}
               hint={showError("apellido_paterno")}
@@ -396,7 +490,6 @@ export function PersonaFormModal({
               id="apellido_materno"
               value={values.apellido_materno}
               onChange={(e) => {
-
                 setValues((p) => ({ ...p, apellido_materno: e.target.value }));
               }}
               placeholder="Vargas"
@@ -462,7 +555,9 @@ export function PersonaFormModal({
           })}
         </div>
         {showError("es_cliente") && (
-          <p className="mt-1.5 text-xs text-error-500">{showError("es_cliente")}</p>
+          <p className="mt-1.5 text-xs text-error-500">
+            {showError("es_cliente")}
+          </p>
         )}
       </div>
 
@@ -477,7 +572,6 @@ export function PersonaFormModal({
             defaultValue={values.id_convenio ? String(values.id_convenio) : ""}
             placeholder="Sin convenio"
             onChange={(value) => {
-
               setValues((p) => ({
                 ...p,
                 id_convenio: value ? Number(value) : null,
@@ -500,8 +594,10 @@ export function PersonaFormModal({
             id="telefono"
             value={values.telefono}
             onChange={(e) => {
-
-              setValues((p) => ({ ...p, telefono: e.target.value.replace(/\D/g, "") }));
+              setValues((p) => ({
+                ...p,
+                telefono: e.target.value.replace(/\D/g, ""),
+              }));
             }}
             maxLength={20}
             placeholder="987654321"
@@ -515,7 +611,6 @@ export function PersonaFormModal({
             type="email"
             value={values.email}
             onChange={(e) => {
-
               setValues((p) => ({ ...p, email: e.target.value }));
             }}
             onBlur={() => setTouched((p) => ({ ...p, email: true }))}
@@ -533,7 +628,6 @@ export function PersonaFormModal({
           id="direccion"
           value={values.direccion}
           onChange={(e) => {
-
             setValues((p) => ({ ...p, direccion: e.target.value }));
           }}
           placeholder="Av. Principal 123"

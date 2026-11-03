@@ -18,16 +18,21 @@ export function useDashboard() {
   const permitido = useTienePermiso(PermisoBanderas.DASHBOARD_VER);
   const [rango, setRango] = useState<RangoFechas>(rangoMesActual);
   const [granularidad, setGranularidad] = useState<Granularidad>("dia");
+  // null = todas las sucursales de la empresa.
+  const [sucursal, setSucursal] = useState<number | null>(null);
   const [revision, setRevision] = useState(0);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
 
   const completo = Boolean(rango.desde && rango.hasta);
-  const clave = `${rango.desde}|${rango.hasta}#${revision}`;
+  const clave = `${rango.desde}|${rango.hasta}|${sucursal ?? ""}#${revision}`;
 
   useEffect(() => {
     if (permitido !== true || !completo) return;
     const controller = new AbortController();
-    getDashboard({ fecha_desde: rango.desde, fecha_hasta: rango.hasta }, controller.signal)
+    getDashboard(
+      { fecha_desde: rango.desde, fecha_hasta: rango.hasta, id_sucursal: sucursal },
+      controller.signal,
+    )
       .then((datos) => {
         if (!controller.signal.aborted) setRespuesta({ clave, datos, error: null });
       })
@@ -40,7 +45,7 @@ export function useDashboard() {
           });
       });
     return () => controller.abort();
-  }, [permitido, completo, rango.desde, rango.hasta, clave]);
+  }, [permitido, completo, rango.desde, rango.hasta, sucursal, clave]);
 
   const actual = respuesta?.clave === clave ? respuesta : null;
   const recargar = useCallback(() => setRevision((r) => r + 1), []);
@@ -49,6 +54,8 @@ export function useDashboard() {
     permitido,
     rango,
     cambiarRango: setRango,
+    sucursal,
+    cambiarSucursal: setSucursal,
     granularidad,
     cambiarGranularidad: setGranularidad,
     completo,

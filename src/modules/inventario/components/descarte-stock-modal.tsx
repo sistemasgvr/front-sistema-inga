@@ -4,7 +4,7 @@ import { ToastNotification } from "@/components/ui/toast/ToastNotification";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import { FormModal } from "@/components/ui/modal/FormModal";
-import { ListaSelect, LISTA_IDS } from "@/modules/listas";
+import { ListaSelect, LISTAS } from "@/modules/listas";
 import { useDescarteStock } from "../hooks/use-descarte-stock";
 import { MOTIVOS_DESCARTE } from "../utils/stock.utils";
 import type { StockItem, RegistrarMovimientoValues } from "../types/inventario.types";
@@ -30,7 +30,7 @@ function DescarteStockForm({onClose,onSubmit,stockItem,isSaving}:Omit<Props,'isO
  {f.error&&<ToastNotification variant="error" title="Error" message={f.error}/>}
  <p className="text-sm text-gray-500 dark:text-gray-400">Libres (sin pedido): <strong>{f.libres}</strong> {stockItem.simbolo_unidad}.
   {reservados>0&&<> Reservados para pedidos: {reservados}; esos se cancelan desde el pedido.</>}</p>
- <Label>Motivo *</Label><ListaSelect idLista={LISTA_IDS.ALM_MOTIVO_MOVIMIENTO} campoValor="id" tipoMovimiento={f.tipo?.valor_entero??undefined}
+ <Label>Motivo *</Label><ListaSelect codigoLista={LISTAS.ALM_MOTIVO_MOVIMIENTO} campoValor="id" tipoMovimiento={f.tipo?.valor_entero??undefined}
  codigos={MOTIVOS_DESCARTE} defaultValue={f.motivo} onChange={f.setMotivo} disabled={!f.tipo||isSaving} placeholder="Seleccione motivo"/>
  <Label>Cantidad a descartar ({stockItem.simbolo_unidad})</Label><Input type="number" min="0.0001" max={String(f.libres)} step={0.0001} value={f.cantidad} disabled={isSaving} onChange={e=>f.setCantidad(Number(e.target.value))}/>
  <Label>Observación</Label><Input value={f.observacion} disabled={isSaving} onChange={e=>f.setObservacion(e.target.value)}/>

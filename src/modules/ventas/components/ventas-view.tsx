@@ -14,6 +14,7 @@ import { VentasTable } from "./ventas-table";
 import { plural } from "@/shared/utils/plural";
 import Link from "next/link";
 import { ESTADO_SUNAT, usePermisosSunat } from "@/modules/sunat";
+import { FiltroSucursal } from "@/modules/auth";
 
 const FILTROS_COMPROBANTE = [
   { valor: "", etiqueta: "Todos" },
@@ -111,6 +112,12 @@ export function VentasView() {
             onChange={(e) => v.cambiarFiltro("buscar", e.target.value)}
           />
         </div>
+
+        <FiltroSucursal
+          className="w-56 shrink-0"
+          value={v.filtros.id_sucursal ? Number(v.filtros.id_sucursal) : null}
+          onChange={(id) => v.cambiarFiltro("id_sucursal", id ? String(id) : "")}
+        />
 
         <div className="w-72 shrink-0">
           <DateRangePicker

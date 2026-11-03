@@ -11,7 +11,8 @@ type ListaSelectProps = Omit<
   SelectProps,
   "options" | "onOpen" | "isLoading" | "loadError"
 > & {
-  idLista: number;
+  /** Código de la lista en gen_lista (ver LISTAS). */
+  codigoLista: string;
   tipoMovimiento?: number;
   campoValor?: CampoValorLista;
   /** Texto visible de cada opción: `nombre` (por defecto) o `codigo`. */
@@ -23,14 +24,14 @@ type ListaSelectProps = Omit<
 export function ListaSelect(props: ListaSelectProps) {
   return (
     <ListaSelectContent
-      key={`${props.idLista}:${props.campoValor ?? "valor_entero"}:${props.tipoMovimiento ?? ''}`}
+      key={`${props.codigoLista}:${props.campoValor ?? "valor_entero"}:${props.tipoMovimiento ?? ''}`}
       {...props}
     />
   );
 }
 
 function ListaSelectContent({
-  idLista,
+  codigoLista,
   tipoMovimiento,
   campoValor = "valor_entero",
   campoEtiqueta = "nombre",
@@ -38,8 +39,8 @@ function ListaSelectContent({
   ...props
 }: ListaSelectProps) {
   const loader = useCallback(
-    (signal: AbortSignal) => obtenerOpcionesLista(idLista, signal, tipoMovimiento),
-    [idLista, tipoMovimiento],
+    (signal: AbortSignal) => obtenerOpcionesLista(codigoLista, signal, tipoMovimiento),
+    [codigoLista, tipoMovimiento],
   );
   const lista = useLazyOptions(loader);
   // Con un valor preseleccionado se cargan las opciones de inmediato para mostrar su etiqueta.

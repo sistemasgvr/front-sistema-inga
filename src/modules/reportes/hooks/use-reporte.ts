@@ -13,7 +13,7 @@ const mensaje = (error: unknown) =>
   error instanceof Error ? error.message : "No se pudo obtener el reporte.";
 
 /**
- * Datos de un reporte para el rango elegido.
+ * Datos de un reporte para el rango y la sucursal elegidos (null = toda la empresa).
  *
  * Cada rango completo (y cada "Actualizar") es una petición nueva al backend,
  * aunque se vuelva a un rango ya visto; la respuesta anterior se cancela y
@@ -24,16 +24,21 @@ export function useReporte<T extends TipoReporte>(tipo: T) {
   const [rango, setRango] = useState<RangoFechas>(() =>
     catalogo.rangoInicial === "hoy" ? rangoHoy() : rangoMesActual(),
   );
+  const [sucursal, setSucursal] = useState<number | null>(null);
   const [revision, setRevision] = useState(0);
   const [respuesta, setRespuesta] = useState<Respuesta<DatosReporte[T]> | null>(null);
 
   const completo = Boolean(rango.desde && rango.hasta);
-  const clave = `${tipo}|${rango.desde}|${rango.hasta}#${revision}`;
+  const clave = `${tipo}|${rango.desde}|${rango.hasta}|${sucursal ?? ""}#${revision}`;
 
   useEffect(() => {
     if (!completo) return;
     const controller = new AbortController();
-    getReporte(tipo, { fecha_desde: rango.desde, fecha_hasta: rango.hasta }, controller.signal)
+    getReporte(
+      tipo,
+      { fecha_desde: rango.desde, fecha_hasta: rango.hasta, id_sucursal: sucursal },
+      controller.signal,
+    )
       .then((datos) => {
         if (!controller.signal.aborted) setRespuesta({ clave, datos, error: null });
       })
@@ -41,7 +46,7 @@ export function useReporte<T extends TipoReporte>(tipo: T) {
         if (!controller.signal.aborted) setRespuesta({ clave, datos: null, error: mensaje(error) });
       });
     return () => controller.abort();
-  }, [tipo, rango.desde, rango.hasta, completo, clave]);
+  }, [tipo, rango.desde, rango.hasta, sucursal, completo, clave]);
 
   const actual = respuesta?.clave === clave ? respuesta : null;
 
@@ -51,6 +56,8 @@ export function useReporte<T extends TipoReporte>(tipo: T) {
     catalogo,
     rango,
     cambiarRango: setRango,
+    sucursal,
+    cambiarSucursal: setSucursal,
     completo,
     datos: actual?.datos ?? null,
     cargando: completo && !actual,

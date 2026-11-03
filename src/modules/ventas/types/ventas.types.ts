@@ -46,6 +46,8 @@ export type FiltrosVentas = {
   tipo_comprobante: string;
   medio_pago: string;
   estado_sunat: string;
+  /** "" = todas las sucursales de la empresa. */
+  id_sucursal?: string;
 };
 
 export type ListVentasParams = Partial<FiltrosVentas> & {

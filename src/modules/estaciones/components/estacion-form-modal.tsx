@@ -2,7 +2,7 @@
 
 import { useErrorNotification } from "@/shared/hooks/use-error-notification";
 
-import { LISTA_IDS, useLista } from "@/modules/listas";
+import { LISTAS, useLista } from "@/modules/listas";
 import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
@@ -12,6 +12,7 @@ import { useCatalogo } from "@/shared/hooks/useCatalogo";
 import { FormEvent, useEffect, useState } from "react";
 import type { EstacionItem, EstacionFormValues } from "../types/estaciones.types";
 import type { SucursalOption } from "@/modules/users/types/user.types";
+import { SucursalActivaCampo } from "@/modules/auth";
 
 type EstacionFormModalProps = {
   isOpen: boolean;
@@ -132,11 +133,6 @@ function EstacionFormContent({
     }
   }
 
-  const sucursalOptions = availableSucursales.map((suc) => ({
-    value: String(suc.id),
-    label: suc.nombre,
-  }));
-
   const tipoEstacionOptions = tiposEstacion.map((tipo) => ({
     value: String(tipo.valor_entero),
     label: tipo.nombre,
@@ -191,26 +187,9 @@ function EstacionFormContent({
           />
         </div>
 
-        <div>
-          <Label>Sucursal asignada *</Label>
-          <Select
-            options={
-              sucursalOptions.length > 0
-                ? sucursalOptions
-                : [{ value: String(defaultSucursalId), label: "Sede Principal" }]
-            }
-            defaultValue={values.id_sucursal ? String(values.id_sucursal) : String(defaultSucursalId)}
-            placeholder={availableSucursales.length === 0 ? "Cargando sucursales..." : "Seleccione sucursal..."}
-            disabled={isSaving || availableSucursales.length === 0}
-            error={Boolean(showError("id_sucursal"))}
-            hint={showError("id_sucursal")}
-            onChange={(val) => {
-
-              setValues((p) => ({ ...p, id_sucursal: Number(val) }));
-              handleBlur("id_sucursal");
-            }}
-          />
-        </div>
+        <SucursalActivaCampo
+          label="Sucursal asignada"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

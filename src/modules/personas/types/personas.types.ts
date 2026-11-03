@@ -1,10 +1,3 @@
-/**
- * Tipos del maestro de personas: clientes y proveedores en una sola tabla.
- *
- * Una misma persona puede ser las dos cosas a la vez (`es_cliente` y
- * `es_proveedor`), por eso son dos banderas y no un campo "tipo".
- */
-
 export type PersonaStatus = 1 | 0;
 
 /** Catálogo PERSONA_TIPO de la base. */
@@ -13,14 +6,6 @@ export const TIPO_PERSONA = { NATURAL: 1, JURIDICA: 2 } as const;
 /** Catálogo DOCUMENTO_TIPO. Los números son los códigos de SUNAT. */
 export const TIPO_DOCUMENTO = { DNI: 1, CE: 4, RUC: 6, PASAPORTE: 7 } as const;
 
-/**
- * Reglas de cada documento en un solo lugar.
- *
- * Las tengo acá para que el formulario pueda avisar "te faltan 3 dígitos"
- * mientras el usuario escribe, en vez de esperar a que el servidor lo rechace.
- * Son las mismas reglas que valida `cli_validar_datos_persona` en la base; acá
- * son comodidad, allá son la garantía.
- */
 export const REGLAS_DOCUMENTO: Record<
   number,
   { etiqueta: string; longitud: number | null; soloNumeros: boolean; ayuda: string }
@@ -137,4 +122,34 @@ export type PersonaBusquedaItem = {
   nombre_convenio: string | null;
   limite_credito: number | null;
   saldo_credito: number;
+};
+
+/** Distrito propuesto por la consulta de RUC (padrón SUNAT). */
+export type DistritoConsulta = {
+  id: number;
+  ubigeo: string;
+  distrito: string;
+  provincia: string;
+  departamento: string;
+};
+
+/** Respuesta de GET /personas/consulta/:numero (DNI o RUC). */
+export type ConsultaDocumento = {
+  /** registrado = cliente de la empresa; reniec / sunat = consulta externa, aún no registrado. */
+  origen: "registrado" | "reniec" | "sunat";
+  id_persona: number | null;
+  tipo_persona: number;
+  tipo_documento: number;
+  num_documento: string;
+  nombre: string;
+  razon_social: string | null;
+  nombres: string | null;
+  apellido_paterno: string | null;
+  apellido_materno: string | null;
+  nombre_comercial: string | null;
+  direccion: string | null;
+  distrito: DistritoConsulta | null;
+  estado: string | null;
+  condicion: string | null;
+  es_cliente: boolean;
 };

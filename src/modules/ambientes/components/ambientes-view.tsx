@@ -1,8 +1,6 @@
 "use client";
 import { useState } from "react";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import Select from "@/components/form/Select";
-import Label from "@/components/form/Label";
 import Checkbox from "@/components/form/input/Checkbox";
 import Button from "@/components/ui/button/Button";
 import {
@@ -15,6 +13,7 @@ import {
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
 import { useAmbientes } from "../hooks/use-ambientes";
+import { SucursalActivaCampo } from "@/modules/auth";
 import {
   saveMesa,
   saveSalon,
@@ -75,21 +74,10 @@ export function AmbientesView() {
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-56">
-            <Label>Sucursal</Label>
-            <Select
-              options={a.sucursales.map((s) => ({
-                value: String(s.id),
-                label: s.nombre,
-              }))}
-              defaultValue={String(a.sucursalId || "")}
-              disabled={busy}
-              onChange={(v) => {
-                setSelectedId(null);
-                a.changeSucursal(Number(v));
-              }}
-            />
-          </div>
+          <SucursalActivaCampo
+            className="w-56"
+            nombre={a.sucursales.find((s) => s.id === a.sucursalId)?.nombre}
+          />
           {a.canManage && (
             <Button
               size="sm"

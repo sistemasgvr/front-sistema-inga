@@ -20,6 +20,7 @@ import { useGastos } from "../hooks/use-gastos";
 import { MESES, TIPO_GASTO, TIPOS_GASTO } from "../types/gastos.types";
 import { etiquetaMes, formatearFecha, formatearSoles } from "../utils/formato";
 import { GastoFormModal } from "./gasto-form-modal";
+import { FiltroSucursal } from "@/modules/auth";
 
 export function GastosView() {
   const {
@@ -28,6 +29,8 @@ export function GastosView() {
     cambiarPeriodo,
     tipoFiltro,
     filtrarPorTipo,
+    sucursalFiltro,
+    filtrarPorSucursal,
     registros,
     total,
     pagina,
@@ -94,6 +97,8 @@ export function GastosView() {
             ))}
           </select>
         </div>
+
+        <FiltroSucursal className="w-56" value={sucursalFiltro} onChange={filtrarPorSucursal} />
 
         <div className="flex flex-wrap items-center gap-2">
           <button

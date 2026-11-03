@@ -19,7 +19,8 @@ export interface ListaConOpciones extends Lista {
   opciones: ListaOpcion[];
 }
 
-export type ListaReferencia = number;
+/** Código de la lista en gen_lista (ver LISTAS). */
+export type ListaReferencia = string;
 export type CampoValorLista = "valor_entero" | "codigo" | "id";
 export type CampoEtiquetaLista = "nombre" | "codigo";
 export type ListaSelectOption = { value: string; label: string };

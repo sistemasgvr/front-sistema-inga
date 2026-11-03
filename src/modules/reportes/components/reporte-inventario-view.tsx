@@ -65,6 +65,8 @@ export function ReporteInventarioView() {
       tipo="inventario"
       rango={r.rango}
       onRangoChange={r.cambiarRango}
+      sucursal={r.sucursal}
+      onSucursalChange={r.cambiarSucursal}
       cargando={r.cargando}
       error={r.error}
       onRecargar={r.recargar}

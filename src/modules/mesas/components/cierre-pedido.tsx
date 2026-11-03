@@ -33,7 +33,9 @@ export function CierrePedido({pedido,saving,feedback,puedeCobrar,onConfirmar}:{p
   const ocupado=saving||enviando;
   const esFactura=f.tipo==='2',sinDocumento=f.tipo==='3',clientesVarios=f.tipo==='1'&&f.documentoCobro===DNI_CLIENTES_VARIOS;
   const documentoValido=esFactura?/^\d{11}$/.test(f.documentoCobro):f.tipo==='1'?f.documentoCobro===''||/^\d{8}$/.test(f.documentoCobro):true;
-  const cobroValido=!!f.medio&&documentoValido;
+  // La factura exige que el cliente esté registrado (con su razón social).
+  const facturaSinCliente=esFactura&&f.consulta.resultado!==null&&f.consulta.resultado.origen!=='registrado';
+  const cobroValido=!!f.medio&&documentoValido&&!facturaSinCliente;
   const sinItems=pedido.items.every(i=>i.tipo_linea===3);
   const total=Number(pedido.monto_total);
 
@@ -76,6 +78,31 @@ export function CierrePedido({pedido,saving,feedback,puedeCobrar,onConfirmar}:{p
           <Icon name="mdi:account-group-outline" size={16} className="mr-1 inline"/>Clientes varios
         </button>}
       </div>}
+
+      {/* Resultado de la consulta del documento: cliente registrado o datos de RENIEC / SUNAT. */}
+      {!sinDocumento&&!clientesVarios&&documentoValido&&f.documentoCobro!==''&&(f.consulta.cargando||f.consulta.resultado||f.consulta.error)&&(
+        <div role="status" className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs ${f.consulta.error||(esFactura&&f.consulta.resultado&&f.consulta.resultado.origen!=='registrado')
+          ?'bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400'
+          :'bg-gray-50 text-gray-600 dark:bg-white/[0.03] dark:text-gray-300'}`}>
+          <span className="min-w-0">
+            {f.consulta.cargando?'Consultando documento…'
+              :f.consulta.error?f.consulta.error
+              :<>
+                <span className="font-semibold">{f.consulta.resultado!.nombre}</span>
+                <span className="block text-[11px] opacity-80">
+                  {f.consulta.resultado!.origen==='registrado'?'Cliente registrado'
+                    :`${f.consulta.resultado!.origen==='sunat'?'SUNAT':'RENIEC'}${f.consulta.resultado!.condicion?` · ${f.consulta.resultado!.estado??''} ${f.consulta.resultado!.condicion}`:''}${esFactura?' · no registrado: regístralo para facturar':''}`}
+                </span>
+              </>}
+          </span>
+          {esFactura&&f.consulta.resultado&&f.consulta.resultado.origen!=='registrado'&&(
+            <button type="button" disabled={ocupado||f.registrando} onClick={()=>void f.registrarConsultado()}
+              className="shrink-0 rounded-md border border-warning-300 px-2 py-1 font-semibold hover:bg-warning-100 disabled:opacity-50 dark:border-warning-500/40">
+              {f.registrando?'Registrando…':'Registrar cliente'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Medios de pago (el crédito tiene su propio flujo) */}
       <div>

@@ -7,6 +7,7 @@ import { DateRangePicker } from "@/components/form/DateRangePicker";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
+import { FiltroSucursal } from "@/modules/auth";
 import { formatearRango, hoyIso, type RangoFechas } from "@/shared/utils/fecha";
 import { useSesionCliente } from "../hooks/use-sesion-cliente";
 import type { TipoReporte } from "../types/reportes.types";
@@ -20,6 +21,9 @@ type Props = {
   tipo: TipoReporte;
   rango: RangoFechas;
   onRangoChange: (rango: RangoFechas) => void;
+  /** Sucursal del reporte; null = todas las de la empresa. */
+  sucursal: number | null;
+  onSucursalChange: (idSucursal: number | null) => void;
   cargando: boolean;
   error: string | null;
   onRecargar: () => void;
@@ -36,7 +40,7 @@ type Props = {
  * menú, la cabecera y los controles, y se usa el diseño de papel de
  * `globals.css` (A4 horizontal, tablas con bordes y numeración de páginas).
  */
-export function ReporteShell({ tipo, rango, onRangoChange, cargando, error, onRecargar, exportar, nota, children }: Props) {
+export function ReporteShell({ tipo, rango, onRangoChange, sucursal, onSucursalChange, cargando, error, onRecargar, exportar, nota, children }: Props) {
   const reporte = reporteDe(tipo);
   const hoy = useMemo(() => hoyIso(), []);
   // Tipos permitidos como texto ("general,ventas"): primitivo para useSyncExternalStore.
@@ -115,6 +119,7 @@ export function ReporteShell({ tipo, rango, onRangoChange, cargando, error, onRe
         <div className="w-full sm:w-72">
           <DateRangePicker label="Período" value={rango} onChange={onRangoChange} max={hoy} />
         </div>
+        <FiltroSucursal className="w-full sm:w-60" value={sucursal} onChange={onSucursalChange} />
         <Button
           variant="outline"
           size="sm"

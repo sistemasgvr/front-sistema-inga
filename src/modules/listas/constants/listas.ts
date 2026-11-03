@@ -1,25 +1,34 @@
-export const LISTA_IDS = {
-  ALM_TIPO_MOVIMIENTO: 41,
-  ALM_MOTIVO_MOVIMIENTO: 42,
-  ALMACEN_TIPO: 1,
-  ESTACION_TIPO: 2,
-  PRODUCTO_TIPO: 3,
-  KARDEX_TIPO: 6,
-  PEDIDO_TIPO: 7,
-  PEDIDO_ESTADO: 8,
-  MESA_ESTADO: 9,
-  MEDIO_PAGO: 10,
-  COMPROBANTE_TIPO: 11,
-  LINEA_TIPO: 12,
-  PREP_ESTADO: 13,
-  SUNAT_ESTADO: 14,
-  PERSONA_TIPO: 15,
-  DOCUMENTO_TIPO: 16,
-  SALIDA_DESTINO: 17,
-  TURNO_ESTADO: 18,
-  CAJA_MOV_TIPO: 19,
-  PROD_TIPO: 20,
-  REQ_ESTADO: 21,
+/**
+ * Listas de gen_lista por su código. El código es la referencia estable entre
+ * bases de datos (el id cambia de una instalación a otra) y es el mismo que usan
+ * las funciones SQL, incluida la facturación SUNAT.
+ */
+export const LISTAS = {
+  PRODUCTO_TIPO: "PRODUCTO_TIPO",
+  ALMACEN_TIPO: "ALMACEN_TIPO",
+  ESTACION_TIPO: "ESTACION_TIPO",
+  KARDEX_TIPO: "KARDEX_TIPO",
+  PEDIDO_TIPO: "PEDIDO_TIPO",
+  PEDIDO_ESTADO: "PEDIDO_ESTADO",
+  MESA_ESTADO: "MESA_ESTADO",
+  MEDIO_PAGO: "MEDIO_PAGO",
+  COMPROBANTE_TIPO: "COMPROBANTE_TIPO",
+  LINEA_TIPO: "LINEA_TIPO",
+  PREP_ESTADO: "PREP_ESTADO",
+  SUNAT_ESTADO: "SUNAT_ESTADO",
+  SUNAT_AMBIENTE: "SUNAT_AMBIENTE",
+  SUNAT_FORMA_ENVIO: "SUNAT_FORMA_ENVIO",
+  PERSONA_TIPO: "PERSONA_TIPO",
+  DOCUMENTO_TIPO: "DOCUMENTO_TIPO",
+  SALIDA_DESTINO: "SALIDA_DESTINO",
+  TURNO_ESTADO: "TURNO_ESTADO",
+  CAJA_MOV_TIPO: "CAJA_MOV_TIPO",
+  PROD_TIPO: "PROD_TIPO",
+  REQ_ESTADO: "REQ_ESTADO",
+  ALM_TIPO_MOVIMIENTO: "ALM_TIPO_MOVIMIENTO",
+  ALM_MOTIVO_MOVIMIENTO: "ALM_MOTIVO_MOVIMIENTO",
 } as const;
 
-export type NombreLista = keyof typeof LISTA_IDS;
+export type NombreLista = keyof typeof LISTAS;
+/** Código de una lista de gen_lista. */
+export type CodigoLista = (typeof LISTAS)[NombreLista];

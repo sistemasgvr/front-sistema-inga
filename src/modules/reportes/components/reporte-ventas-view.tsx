@@ -156,6 +156,8 @@ export function ReporteVentasView() {
       tipo="ventas"
       rango={r.rango}
       onRangoChange={r.cambiarRango}
+      sucursal={r.sucursal}
+      onSucursalChange={r.cambiarSucursal}
       cargando={r.cargando}
       error={r.error}
       onRecargar={r.recargar}

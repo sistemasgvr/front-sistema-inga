@@ -13,7 +13,7 @@ import Label from "@/components/form/Label";
 import InputField from "@/components/form/input/InputField";
 import type { AnularValues, Pedido, PedidoItem, Feedback } from "../types/mesas.types";
 import { unidadesSinPreparar } from "../utils/cancelacion.utils";
-import { ListaSelect, LISTA_IDS } from "@/modules/listas";
+import { ListaSelect, LISTAS } from "@/modules/listas";
 
 interface PedidoPanelProps {
   pedido: Pedido | null;

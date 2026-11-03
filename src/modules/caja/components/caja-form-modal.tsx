@@ -3,12 +3,12 @@
 import { useErrorNotification } from "@/shared/hooks/use-error-notification";
 
 import Label from "@/components/form/Label";
-import Select from "@/components/form/Select";
 import Input from "@/components/form/input/InputField";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import type { Sucursal } from "@/modules/sucursales/types/sucursal.types";
 import { FormEvent, useEffect, useState } from "react";
 import type { CajaFormValues, CajaItem } from "../types/caja.types";
+import { SucursalActivaCampo, getSucursalActiva } from "@/modules/auth";
 
 type CajaFormModalProps = {
   isOpen: boolean;
@@ -44,7 +44,8 @@ export function CajaFormModal({
       });
     } else {
       setValues({
-        id_sucursal: sucursales[0]?.id ?? null,
+        // El backend usa la sucursal de la sesión; se envía la misma.
+        id_sucursal: getSucursalActiva() ?? sucursales[0]?.id ?? null,
         nombre: "",
       });
     }
@@ -55,19 +56,13 @@ export function CajaFormModal({
 
   const errorNombre =
     intentoEnviar && !values.nombre.trim() ? "El nombre es obligatorio." : undefined;
-  const errorSucursal =
-    intentoEnviar && !values.id_sucursal ? "Selecciona una sucursal." : undefined;
-
-  // Bloqueo el cambio de sucursal si la caja tiene un turno abierto: es la
-  // misma regla que valida el backend, y acá evito que lo intente siquiera.
-  const bloqueaSucursal = Boolean(caja?.tiene_turno_abierto);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (isSaving) return;
     setIntentoEnviar(true);
 
-    if (!values.nombre.trim() || !values.id_sucursal) return;
+    if (!values.nombre.trim()) return;
 
     try {
       await onSubmit(values);
@@ -104,29 +99,10 @@ export function CajaFormModal({
         />
       </div>
 
-      <div>
-        <Label htmlFor="id_sucursal">Sucursal *</Label>
-        <Select
-          options={sucursales.map((s) => ({
-            value: String(s.id),
-            label: s.nombre,
-          }))}
-          defaultValue={values.id_sucursal ? String(values.id_sucursal) : ""}
-          placeholder="Selecciona la sucursal"
-          onChange={(value) => {
-
-            setValues((p) => ({ ...p, id_sucursal: Number(value) }));
-          }}
-          disabled={isSaving || bloqueaSucursal}
-          error={Boolean(errorSucursal)}
-          hint={
-            errorSucursal ??
-            (bloqueaSucursal
-              ? "No se puede cambiar mientras la caja tenga un turno abierto."
-              : undefined)
-          }
-        />
-      </div>
+      <SucursalActivaCampo
+        label="Sucursal"
+        nombre={caja?.nombre_sucursal}
+      />
     </FormModal>
   );
 }

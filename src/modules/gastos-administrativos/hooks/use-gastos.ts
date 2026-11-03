@@ -43,6 +43,8 @@ export function useGastos() {
   const [mes, setMes] = useEstadoPersistente("gastos.mes", hoy.getMonth() + 1);
   const [tipoFiltro, setTipoFiltro] = useEstadoPersistente<number | null>("gastos.tipoFiltro", null);
   const [categoriaFiltro, setCategoriaFiltro] = useEstadoPersistente<number | null>("gastos.categoriaFiltro", null);
+  // null = todas las sucursales de la empresa.
+  const [sucursalFiltro, setSucursalFiltro] = useEstadoPersistente<number | null>("gastos.sucursalFiltro", null);
 
   const [registros, setRegistros] = useState<GastoItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -95,8 +97,9 @@ export function useGastos() {
           mes,
           tipo_gasto: tipoFiltro ?? undefined,
           id_categoria: categoriaFiltro ?? undefined,
+          id_sucursal: sucursalFiltro ?? undefined,
         }),
-        getReporteMensual(anio, mes),
+        getReporteMensual(anio, mes, sucursalFiltro ?? undefined),
       ]);
 
       setRegistros(lista.registros);
@@ -115,7 +118,7 @@ export function useGastos() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, pagina, pageSize, anio, mes, tipoFiltro, categoriaFiltro, setFeedback]);
+  }, [debouncedSearch, pagina, pageSize, anio, mes, tipoFiltro, categoriaFiltro, sucursalFiltro, setFeedback]);
 
   useEffect(() => {
     void load();
@@ -150,6 +153,11 @@ export function useGastos() {
 
   function filtrarPorCategoria(id: number | null) {
     setCategoriaFiltro(id);
+    setPagina(1);
+  }
+
+  function filtrarPorSucursal(id: number | null) {
+    setSucursalFiltro(id);
     setPagina(1);
   }
 
@@ -265,6 +273,8 @@ export function useGastos() {
     filtrarPorTipo,
     categoriaFiltro,
     filtrarPorCategoria,
+    sucursalFiltro,
+    filtrarPorSucursal,
     registros,
     total,
     pagina,

@@ -8,8 +8,8 @@ import TextArea from "@/components/form/input/TextArea";
 import { Icon } from "@/components/ui/icon";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
-import { LISTA_IDS, ListaSelect } from "@/modules/listas";
-import { crearClienteRapido } from "@/modules/personas";
+import { LISTAS, ListaSelect } from "@/modules/listas";
+import { crearClienteRapido, useConsultaDocumento } from "@/modules/personas";
 import { useBuscarClientes } from "../hooks/use-buscar-clientes";
 import { MAX_OBSERVACION, type AbrirPedidoValues } from "../types/mesas.types";
 
@@ -65,6 +65,17 @@ function NuevoPedidoExternoContent({
   const [apellido, setApellido] = useState("");
   const [dni, setDni] = useState("");
   const buscador = useBuscarClientes(modo === "buscar" && !cliente ? busqueda : "");
+  // DNI del cliente nuevo: con 8 dígitos se consulta (registrado o RENIEC).
+  const consulta = useConsultaDocumento();
+  const cambiarDni = async (valor: string) => {
+    setDni(valor);
+    const r = await consulta.consultar(valor);
+    if (r?.origen === "reniec") {
+      // Solo completa lo vacío: lo escrito a mano se respeta.
+      setNombres((actual) => actual.trim() ? actual : r.nombres ?? "");
+      setApellido((actual) => actual.trim() ? actual : r.apellido_paterno ?? "");
+    }
+  };
 
   // Datos de contacto y entrega de este pedido.
   const [telefono, setTelefono] = useState("");
@@ -169,7 +180,7 @@ function NuevoPedidoExternoContent({
           <div>
             <Label>Tipo de pedido</Label>
             <ListaSelect
-              idLista={LISTA_IDS.PEDIDO_TIPO}
+              codigoLista={LISTAS.PEDIDO_TIPO}
               campoEtiqueta="codigo"
               codigos={CODIGOS_TIPO_EXTERNO}
               disabled={ocupado}
@@ -263,9 +274,33 @@ function NuevoPedidoExternoContent({
               <div>
                 <Label htmlFor="cliente-dni">DNI (opcional)</Label>
                 <InputField id="cliente-dni" value={dni} maxLength={8} disabled={ocupado}
-                  onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))} placeholder="8 dígitos" error={!dniValido} />
+                  onChange={(e) => void cambiarDni(e.target.value.replace(/\D/g, ""))} placeholder="8 dígitos" error={!dniValido} />
                 {!dniValido && <p className="mt-1 text-xs text-error-500">El DNI debe tener 8 dígitos.</p>}
               </div>
+            </div>
+          )}
+          {modo === "nuevo" && (consulta.cargando || consulta.resultado || consulta.error) && (
+            <div role="status" className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600 dark:bg-white/[0.03] dark:text-gray-300">
+              <span>
+                {consulta.cargando ? "Consultando DNI…"
+                  : consulta.error ? consulta.error
+                  : consulta.resultado!.origen === "registrado" ? <>Ya registrado: <b>{consulta.resultado!.nombre}</b></>
+                  : <>RENIEC: <b>{consulta.resultado!.nombre}</b></>}
+              </span>
+              {consulta.resultado?.origen === "registrado" && consulta.resultado.id_persona && (
+                <button type="button" disabled={ocupado} className="shrink-0 font-semibold text-brand-600 hover:underline"
+                  onClick={() => {
+                    const r = consulta.resultado!;
+                    setModo("buscar");
+                    elegirCliente(
+                      { id: r.id_persona!, nombre: r.nombre, documento: r.num_documento, telefono: null },
+                      { telefono: null, direccion: r.direccion },
+                    );
+                    consulta.limpiar();
+                  }}>
+                  Usar este cliente
+                </button>
+              )}
             </div>
           )}
         </div>

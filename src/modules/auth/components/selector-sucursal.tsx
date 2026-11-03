@@ -7,13 +7,15 @@ import { cambiarSucursal, getSucursalActiva, getStoredUser } from "../services/a
 import type { SucursalUsuario } from "../types/auth.types";
 
 /**
- * «Trabajando en»: sucursal activa de la sesión. Solo se muestra si el usuario tiene
- * más de una; al cambiar, recarga la vista para traer los datos de la nueva sucursal.
+ * «Trabajando en»: empresa y sucursal activa de la sesión. Con una sola sucursal es
+ * solo informativo; con varias permite cambiar y recarga la vista para traer los
+ * datos de la nueva sucursal.
  */
 export function SelectorSucursal() {
   const { toast } = useToast();
   const [sucursales, setSucursales] = useState<SucursalUsuario[]>([]);
   const [activa, setActiva] = useState<number | null>(null);
+  const [empresa, setEmpresa] = useState<string | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [cambiando, setCambiando] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
@@ -23,6 +25,7 @@ export function SelectorSucursal() {
     queueMicrotask(() => {
       setSucursales(user?.sucursales ?? []);
       setActiva(getSucursalActiva(user));
+      setEmpresa(user?.empresa?.razon_social ?? null);
     });
   }, []);
 
@@ -35,8 +38,10 @@ export function SelectorSucursal() {
     return () => document.removeEventListener("mousedown", cerrar);
   }, [abierto]);
 
-  if (sucursales.length < 2) return null;
+  if (!sucursales.length) return null;
   const actual = sucursales.find((s) => s.id === activa) ?? sucursales[0];
+  const varias = sucursales.length > 1;
+  const titulo = empresa ? `${empresa} · ${actual.nombre}` : actual.nombre;
 
   async function elegir(id: number) {
     setAbierto(false);
@@ -55,15 +60,23 @@ export function SelectorSucursal() {
     <div ref={contenedor} className="relative">
       <button
         type="button"
-        onClick={() => setAbierto((a) => !a)}
+        onClick={() => varias && setAbierto((a) => !a)}
         disabled={cambiando}
-        title="Sucursal en la que estás trabajando"
-        className="flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+        aria-disabled={!varias}
+        title={titulo}
+        className={`flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-700 transition-colors disabled:opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 ${varias ? "hover:bg-gray-100 dark:hover:bg-gray-800" : "cursor-default"}`}
       >
         <Icon name="mdi:store-marker-outline" size={18} />
         <span className="hidden text-xs text-gray-400 sm:inline">Trabajando en</span>
-        <span className="max-w-[140px] truncate">{cambiando ? "Cambiando..." : actual.nombre}</span>
-        <Icon name="mdi:chevron-down" size={16} />
+        <span className="flex min-w-0 flex-col items-start leading-tight">
+          <span className="max-w-[160px] truncate">{cambiando ? "Cambiando..." : actual.nombre}</span>
+          {empresa && (
+            <span className="hidden max-w-[160px] truncate text-[11px] font-normal text-gray-400 md:block">
+              {empresa}
+            </span>
+          )}
+        </span>
+        {varias && <Icon name="mdi:chevron-down" size={16} />}
       </button>
       {abierto && (
         <ul role="listbox" aria-label="Sucursales"

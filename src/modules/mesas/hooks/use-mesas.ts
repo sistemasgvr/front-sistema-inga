@@ -2,7 +2,10 @@
 
 import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getStoredUser } from "@/modules/auth/services/auth.service";
+import {
+  getStoredUser,
+  getSucursalActiva,
+} from "@/modules/auth/services/auth.service";
 import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
 import * as api from "../services/mesas.service";
 import type {
@@ -62,11 +65,10 @@ export function useMesas() {
       .then((items) => {
         if (!active) return;
         setSucursales(items);
+        // El backend solo devuelve la sucursal de la sesión («Trabajando en»).
         setSucursalId(
           Number(
-            items.find(
-              (s) => Number(s.id) === Number(user?.id_sucursal_default),
-            )?.id ??
+            items.find((s) => Number(s.id) === getSucursalActiva(user))?.id ??
               items[0]?.id ??
               0,
           ),
@@ -132,7 +134,8 @@ export function useMesas() {
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoadingExternos(false);
-        if (externosRequest.current === controller) externosRequest.current = null;
+        if (externosRequest.current === controller)
+          externosRequest.current = null;
       });
   }, [sucursalId, error]);
 
@@ -148,31 +151,16 @@ export function useMesas() {
     return invalidate;
   }, [reload, loadPedidosExternos, invalidate]);
 
-  const changeSucursal = useCallback(
-    (id: number) => {
-      if (pending.current || id === sucursalId) return;
-      generation.current++;
-      mesasRequest.current?.abort();
-      setLoadingMesas(false);
-      setSalones([]);
-      setMesas([]);
-      setPedidosExternos([]);
-      setLoading(true);
-      setLoadingExternos(true);
-      setSucursalId(id);
-      setSelectedMesa(null);
+  const selectMesa = useCallback(
+    (mesa: Mesa | null) => {
+      pedidoRequest.current++;
+      setLoadingPedido(false);
+      setFeedback(null);
+      setSelectedMesa(mesa);
       setPedido(null);
     },
-    [sucursalId],
+    [setFeedback],
   );
-
-  const selectMesa = useCallback((mesa: Mesa | null) => {
-    pedidoRequest.current++;
-    setLoadingPedido(false);
-    setFeedback(null);
-    setSelectedMesa(mesa);
-    setPedido(null);
-  }, [setFeedback]);
 
   const loadPedido = useCallback(
     async (idPedido: number) => {
@@ -196,22 +184,33 @@ export function useMesas() {
 
   // Mantiene visible el avance de cocina sin vaciar ni bloquear el resumen.
   useEffect(() => {
-    if (!pedido?.id || ![2,3].includes(pedido.estado_pedido)) return;
+    if (!pedido?.id || ![2, 3].includes(pedido.estado_pedido)) return;
     const id = pedido.id;
     const controller = new AbortController();
     let consultando = false;
     async function refrescar() {
-      if (consultando || pending.current || document.visibilityState !== "visible") return;
+      if (
+        consultando ||
+        pending.current ||
+        document.visibilityState !== "visible"
+      )
+        return;
       consultando = true;
       const revision = pedidoRequest.current;
       try {
         const actualizado = await api.obtenerPedido(id, controller.signal);
-        if (!controller.signal.aborted && !pending.current && revision === pedidoRequest.current) {
-          setPedido(actual => actual?.id === id ? actualizado : actual);
+        if (
+          !controller.signal.aborted &&
+          !pending.current &&
+          revision === pedidoRequest.current
+        ) {
+          setPedido((actual) => (actual?.id === id ? actualizado : actual));
         }
       } catch {
         // Un fallo temporal se reintenta sin interrumpir las acciones del usuario.
-      } finally { consultando = false; }
+      } finally {
+        consultando = false;
+      }
     }
     const timer = window.setInterval(() => void refrescar(), 3000);
     const alVolver = () => void refrescar();
@@ -230,7 +229,12 @@ export function useMesas() {
     const user = getStoredUser();
     // El turno propio solo lo tiene quien abre caja. El mozo no lo necesita:
     // el backend usa un turno abierto de la sucursal al abrir el pedido.
-    if (!user || (!user.es_super_admin && !user.permisos?.includes(PermisoBanderas.TURNOS_VER))) return;
+    if (
+      !user ||
+      (!user.es_super_admin &&
+        !user.permisos?.includes(PermisoBanderas.TURNOS_VER))
+    )
+      return;
     try {
       const t = await api.getTurnoActivo(user.id);
       setTurnoActivo(t);
@@ -304,81 +308,183 @@ export function useMesas() {
   }, []);
 
   const abrirPedido = (values: AbrirPedidoValues) =>
-    mutate(async () => {
-      setPedido(await api.abrirPedido(values));
-    }, { titulo: "Pedido abierto", mensaje: "Ya puedes agregar productos." });
+    mutate(
+      async () => {
+        setPedido(await api.abrirPedido(values));
+      },
+      { titulo: "Pedido abierto", mensaje: "Ya puedes agregar productos." },
+    );
   const agregarItem = (values: AgregarItemValues) =>
-    mutate(async () => {
-      if (!pedido) throw new Error("Seleccione un pedido.");
-      setPedido(await api.agregarItem(pedido.id, values));
-    }, { titulo: "Producto agregado", mensaje: "Se agregó al pedido." });
+    mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        setPedido(await api.agregarItem(pedido.id, values));
+      },
+      { titulo: "Producto agregado", mensaje: "Se agregó al pedido." },
+    );
   const agregarItems = async (items: AgregarItemValues[]) => {
     let guardados = 0;
-    const ok = await mutate(async () => {
-      if (!pedido) throw new Error("Seleccione un pedido.");
-      for (const values of items) {
-        setPedido(await api.agregarItem(pedido.id, values));
-        guardados++;
-      }
-    }, { titulo: "Productos agregados", mensaje: `Se ${items.length === 1 ? "agregó 1 producto" : `agregaron ${items.length} productos`} al pedido.` });
+    const ok = await mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        for (const values of items) {
+          setPedido(await api.agregarItem(pedido.id, values));
+          guardados++;
+        }
+      },
+      {
+        titulo: "Productos agregados",
+        mensaje: `Se ${items.length === 1 ? "agregó 1 producto" : `agregaron ${items.length} productos`} al pedido.`,
+      },
+    );
     return { ok, guardados };
   };
   const comandar = () =>
-    mutate(async () => {
-      if (!pedido) throw new Error("Seleccione un pedido.");
-      setPedido(await api.comandarPedido(pedido.id));
-    }, { titulo: "Pedido comandado", mensaje: "Los productos se enviaron a preparación." });
+    mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        setPedido(await api.comandarPedido(pedido.id));
+      },
+      {
+        titulo: "Pedido comandado",
+        mensaje: "Los productos se enviaron a preparación.",
+      },
+    );
   const entregarItem = (idItem: number) =>
-    mutate(async () => {
-      const item = pedido?.items.find(i => i.id === idItem);
-      if (!pedido || ![2,3].includes(pedido.estado_pedido) || !item || item.estado !== 1 ||
-          item.tipo_linea === 3 || item.estado_preparacion !== 4)
-        throw new Error("Solo se pueden entregar platos listos.");
-      const objetivo = Number(item.cantidad) - Number(item.cantidad_cancelada);
-      if (objetivo <= Number(item.cantidad_entregada))
-        throw new Error("Este plato ya fue entregado.");
-      setPedido(await api.entregarItemPedido(pedido.id, item.id, objetivo));
-    }, { titulo: "Plato entregado", mensaje: "Plato entregado al cliente." });
-  const cancelarItem = (idItem: number, motivo: string) => mutate(async()=>{
-    const item=pedido?.items.find(i=>i.id===idItem);
-    const usuario=getStoredUser();
-    if(!pedido||!item||!usuario||![1,2].includes(item.estado_preparacion)||!motivo.trim())
-      throw new Error("Solo se puede cancelar desde el resumen antes de iniciar la preparación.");
-    setPedido(await api.anularItem(pedido.id,item.id,{id_usuario_autoriza:usuario.id,motivo:motivo.trim(),
-      cantidad_cancelada:Number(item.cantidad)-Number(item.cantidad_entregada),solo_sin_preparar:true}));
-  },{ titulo: "Plato cancelado", mensaje: "Se canceló la cantidad pendiente del plato." });
+    mutate(
+      async () => {
+        const item = pedido?.items.find((i) => i.id === idItem);
+        if (
+          !pedido ||
+          ![2, 3].includes(pedido.estado_pedido) ||
+          !item ||
+          item.estado !== 1 ||
+          item.tipo_linea === 3 ||
+          item.estado_preparacion !== 4
+        )
+          throw new Error("Solo se pueden entregar platos listos.");
+        const objetivo =
+          Number(item.cantidad) - Number(item.cantidad_cancelada);
+        if (objetivo <= Number(item.cantidad_entregada))
+          throw new Error("Este plato ya fue entregado.");
+        setPedido(await api.entregarItemPedido(pedido.id, item.id, objetivo));
+      },
+      { titulo: "Plato entregado", mensaje: "Plato entregado al cliente." },
+    );
+  const cancelarItem = (idItem: number, motivo: string) =>
+    mutate(
+      async () => {
+        const item = pedido?.items.find((i) => i.id === idItem);
+        const usuario = getStoredUser();
+        if (
+          !pedido ||
+          !item ||
+          !usuario ||
+          ![1, 2].includes(item.estado_preparacion) ||
+          !motivo.trim()
+        )
+          throw new Error(
+            "Solo se puede cancelar desde el resumen antes de iniciar la preparación.",
+          );
+        setPedido(
+          await api.anularItem(pedido.id, item.id, {
+            id_usuario_autoriza: usuario.id,
+            motivo: motivo.trim(),
+            cantidad_cancelada:
+              Number(item.cantidad) - Number(item.cantidad_entregada),
+            solo_sin_preparar: true,
+          }),
+        );
+      },
+      {
+        titulo: "Plato cancelado",
+        mensaje: "Se canceló la cantidad pendiente del plato.",
+      },
+    );
   const cambiarEstado = (estado_pedido: number) =>
-    mutate(async () => {
-      if (!pedido) throw new Error("Seleccione un pedido.");
-      setPedido(await api.cambiarEstadoPedido(pedido.id, { estado_pedido }));
-    }, { titulo: "Estado actualizado", mensaje: "Se actualizó el estado del pedido." });
-  const cerrarPedido = (accion:'precuenta'|'cobrar'|'credito',datos:{id_estacion?:number;tipo_comprobante?:number;medio_pago?:number;documento?:string}) =>
-    mutate(async()=>{if(!pedido)throw new Error('Seleccione un pedido.');setPedido(await api.cerrarPedido(pedido.id,accion,datos));},
-      accion==='precuenta'?{titulo:'Precuenta enviada',mensaje:`Precuenta enviada a la estación de caja. El pedido ${pedido?.codigo} queda por cobrar.`}
-        :accion==='credito'?{titulo:'Venta a crédito registrada',mensaje:'Cuenta por cobrar registrada.'}
-        :{titulo:'Cobro registrado',mensaje:`Se cobró el pedido ${pedido?.codigo ?? ''}.`.replace(' .','.')});
+    mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        setPedido(await api.cambiarEstadoPedido(pedido.id, { estado_pedido }));
+      },
+      {
+        titulo: "Estado actualizado",
+        mensaje: "Se actualizó el estado del pedido.",
+      },
+    );
+  const cerrarPedido = (
+    accion: "precuenta" | "cobrar" | "credito",
+    datos: {
+      id_estacion?: number;
+      tipo_comprobante?: number;
+      medio_pago?: number;
+      documento?: string;
+    },
+  ) =>
+    mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        setPedido(await api.cerrarPedido(pedido.id, accion, datos));
+      },
+      accion === "precuenta"
+        ? {
+            titulo: "Precuenta enviada",
+            mensaje: `Precuenta enviada a la estación de caja. El pedido ${pedido?.codigo} queda por cobrar.`,
+          }
+        : accion === "credito"
+          ? {
+              titulo: "Venta a crédito registrada",
+              mensaje: "Cuenta por cobrar registrada.",
+            }
+          : {
+              titulo: "Cobro registrado",
+              mensaje: `Se cobró el pedido ${pedido?.codigo ?? ""}.`.replace(
+                " .",
+                ".",
+              ),
+            },
+    );
   const descartar = () =>
-    mutate(async () => {
-      if (!pedido) throw new Error("Seleccione un pedido.");
-      await api.descartarPedido(pedido.id);
-      setPedido(null);
-    }, { titulo: "Pedido cancelado", mensaje: `El pedido ${pedido?.codigo ?? ""} se canceló porque no se agregaron productos.` });
-  const anular = (values: Pick<AnularValues,"motivo"|"destino_preparado"|"destino_insumos">) =>
-    mutate(async () => {
-      const usuario = getStoredUser();
-      if (!pedido || !usuario)
-        throw new Error("Seleccione un pedido e inicie sesión.");
-      await api.anularPedido(pedido.id, {
-        id_usuario_autoriza: usuario.id,
-        ...values,
-      });
-      setPedido(null);
-    }, { titulo: "Pedido anulado", mensaje: `Se anuló el pedido ${pedido?.codigo ?? ""}.`.replace(" .", ".") });
+    mutate(
+      async () => {
+        if (!pedido) throw new Error("Seleccione un pedido.");
+        await api.descartarPedido(pedido.id);
+        setPedido(null);
+      },
+      {
+        titulo: "Pedido cancelado",
+        mensaje: `El pedido ${pedido?.codigo ?? ""} se canceló porque no se agregaron productos.`,
+      },
+    );
+  const anular = (
+    values: Pick<
+      AnularValues,
+      "motivo" | "destino_preparado" | "destino_insumos"
+    >,
+  ) =>
+    mutate(
+      async () => {
+        const usuario = getStoredUser();
+        if (!pedido || !usuario)
+          throw new Error("Seleccione un pedido e inicie sesión.");
+        await api.anularPedido(pedido.id, {
+          id_usuario_autoriza: usuario.id,
+          ...values,
+        });
+        setPedido(null);
+      },
+      {
+        titulo: "Pedido anulado",
+        mensaje: `Se anuló el pedido ${pedido?.codigo ?? ""}.`.replace(
+          " .",
+          ".",
+        ),
+      },
+    );
 
   return {
     sucursales,
     sucursalId,
-    changeSucursal,
     salones,
     mesas,
     loading,

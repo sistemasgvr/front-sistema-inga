@@ -5,7 +5,7 @@ import InputField from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import { FormModal } from "@/components/ui/modal/FormModal";
 import { MAX_OBSERVACION, type Mesa, type AbrirPedidoValues } from "../types/mesas.types";
-import { LISTA_IDS, ListaSelect } from "@/modules/listas";
+import { LISTAS, ListaSelect } from "@/modules/listas";
 import { getStoredUser } from "@/modules/auth/services/auth.service";
 
 // Desde una mesa el pedido siempre es de tipo MESA; llevar y delivery tienen su propio modal.
@@ -84,7 +84,7 @@ function AbrirPedidoContent({
         <div>
           <Label>Tipo de pedido</Label>
           <ListaSelect
-            idLista={LISTA_IDS.PEDIDO_TIPO}
+            codigoLista={LISTAS.PEDIDO_TIPO}
             campoEtiqueta="codigo"
             codigos={CODIGOS_TIPO_MESA}
             disabled

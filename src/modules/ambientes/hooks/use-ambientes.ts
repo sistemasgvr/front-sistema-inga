@@ -2,7 +2,10 @@
 
 import { useFeedback } from "@/shared/hooks/use-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getStoredUser } from "@/modules/auth/services/auth.service";
+import {
+  getStoredUser,
+  getSucursalActiva,
+} from "@/modules/auth/services/auth.service";
 import * as api from "../services/ambientes.service";
 import type {
   Feedback,
@@ -51,11 +54,10 @@ export function useAmbientes() {
           ),
         );
         setSucursales(items);
+        // El backend solo devuelve la sucursal de la sesión («Trabajando en»).
         setSucursalId(
           Number(
-            items.find(
-              (s) => Number(s.id) === Number(user?.id_sucursal_default),
-            )?.id ??
+            items.find((s) => Number(s.id) === getSucursalActiva(user))?.id ??
               items[0]?.id ??
               0,
           ),
@@ -159,19 +161,9 @@ export function useAmbientes() {
     }
   }
 
-  function changeSucursal(id: number) {
-    if (pending.current || id === sucursalId) return;
-    generation.current++;
-    setSalones([]);
-    setMesas([]);
-    setLoading(true);
-    setSucursalId(id);
-  }
-
   return {
     sucursales,
     sucursalId,
-    changeSucursal,
     salones,
     mesas,
     loading,

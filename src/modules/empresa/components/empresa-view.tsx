@@ -9,6 +9,7 @@ import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { Combobox } from "@/components/form/Combobox";
 import { ConfiguracionSunatCard, usePermisosSunat } from "@/modules/sunat";
+import { useConsultaDocumento, type DistritoConsulta } from "@/modules/personas";
 import { useEmpresa } from "../hooks/use-empresa";
 import { useDistritos } from "../hooks/use-distritos";
 import type { EmpresaFormValues } from "../types/empresa.types";
@@ -26,6 +27,22 @@ export function EmpresaView() {
   const permisosSunat = usePermisosSunat();
   const [buscandoDistrito, setBuscandoDistrito] = useState(false);
   const distritos = useDistritos(buscandoDistrito);
+  // Consulta del RUC en SUNAT: completa el formulario; no guarda hasta pulsar Guardar.
+  const consulta = useConsultaDocumento();
+  const [distritoConsultado, setDistritoConsultado] = useState<DistritoConsulta | null>(null);
+
+  async function consultarRuc() {
+    const r = await consulta.consultar(values.ruc.trim());
+    if (!r) return;
+    if (r.distrito) setDistritoConsultado(r.distrito);
+    setValues((p) => ({
+      ...p,
+      razonSocial: r.razon_social ?? p.razonSocial,
+      nombreComercial: r.nombre_comercial ?? p.nombreComercial,
+      direccion: r.direccion ?? p.direccion,
+      idDistrito: r.distrito?.id ?? p.idDistrito,
+    }));
+  }
 
   useEffect(() => {
     if (!empresa) return;
@@ -62,12 +79,28 @@ export function EmpresaView() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <ComponentCard title="Datos de la empresa" desc="Aparecen en los comprobantes impresos y se informan a SUNAT como emisor.">
           <form onSubmit={submit} className="space-y-5">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[300px_minmax(0,1fr)]">
               <div>
                 <Label htmlFor="empresa_ruc">RUC *</Label>
-                <Input id="empresa_ruc" value={values.ruc} maxLength={11} placeholder="20123456789"
-                  onChange={(e) => setValues((p) => ({ ...p, ruc: e.target.value.replace(/\D/g, "") }))}
-                  error={Boolean(errors.ruc)} hint={errors.ruc} disabled={bloqueado} />
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Input id="empresa_ruc" value={values.ruc} maxLength={11} placeholder="20123456789"
+                      onChange={(e) => { consulta.limpiar(); setValues((p) => ({ ...p, ruc: e.target.value.replace(/\D/g, "") })); }}
+                      error={Boolean(errors.ruc || consulta.error)}
+                      hint={errors.ruc ?? consulta.error ?? (consulta.resultado
+                        ? `SUNAT: ${[consulta.resultado.estado, consulta.resultado.condicion].filter(Boolean).join(" · ") || "datos completados"}`
+                        : undefined)}
+                      disabled={bloqueado} />
+                  </div>
+                  {puedeEditar && (
+                    <Button type="button" size="sm" variant="outline" className="h-11 shrink-0" title="Consultar el RUC en SUNAT"
+                      disabled={bloqueado || !/^\d{11}$/.test(values.ruc.trim()) || consulta.cargando}
+                      onClick={() => void consultarRuc()}
+                      startIcon={<Icon name={consulta.cargando ? "mdi:loading" : "mdi:magnify"} size={18} className={consulta.cargando ? "animate-spin" : undefined} />}>
+                      Consultar
+                    </Button>
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="empresa_razon">Razón social *</Label>
@@ -104,6 +137,9 @@ export function EmpresaView() {
                   options={[
                     // El distrito guardado siempre figura, aunque no esté en la búsqueda actual.
                     ...(empresa?.distrito && !distritos.distritos.some((d) => d.id === empresa.distrito!.id) ? [empresa.distrito] : []),
+                    // El distrito que propuso la consulta del RUC también figura.
+                    ...(distritoConsultado && distritoConsultado.id !== empresa?.distrito?.id
+                      && !distritos.distritos.some((d) => d.id === distritoConsultado.id) ? [distritoConsultado] : []),
                     ...distritos.distritos,
                   ].map((d) => ({ value: String(d.id), label: nombreDistrito(d), sublabel: d.ubigeo ? `Ubigeo ${d.ubigeo}` : undefined }))}
                 />

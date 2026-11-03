@@ -30,6 +30,7 @@ export async function listVentas(
         tipo_comprobante: params.tipo_comprobante || undefined,
         medio_pago: params.medio_pago || undefined,
         estado_sunat: params.estado_sunat || undefined,
+        id_sucursal: params.id_sucursal || undefined,
       },
       signal,
     },

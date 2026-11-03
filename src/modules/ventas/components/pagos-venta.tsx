@@ -4,7 +4,7 @@ import { useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
-import { LISTA_IDS, useLista } from "@/modules/listas";
+import { LISTAS, useLista } from "@/modules/listas";
 import type { PagoVenta } from "../types/ventas.types";
 import { MEDIOS_CAMBIABLES, fechaHora, soles } from "../utils/formato";
 
@@ -18,7 +18,7 @@ type PagosVentaProps = {
 export function PagosVenta({ pagos, puedeCambiar, procesando, onCambiar }: PagosVentaProps) {
   const [editando, setEditando] = useState<number | null>(null);
   const [medio, setMedio] = useState<number | null>(null);
-  const medios = useLista(LISTA_IDS.MEDIO_PAGO, { enabled: puedeCambiar }).opciones
+  const medios = useLista(LISTAS.MEDIO_PAGO, { enabled: puedeCambiar }).opciones
     .filter((o) => o.valor_entero !== null && MEDIOS_CAMBIABLES.includes(Number(o.valor_entero)));
 
   const vigentes = pagos.filter((p) => p.estado === 1);

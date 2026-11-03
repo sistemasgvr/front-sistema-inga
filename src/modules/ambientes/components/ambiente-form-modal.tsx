@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { LISTA_IDS, opcionesParaSelect, useLista } from "@/modules/listas";
+import { LISTAS, opcionesParaSelect, useLista } from "@/modules/listas";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
@@ -156,7 +156,7 @@ export function MesaFormModal({
   const [capacidad, setCapacidad] = useState(
     Number(mesa?.capacidad_personas ?? 2),
   );
-  const estados = useLista(LISTA_IDS.MESA_ESTADO);
+  const estados = useLista(LISTAS.MESA_ESTADO);
   // El mantenimiento solo permite estas transiciones; nombres y valores llegan de BD.
   const opcionesEstado = opcionesParaSelect(
     estados.opciones.filter(

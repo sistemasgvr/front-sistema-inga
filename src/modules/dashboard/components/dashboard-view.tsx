@@ -7,7 +7,7 @@ import { DateRangePicker } from "@/components/form/DateRangePicker";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { NavTabs } from "@/components/ui/table/NavTabs";
-import { getStoredUser } from "@/modules/auth";
+import { FiltroSucursal, getStoredUser } from "@/modules/auth";
 import {
   estadoResultados,
   formatoMoneda,
@@ -97,6 +97,7 @@ export function DashboardView() {
             <div className="w-full sm:w-72">
               <DateRangePicker label="Período" value={d.rango} onChange={d.cambiarRango} max={hoy} />
             </div>
+            <FiltroSucursal className="w-full sm:w-60" value={d.sucursal} onChange={d.cambiarSucursal} />
             {CON_GRANULARIDAD.includes(pestana) && (
               <div role="group" aria-label="Agrupar por" className="inline-flex rounded-lg border border-gray-300 p-0.5 dark:border-gray-700">
                 {GRANULARIDADES.map((g) => (

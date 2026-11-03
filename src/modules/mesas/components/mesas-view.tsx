@@ -4,6 +4,7 @@ import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import ParametrosRuta from "@/components/common/ParametrosRuta";
 import Select from "@/components/form/Select";
 import Label from "@/components/form/Label";
+import { SucursalActivaCampo } from "@/modules/auth";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { useMesas } from "../hooks/use-mesas";
@@ -133,21 +134,10 @@ export function MesasView() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-56">
-            <Label>Sucursal</Label>
-            <Select
-              options={m.sucursales.map((s) => ({
-                value: String(s.id),
-                label: s.nombre,
-              }))}
-              defaultValue={String(m.sucursalId || "")}
-              disabled={m.loading || m.saving}
-              onChange={(v) => {
-                setSalonId(0);
-                m.changeSucursal(Number(v));
-              }}
-            />
-          </div>
+          <SucursalActivaCampo
+            className="w-56"
+            nombre={m.sucursales.find((s) => Number(s.id) === m.sucursalId)?.nombre}
+          />
           <div className="w-56">
             <Label>Salón</Label>
             <Select

@@ -98,6 +98,7 @@ export async function listGastos(
       anio: params.anio || undefined,
       mes: params.mes || undefined,
       medio_pago: params.medio_pago || undefined,
+      id_sucursal: params.id_sucursal || undefined,
     },
   });
 
@@ -165,6 +166,9 @@ export async function anularGasto(
 export async function getReporteMensual(
   anio?: number,
   mes?: number,
+  idSucursal?: number,
 ): Promise<ReporteMensual> {
-  return apiGet<ReporteMensual>(`${BASE}/reporte`, { params: { anio, mes } });
+  return apiGet<ReporteMensual>(`${BASE}/reporte`, {
+    params: { anio, mes, id_sucursal: idSucursal || undefined },
+  });
 }

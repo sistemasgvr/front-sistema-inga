@@ -13,20 +13,13 @@ export function obtenerLista(
   referencia: ListaReferencia,
   signal?: AbortSignal,
 ) {
-  if (
-    referencia === null ||
-    !Number.isSafeInteger(referencia) ||
-    referencia <= 0
-  ) {
-    return Promise.reject(
-      new Error(
-        "Configura el ID real de esta lista en lista-ids.ts. Debe ser un entero positivo.",
-      ),
-    );
+  if (!referencia?.trim()) {
+    return Promise.reject(new Error("Indica el código de la lista (ver LISTAS)."));
   }
-  return apiGet<ListaConOpciones>(`/general/listas/${referencia}/opciones`, {
-    signal,
-  });
+  return apiGet<ListaConOpciones>(
+    `/general/listas/codigo/${encodeURIComponent(referencia)}/opciones`,
+    { signal },
+  );
 }
 
 export async function obtenerOpcionesLista(
@@ -36,7 +29,7 @@ export async function obtenerOpcionesLista(
 ) {
   if (!referencia) return [];
   if (tipoMovimiento !== undefined) {
-    return (await apiGet<ListaConOpciones>(`/general/listas/${referencia}/opciones`, {
+    return (await apiGet<ListaConOpciones>(`/general/listas/codigo/${encodeURIComponent(referencia)}/opciones`, {
       signal, params: { tipo_movimiento: tipoMovimiento },
     })).opciones;
   }

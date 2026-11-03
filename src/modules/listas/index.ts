@@ -1,5 +1,5 @@
-export { LISTA_IDS } from "./constants/lista-ids";
-export type { NombreLista } from "./constants/lista-ids";
+export { LISTAS } from "./constants/listas";
+export type { CodigoLista, NombreLista } from "./constants/listas";
 export {
   listarListas,
   obtenerLista,

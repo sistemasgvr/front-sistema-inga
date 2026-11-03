@@ -7,6 +7,7 @@ import {
   type ToggleStatusResult,
 } from "@/shared/api/api-client";
 import type {
+  ConsultaDocumento,
   ListPersonasParams,
   ListPersonasResult,
   PersonaBusquedaItem,
@@ -138,4 +139,12 @@ export async function togglePersonaStatus(
     return apiDelete<ToggleStatusResult>(`/personas/${persona.id}`);
   }
   return apiPatch<ToggleStatusResult>(`/personas/${persona.id}/activar`);
+}
+
+/** DNI (8) o RUC (11): el cliente ya registrado o los datos de RENIEC / SUNAT. No registra nada. */
+export function consultarDocumento(
+  numero: string,
+  signal?: AbortSignal,
+): Promise<ConsultaDocumento> {
+  return apiGet<ConsultaDocumento>(`/personas/consulta/${numero}`, { signal });
 }

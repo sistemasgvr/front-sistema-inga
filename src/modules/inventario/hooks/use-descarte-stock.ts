@@ -1,13 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { LISTA_IDS, obtenerOpcionesLista } from "@/modules/listas";
+import { LISTAS, obtenerOpcionesLista } from "@/modules/listas";
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 import { platosLibres } from "../utils/stock.utils";
 import type { StockItem } from "../types/inventario.types";
 
 // El modal monta el formulario con key por ítem: cada apertura empieza con el estado inicial.
 export function useDescarteStock(item: StockItem) {
- const tipos=useLazyOptions(useCallback((signal:AbortSignal)=>obtenerOpcionesLista(LISTA_IDS.ALM_TIPO_MOVIMIENTO,signal),[]));
+ const tipos=useLazyOptions(useCallback((signal:AbortSignal)=>obtenerOpcionesLista(LISTAS.ALM_TIPO_MOVIMIENTO,signal),[]));
  const libres=platosLibres(item);
  const [motivo,setMotivo]=useState("");
  const [cantidad,setCantidad]=useState(()=>Math.min(1,libres));

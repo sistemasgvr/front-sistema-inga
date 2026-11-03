@@ -5,7 +5,7 @@ import Label from "@/components/form/Label";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import { FormModal } from "@/components/ui/modal/FormModal";
-import { ListaSelect, LISTA_IDS } from "@/modules/listas";
+import { ListaSelect, LISTAS } from "@/modules/listas";
 import { useAjusteStock } from "../hooks/use-ajuste-stock";
 import type { StockItem, RegistrarMovimientoValues } from "../types/inventario.types";
 type Props={isOpen:boolean;onClose:()=>void;onSubmit:(v:RegistrarMovimientoValues)=>Promise<void>;stockItem:StockItem|null;isSaving:boolean};
@@ -27,7 +27,7 @@ export function AjusteStockModal({isOpen,onClose,onSubmit,stockItem,isSaving}:Pr
  catch(e){f.setError(e instanceof Error?e.message:'No se pudo registrar el ajuste');}
  }}>
  {f.error&&<ToastNotification variant="error" title="Error" message={f.error}/>}
- <Label>Motivo *</Label><ListaSelect idLista={LISTA_IDS.ALM_MOTIVO_MOVIMIENTO} campoValor="id" tipoMovimiento={f.tipo?.valor_entero??undefined}
+ <Label>Motivo *</Label><ListaSelect codigoLista={LISTAS.ALM_MOTIVO_MOVIMIENTO} campoValor="id" tipoMovimiento={f.tipo?.valor_entero??undefined}
  defaultValue={f.motivo} onChange={f.setMotivo} disabled={!f.tipo||isSaving} placeholder="Seleccione motivo"/>
  <Label>Efecto sobre el stock</Label><Select options={[{value:'1',label:'Aumentar (+)'},{value:'-1',label:'Disminuir (-)'}]}
  defaultValue={String(f.signo)} onChange={v=>f.setSigno(Number(v) as 1|-1)} disabled={isSaving}/>

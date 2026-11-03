@@ -1,8 +1,7 @@
 "use client";
 import { useCallback,useEffect,useRef,useState } from "react";
-import { getMe } from "@/modules/auth/services/auth.service";
+import { getMe, getSucursalActiva } from "@/modules/auth/services/auth.service";
 import { ApiError } from "@/shared/api/api-client";
-import { listSucursales } from "@/modules/mesas/services/mesas.service";
 import { listEstaciones } from "@/modules/estaciones/services/estaciones.service";
 import { useLazyOptions } from "@/shared/hooks/use-lazy-options";
 import { cambiarPreparacion,listarCocina } from "../services/cocina.service";
@@ -19,7 +18,8 @@ export function useCocina(){
   const [preparacion,setPreparacion]=useState<{item:CocinaItem|null}|null>(null);
   const [accion,setAccion]=useState<{item:CocinaItem;tipo:CocinaAccion}|null>(null);
   const request=useRef<AbortController|null>(null);
-  const sucursales=useLazyOptions(useCallback(()=>listSucursales(),[]));
+  // La cocina es la de la sucursal de la sesión («Trabajando en»).
+  useEffect(()=>{const id=getSucursalActiva();queueMicrotask(()=>setSucursal(id??0));},[]);
   const estaciones=useLazyOptions(useCallback(async()=>sucursal?(await listEstaciones({pagina:1,limite:100,estado:"activos",id_sucursal:sucursal})).registros:[],[sucursal]));
   useEffect(()=>{let active=true;void getMe().then(u=>{if(active){setPuedePreparar(!!(u?.es_super_admin||u?.permisos?.includes(P.PRODUCCION_PREPARAR)));setPuedeAnular(!!(u?.es_super_admin||u?.permisos?.includes(P.PEDIDOS_ANULAR)));}}).catch(()=>{});return()=>{active=false;};},[]);
   const reload=useCallback(()=>setRevision(v=>v+1),[]);
@@ -66,9 +66,8 @@ export function useCocina(){
     }catch(e){setError(e instanceof Error?e.message:"No se pudo actualizar el plato.");}
     finally{setSaving(false);reload();}
   }
-  return {sucursal,estacion,historial,pagina,setPagina,revision,items,total,loading,saving,error,sucursales,estaciones,
+  return {sucursal,estacion,historial,pagina,setPagina,revision,items,total,loading,saving,error,estaciones,
     puedePreparar,puedeAnular,preparacion,setPreparacion,accion,setAccion,estado,reload,
-    cambiarSucursal:(id:number)=>{setSucursal(id);setEstacion(0);setPagina(1);reload();},
     cambiarEstacion:(id:number)=>{setEstacion(id);setPagina(1);reload();},
     cambiarHistorial:(value:boolean)=>{setHistorial(value);setPagina(1);reload();}};
 }
