@@ -33,7 +33,12 @@ type Respuesta = { clave: string; datos: ListVentasResult | null; error: string 
 const mensaje = (error: unknown, porDefecto: string) =>
   error instanceof Error ? error.message : porDefecto;
 
-export function useVentas() {
+/**
+ * `activo` apaga la consulta del listado cuando la vista está en otra pestaña
+ * (SUNAT) o el usuario no tiene `ventas.listar`: así no se pide un listado que
+ * no se va a mostrar ni se dispara un error de permisos.
+ */
+export function useVentas({ activo = true }: { activo?: boolean } = {}) {
   const hoy = hoyLima();
   const [filtros, setFiltros] = useEstadoPersistente<FiltrosVentas>("ventas.filtros", {
     buscar: "",
@@ -75,6 +80,7 @@ export function useVentas() {
   const clave = `${JSON.stringify(consulta)}#${revision}`;
 
   useEffect(() => {
+    if (!activo) return;
     const controller = new AbortController();
     listVentas(consulta, controller.signal)
       .then((datos) => {
@@ -85,10 +91,10 @@ export function useVentas() {
           setRespuesta({ clave, datos: null, error: mensaje(error, "No se pudieron obtener las ventas.") });
       });
     return () => controller.abort();
-  }, [consulta, clave]);
+  }, [consulta, clave, activo]);
 
   const actual = respuesta?.clave === clave ? respuesta : null;
-  const isLoading = !actual;
+  const isLoading = activo && !actual;
 
   useEffect(() => {
     if (actual?.error) setFeedback({ variant: "error", title: "Error al cargar", message: actual.error });

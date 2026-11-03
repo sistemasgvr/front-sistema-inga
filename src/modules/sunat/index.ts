@@ -1,4 +1,6 @@
-export { SunatView } from "./components/sunat-view";
+export { BandejaTab } from "./components/bandeja-tab";
+export { LotesTab } from "./components/lotes-tab";
+export { ResumenDiaTab } from "./components/resumen-dia-tab";
 export { ConfiguracionSunatCard } from "./components/configuracion-sunat-card";
 export { ComprobanteSunatPanel } from "./components/comprobante-sunat-panel";
 export type { ComprobanteSunatResumen } from "./components/comprobante-sunat-panel";

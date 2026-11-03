@@ -1,11 +1,9 @@
-import { RoleGuard } from "@/modules/auth/guards/RoleGuard";
-import { SunatView } from "@/modules/sunat";
-import { PermisoBanderas } from "@/shared/constants/permiso-banderas";
+import { redirect } from "next/navigation";
 
+/**
+ * La bandeja de SUNAT se integró en /ventas como pestañas. La ruta se conserva
+ * porque hay enlaces y notificaciones antiguas que apuntan acá.
+ */
 export default function ComprobantesSunatPage() {
-  return (
-    <RoleGuard requiredPermission={PermisoBanderas.SUNAT_LISTAR}>
-      <SunatView />
-    </RoleGuard>
-  );
+  redirect("/ventas?tab=dia");
 }

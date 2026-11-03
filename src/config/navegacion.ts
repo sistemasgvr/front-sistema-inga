@@ -147,16 +147,13 @@ export const navItems: NavItem[] = [
     name: "Reportes",
     subItems: [
       {
-        icon: "mdi:receipt-text-check-outline",
-        name: "Ventas",
+        icon: "bi:cash",
+        name: "Comprobantes",
         path: "/ventas",
-        permission: PermisoBanderas.VENTAS_LISTAR,
-      },
-      {
-        icon: "ri:file-paper-2-line",
-        name: "Comprobantes SUNAT",
-        path: "/ventas/sunat",
-        permission: PermisoBanderas.SUNAT_LISTAR,
+        permission: [
+          PermisoBanderas.VENTAS_LISTAR,
+          PermisoBanderas.SUNAT_LISTAR,
+        ],
       },
       {
         name: "Reporte general",
