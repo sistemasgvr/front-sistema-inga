@@ -63,44 +63,52 @@ export function SelectorSucursal() {
         onClick={() => varias && setAbierto((a) => !a)}
         disabled={cambiando}
         aria-disabled={!varias}
-        title={titulo}
-        className={`flex h-11 items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-700 transition-colors disabled:opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 ${varias ? "hover:bg-gray-100 dark:hover:bg-gray-800" : "cursor-default"}`}
+        aria-haspopup={varias ? "listbox" : undefined}
+        aria-expanded={varias ? abierto : undefined}
+        aria-label={`Trabajando en ${titulo}${varias ? ". Cambiar sucursal" : ""}`}
+        title={`Trabajando en ${titulo}`}
+        className={`flex h-11 max-w-[14rem] items-center gap-2 rounded-full border border-gray-200 bg-white pr-2.5 pl-3 text-sm font-medium text-gray-700 transition-colors disabled:opacity-60 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 ${varias ? "hover:bg-gray-100 dark:hover:bg-gray-800" : "cursor-default"}`}
       >
-        <Icon name="mdi:store-marker-outline" size={18} />
-        <span className="hidden text-xs text-gray-400 sm:inline">Trabajando en</span>
-        <span className="flex min-w-0 flex-col items-start leading-tight">
-          <span className="max-w-[160px] truncate">{cambiando ? "Cambiando..." : actual.nombre}</span>
-          {empresa && (
-            <span className="hidden max-w-[160px] truncate text-[11px] font-normal text-gray-400 md:block">
-              {empresa}
-            </span>
-          )}
+        <Icon name="mdi:store-marker-outline" size={18} className="shrink-0" />
+        <span className="min-w-0 truncate">
+          {cambiando ? "Cambiando..." : actual.nombre}
         </span>
-        {varias && <Icon name="mdi:chevron-down" size={16} />}
+        {varias && (
+          <Icon name="mdi:chevron-down" size={16} className="shrink-0" />
+        )}
       </button>
       {abierto && (
-        <ul role="listbox" aria-label="Sucursales"
-          className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900">
-          {sucursales.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={s.id === actual.id}
-                onClick={() => void elegir(s.id)}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${s.id === actual.id
-                  ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"}`}
-              >
-                <span className="truncate">
-                  {s.nombre}
-                  {s.es_predeterminada && <span className="ml-1 text-xs font-normal text-gray-400">(predeterminada)</span>}
-                </span>
-                {s.id === actual.id && <Icon name="mdi:check" size={16} />}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-theme-lg dark:border-gray-800 dark:bg-gray-900">
+          {empresa && (
+            <p
+              className="truncate px-3 pt-1.5 pb-1 text-[11px] font-semibold tracking-wide text-gray-400 uppercase"
+              title={empresa}
+            >
+              {empresa}
+            </p>
+          )}
+          <ul role="listbox" aria-label="Sucursales">
+            {sucursales.map((s) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={s.id === actual.id}
+                  onClick={() => void elegir(s.id)}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${s.id === actual.id
+                    ? "bg-brand-50 font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400"
+                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"}`}
+                >
+                  <span className="truncate">
+                    {s.nombre}
+                    {s.es_predeterminada && <span className="ml-1 text-xs font-normal text-gray-400">(predeterminada)</span>}
+                  </span>
+                  {s.id === actual.id && <Icon name="mdi:check" size={16} />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

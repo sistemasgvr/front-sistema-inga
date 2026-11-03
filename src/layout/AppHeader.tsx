@@ -2,6 +2,7 @@
 
 import BrandLogo from "@/components/common/BrandLogo";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
+import BuscadorGlobal from "@/components/header/BuscadorGlobal";
 import UserDropdown from "@/components/header/UserDropdown";
 import { SelectorSucursal } from "@/modules/auth";
 import { Icon } from "@/components/ui/icon";
@@ -9,12 +10,11 @@ import { useSidebar } from "@/context/SidebarContext";
 import { IndicadorImpresion } from "@/modules/impresion";
 import { CampanaNotificaciones } from "@/modules/notificaciones";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -23,18 +23,6 @@ const AppHeader: React.FC = () => {
       toggleMobileSidebar();
     }
   };
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-        event.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   return (
     <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -56,6 +44,9 @@ const AppHeader: React.FC = () => {
             <BrandLogo size="sm" />
           </Link>
 
+          {/* Buscador: ícono en reposo, se despliega con clic o Ctrl/Cmd+K. */}
+          <BuscadorGlobal />
+
           <button
             type="button"
             onClick={() => setApplicationMenuOpen((prev) => !prev)}
@@ -64,29 +55,6 @@ const AppHeader: React.FC = () => {
           >
             <Icon name="mdi:dots-horizontal" size={22} />
           </button>
-
-          <div className="hidden lg:block">
-            <form>
-              <div className="relative">
-                <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                  <Icon name="mdi:magnify" size={20} />
-                </span>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Buscar o escribir comando..."
-                  className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pr-14 pl-12 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[430px] dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30"
-                />
-                <button
-                  type="button"
-                  className="absolute top-1/2 right-2.5 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs tracking-[-0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400"
-                >
-                  <span>⌘</span>
-                  <span>K</span>
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
 
         <div

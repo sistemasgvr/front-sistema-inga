@@ -6,6 +6,7 @@ import Pagination from "@/components/tables/Pagination";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
+import { useBusquedaDesdeUrl } from "@/shared/hooks/use-busqueda-desde-url";
 import { usePersonas } from "../hooks/use-personas";
 import type { PersonaRolFilter } from "../types/personas.types";
 import { PersonaFormModal } from "./persona-form-modal";
@@ -54,6 +55,12 @@ export function PersonasView() {
     closeConfirmModal,
     confirmToggleStatus,
   } = usePersonas();
+
+  // Si se llegó desde el buscador del header (`?buscar=`), arranca con ese filtro.
+  useBusquedaDesdeUrl((busqueda) => {
+    setSearchInput(busqueda);
+    setPagina(1);
+  });
 
   const isDesactivar = confirmPersona?.estado === 1;
 

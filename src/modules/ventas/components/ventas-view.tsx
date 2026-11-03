@@ -15,6 +15,7 @@ import { plural } from "@/shared/utils/plural";
 import Link from "next/link";
 import { ESTADO_SUNAT, usePermisosSunat } from "@/modules/sunat";
 import { FiltroSucursal } from "@/modules/auth";
+import { useBusquedaDesdeUrl } from "@/shared/hooks/use-busqueda-desde-url";
 
 const FILTROS_COMPROBANTE = [
   { valor: "", etiqueta: "Todos" },
@@ -36,6 +37,13 @@ export function VentasView() {
   // Se fija al montar la vista: el límite del calendario no debe cambiar de valor
   // a mitad de la sesión.
   const hoy = useMemo(() => hoyLima(), []);
+
+  // Si se llegó desde el buscador del header, se busca ese texto en todas las
+  // fechas: el filtro por defecto es «hoy» y escondería la venta buscada.
+  useBusquedaDesdeUrl((busqueda) => {
+    v.cambiarFiltro("buscar", busqueda);
+    v.cambiarRangoFechas("", "");
+  });
 
   return (
     <div>

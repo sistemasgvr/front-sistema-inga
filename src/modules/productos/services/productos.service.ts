@@ -33,6 +33,7 @@ export async function uploadProductoImagenApi(file: File): Promise<string> {
 
 export async function listProductos(
   params: ListProductosParams,
+  signal?: AbortSignal,
 ): Promise<ListProductosResult> {
   const { data, meta } = await apiGetPaginated<ProductoItem, ProductosResumen>(
     "/productos",
@@ -46,6 +47,7 @@ export async function listProductos(
         id_subcategoria: params.id_subcategoria || undefined,
         id_categoria: params.id_categoria || undefined,
       },
+      signal,
     },
   );
 

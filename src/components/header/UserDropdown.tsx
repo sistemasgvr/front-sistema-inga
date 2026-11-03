@@ -8,7 +8,6 @@ import {
   logout,
   type AuthUser,
 } from "@/modules/auth";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -47,26 +46,31 @@ export default function UserDropdown() {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={toggleDropdown}
-        className="dropdown-toggle flex items-center text-gray-700 dark:text-gray-400"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label={`Menú de ${displayName}`}
+        className="dropdown-toggle flex h-11 max-w-[15rem] items-center gap-2 rounded-full border border-gray-200 bg-white pr-2.5 pl-1.5 text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
       >
-        <span className="mr-3 h-11 w-11 overflow-hidden rounded-full">
-          <Image
-            width={44}
-            height={44}
-            src="/images/user/owner.jpg"
-            alt={displayName}
-          />
+        <span
+          aria-hidden="true"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+        >
+          <Icon name="mdi:account" size={18} />
         </span>
 
-        <span className="text-theme-sm mr-1 block font-medium">
+        <span
+          className="text-theme-sm block min-w-0 truncate font-medium"
+          title={displayName}
+        >
           {displayName}
         </span>
 
         <Icon
           name="mdi:chevron-down"
-          size={18}
-          className={`text-gray-500 transition-transform duration-200 dark:text-gray-400 ${
+          size={16}
+          className={`shrink-0 text-gray-500 transition-transform duration-200 dark:text-gray-400 ${
             isOpen ? "rotate-180" : ""
           }`}
         />

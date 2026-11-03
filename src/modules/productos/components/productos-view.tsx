@@ -14,6 +14,7 @@ import { useProductos } from "../hooks/use-productos";
 import { ProductosTable } from "./productos-table";
 import { ProductoFormModal } from "./producto-form-modal";
 import { RecetaFormModal } from "@/modules/recetas/components/receta-form-modal";
+import { useBusquedaDesdeUrl } from "@/shared/hooks/use-busqueda-desde-url";
 
 export function ProductosView() {
   const {
@@ -61,6 +62,12 @@ export function ProductosView() {
     closeConfirmModal,
     confirmToggleStatus,
   } = useProductos();
+
+  // Si se llegó desde el buscador del header (`?buscar=`), arranca con ese filtro.
+  useBusquedaDesdeUrl((busqueda) => {
+    setSearchInput(busqueda);
+    setPagina(1);
+  });
 
   const tipos = useTiposProducto();
   const tiposProductoBD = tipos.options;
