@@ -11,6 +11,7 @@ export const guardarEmpresa = (values: EmpresaFormValues) =>
     direccion: values.direccion.trim() || undefined,
     idDistrito: values.idDistrito ?? undefined,
     tasaIgv: Number(values.tasaIgv),
+    modoEntregaDirecta: values.modoEntregaDirecta,
   });
 
 export const buscarDistritos = (buscar: string, signal?: AbortSignal) =>

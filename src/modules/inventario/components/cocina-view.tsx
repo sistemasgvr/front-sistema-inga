@@ -189,7 +189,10 @@ export function CocinaView() {
                       Pendiente de entrega
                     </span>
                   )}
+                  {/* Solo un detalle "enviado" puede iniciar preparación: con
+                      entrega directa ya llega listo y este botón no aplica. */}
                   {!!item.id_receta &&
+                    item.estado_preparacion === 2 &&
                     Number(item.cantidad_pendiente) >
                       Number(item.cantidad_reservada) && (
                       <Button

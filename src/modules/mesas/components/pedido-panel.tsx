@@ -143,6 +143,9 @@ export function PedidoPanel({
   const hayPreparados = lineasActivas.some(i=>Number(i.cantidad_reservada)>0 ||
     (i.estado_preparacion===3 && unidadesSinPreparar(i)>0 && Number(i.subplatos_preparados??0)>0));
   const hayEnPreparacion = lineasActivas.some(i=>i.estado_preparacion===3 && unidadesSinPreparar(i)>0);
+  // Entrega directa: el plato ya está "por entregar" pero no se produjo nada,
+  // así que se puede cancelar mientras no tenga entregas.
+  const modoDirecto = Boolean(pedido?.modo_entrega_directa);
   const puedeAgregarItems =
     !!pedido && [1,2,3].includes(pedido.estado_pedido);
 
@@ -212,7 +215,7 @@ export function PedidoPanel({
           <div className="space-y-2">
             {pedido.items.map((item) => (
               <PedidoItemRow key={item.id} item={item}
-                onCancelar={tienePermisoAnular && [1,2,3].includes(pedido.estado_pedido) && item.estado===1 && item.tipo_linea!==3 && [1,2].includes(item.estado_preparacion)
+                onCancelar={tienePermisoAnular && [1,2,3].includes(pedido.estado_pedido) && item.estado===1 && item.tipo_linea!==3 && ([1,2].includes(item.estado_preparacion) || (modoDirecto && item.estado_preparacion===4))
                   ?()=>{setMotivoItem("");setItemCancelar(item);} :undefined}
                 entregando={saving || loading}
                 onEntregar={tienePermisoEntregar && [2,3].includes(pedido.estado_pedido) &&

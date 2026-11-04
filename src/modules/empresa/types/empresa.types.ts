@@ -17,6 +17,8 @@ export interface Empresa {
   distrito: Distrito | null;
   /** Tasa de IGV (%) del régimen vigente; se copia a cada pedido al abrirlo. */
   tasaIgv: number;
+  /** Entrega directa: al comandar los platos quedan «por entregar*/
+  modoEntregaDirecta: boolean;
   /** Logo original, para PDFs o la futura facturación electrónica. */
   logoUrl: string | null;
   /** Versión en blanco y negro que sale en los tickets (data URL PNG). */
@@ -30,4 +32,5 @@ export interface EmpresaFormValues {
   direccion: string;
   idDistrito: number | null;
   tasaIgv: string;
+  modoEntregaDirecta: boolean;
 }

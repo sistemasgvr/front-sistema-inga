@@ -380,7 +380,10 @@ export function useMesas() {
           !pedido ||
           !item ||
           !usuario ||
-          ![1, 2].includes(item.estado_preparacion) ||
+          // En entrega directa el plato queda "por entregar" al comandar, pero
+          // nada se produjo: se puede cancelar mientras no se haya entregado.
+          (![1, 2].includes(item.estado_preparacion) &&
+            !(pedido.modo_entrega_directa && item.estado_preparacion === 4)) ||
           !motivo.trim()
         )
           throw new Error(

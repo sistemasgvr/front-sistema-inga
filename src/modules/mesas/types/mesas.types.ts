@@ -74,6 +74,7 @@ export type Pedido = {
   id_persona: number | null;
   nombre_cliente: string | null;
   telefono_cliente: string | null;
+  modo_entrega_directa?: boolean;
   id_mozo: number;
   nombre_mozo: string;
   id_turno: number;

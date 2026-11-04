@@ -8,13 +8,14 @@ import Input from "@/components/form/input/InputField";
 import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import { Combobox } from "@/components/form/Combobox";
+import Switch from "@/components/form/input/Switch";
 import { ConfiguracionSunatCard, usePermisosSunat } from "@/modules/sunat";
 import { useConsultaDocumento, type DistritoConsulta } from "@/modules/personas";
 import { useEmpresa } from "../hooks/use-empresa";
 import { useDistritos } from "../hooks/use-distritos";
 import type { EmpresaFormValues } from "../types/empresa.types";
 
-const VACIO: EmpresaFormValues = { ruc: "", razonSocial: "", nombreComercial: "", direccion: "", idDistrito: null, tasaIgv: "18" };
+const VACIO: EmpresaFormValues = { ruc: "", razonSocial: "", nombreComercial: "", direccion: "", idDistrito: null, tasaIgv: "18", modoEntregaDirecta: false };
 
 const nombreDistrito = (d: { distrito: string; provincia: string; departamento: string }) =>
   `${d.distrito} - ${d.provincia} - ${d.departamento}`;
@@ -53,6 +54,7 @@ export function EmpresaView() {
       direccion: empresa.direccion ?? "",
       idDistrito: empresa.idDistrito,
       tasaIgv: String(empresa.tasaIgv ?? 18),
+      modoEntregaDirecta: Boolean(empresa.modoEntregaDirecta),
     }));
   }, [empresa]);
 
@@ -149,6 +151,24 @@ export function EmpresaView() {
                 <Input id="empresa_igv" type="number" min="0" max="100" step={0.01} value={values.tasaIgv} disabled={bloqueado}
                   onChange={(e) => setValues((p) => ({ ...p, tasaIgv: e.target.value }))}
                   error={Boolean(errors.tasaIgv)} hint={errors.tasaIgv ?? "Según el régimen vigente. Aplica a los pedidos nuevos."} />
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+              <Switch
+                id="empresa_entrega_directa"
+                checked={values.modoEntregaDirecta}
+                disabled={bloqueado}
+                onChange={(valor) => setValues((p) => ({ ...p, modoEntregaDirecta: valor }))}
+                title="Al comandar, los platos quedan por entregar y cocina solo los ve"
+              />
+              <div className="min-w-0">
+                <Label htmlFor="empresa_entrega_directa">Entrega directa en cocina</Label>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Al comandar, los platos quedan «por entregar» y cocina solo los ve. La entrega
+                  descuenta primero el plato ya preparado y, si no hay, los insumos apartados.
+                  Apágalo para usar el flujo con comandas y «plato listo».
+                </p>
               </div>
             </div>
             {puedeEditar && (
