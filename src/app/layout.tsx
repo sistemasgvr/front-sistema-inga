@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   title: "Sistema Inga",
   description: "Sistema de gestión Inga",
   icons: {
-    icon: { url: "/images/logo/icono.webp", type: "image/webp" },
-    shortcut: "/images/logo/icono.webp",
+    icon: { url: "/images/logo/icono.png", type: "image/png" },
+    shortcut: "/images/logo/icono.png",
   },
 };
 
