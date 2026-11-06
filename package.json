@@ -5,6 +5,7 @@
   "scripts": {
     "test:notificaciones": "node --test test/notificaciones/*.test.mjs",
     "test:impresion": "node --test test/impresion/*.test.mjs",
+    "test:auth": "node --test test/auth/*.test.mjs",
     "test:caja": "node --test test/caja/*.test.mjs",
     "dev": "next dev",
     "build": "next build --webpack",

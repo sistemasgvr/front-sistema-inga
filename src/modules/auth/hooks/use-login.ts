@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/toast/ToastContext";
 import { useRouter } from "next/navigation";
-import { login } from "../services/auth.service";
+import { getStoredToken, login } from "../services/auth.service";
 import type { LoginFormErrors } from "../types/auth.types";
 
 export function useLogin() {
@@ -15,6 +15,9 @@ export function useLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => {
+    if (getStoredToken()) router.replace("/dashboard");
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

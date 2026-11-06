@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getStoredToken, getMe, AUTH_STORAGE_KEY } from "../services/auth.service";
+import { getStoredToken, comprobarSesion, AUTH_STORAGE_KEY } from "../services/auth.service";
+
+const REINTENTO_MS = 10_000;
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -11,36 +13,56 @@ type RequireAuthProps = {
 export function RequireAuth({ children }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [conSesion, setConSesion] = useState(false);
+  const [sinConexion, setSinConexion] = useState(false);
 
   useEffect(() => {
-    async function backgroundVerify() {
-      const token = getStoredToken();
-      
-      // Si no hay token, fuera de inmediato
-      if (!token) {
+    let activo = true;
+    let reintento: ReturnType<typeof setTimeout> | undefined;
+
+    async function verificar() {
+      // Si no hay token, fuera de inmediato y sin mostrar la vista
+      if (!getStoredToken()) {
         router.replace("/login");
         return;
       }
+      setConSesion(true);
 
-      try {
-        // Verificación silenciosa en segundo plano
-        const user = await getMe();
-        
-        // Si el backend responde que no hay usuario o está inactivo
-        if (!user) {
-          throw new Error("Sesión inválida");
-        }
-      } catch (error) {
-        // Si falla la validación por detrás, limpiamos y botamos al login
+      // Verificación silenciosa en segundo plano
+      const estado = await comprobarSesion();
+      if (!activo) return;
+
+      setSinConexion(estado === "sin-conexion");
+      if (estado === "invalida") {
         localStorage.removeItem(AUTH_STORAGE_KEY);
         sessionStorage.removeItem(AUTH_STORAGE_KEY);
         router.replace("/login");
+      } else if (estado === "sin-conexion") {
+        reintento = setTimeout(() => void verificar(), REINTENTO_MS);
       }
     }
 
-    void backgroundVerify();
+    void verificar();
+
+    return () => {
+      activo = false;
+      clearTimeout(reintento);
+    };
   }, [pathname, router]);
 
-  // Renderizamos los hijos de inmediato sin bloquear ni mostrar pantallas en blanco
-  return <>{children}</>;
+  if (!conSesion) return null;
+
+  return (
+    <>
+      {sinConexion && (
+        <div
+          role="status"
+          className="fixed top-3 left-1/2 z-99999 -translate-x-1/2 rounded-lg border border-warning-500 bg-warning-50 px-4 py-2 text-theme-sm font-medium text-gray-800 shadow-theme-lg"
+        >
+          Sin conexión con el servidor. Reintentando…
+        </div>
+      )}
+      {children}
+    </>
+  );
 }

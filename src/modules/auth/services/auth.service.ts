@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from "@/shared/api/api-client";
+import { ApiError, apiGet, apiPost } from "@/shared/api/api-client";
 import { limpiarEstadosPersistentes } from "@/shared/hooks/use-estado-persistente";
 import type {
   AuthUser,
@@ -18,9 +18,13 @@ export async function login(
     }>("/auth/login", {
       email: credentials.email.trim(),
       password: credentials.password,
+      rememberMe: Boolean(credentials.rememberMe),
     });
 
     if (typeof window !== "undefined" && data?.token) {
+      // localStorage se lee primero: una sesión anterior ahí taparía a la nueva.
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(AUTH_STORAGE_KEY);
       const storage = credentials.rememberMe ? localStorage : sessionStorage;
       storage.setItem(
         AUTH_STORAGE_KEY,
@@ -73,14 +77,28 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
-export async function getMe(): Promise<AuthUser | null> {
+export type EstadoSesion = "valida" | "invalida" | "sin-conexion";
+
+async function consultarSesion(): Promise<{ estado: EstadoSesion; usuario: AuthUser | null }> {
   try {
     const me = await apiGet<AuthUser>("/auth/me");
-    if (me) guardarUsuario({ id_empresa: me.id_empresa, sucursales: me.sucursales, id_sucursal: me.id_sucursal });
-    return me;
-  } catch {
-    return null;
+    if (!me) return { estado: "invalida", usuario: null };
+    guardarUsuario({ id_empresa: me.id_empresa, sucursales: me.sucursales, id_sucursal: me.id_sucursal });
+    return { estado: "valida", usuario: me };
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 401) {
+      return { estado: "invalida", usuario: null };
+    }
+    return { estado: "sin-conexion", usuario: getStoredUser() };
   }
+}
+
+export async function getMe(): Promise<AuthUser | null> {
+  return (await consultarSesion()).usuario;
+}
+
+export async function comprobarSesion(): Promise<EstadoSesion> {
+  return (await consultarSesion()).estado;
 }
 
 export function getSucursalActiva(user: AuthUser | null = getStoredUser()): number | null {
