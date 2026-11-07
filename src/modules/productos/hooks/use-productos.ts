@@ -430,7 +430,15 @@ export function useProductos() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const puedeEditarTipos = Boolean(
+    currentUser?.es_super_admin ||
+      currentUser?.sesion?.es_super_admin ||
+      (currentUser?.permisos ?? currentUser?.sesion?.permisos ?? []).includes(PermisoBanderas.PRODUCTOS_EDITAR),
+  );
+
   return {
+    puedeEditarTipos,
+    recargarProductos: loadProductos,
     registros,
     total,
     pagina,

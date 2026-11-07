@@ -9,7 +9,7 @@ import Button from "@/components/ui/button/Button";
 import { Icon } from "@/components/ui/icon";
 import Pagination from "@/components/tables/Pagination";
 import { ConfirmDialog } from "@/components/ui/modal/ConfirmDialog";
-import { useTiposProducto, TipoProductoFormModal } from "@/modules/tipos-producto";
+import { useTiposProducto, TipoProductoFormModal, TiposPermisosModal } from "@/modules/tipos-producto";
 import { useProductos } from "../hooks/use-productos";
 import { ProductosTable } from "./productos-table";
 import { ProductoFormModal } from "./producto-form-modal";
@@ -18,6 +18,8 @@ import { useBusquedaDesdeUrl } from "@/shared/hooks/use-busqueda-desde-url";
 
 export function ProductosView() {
   const {
+    puedeEditarTipos,
+    recargarProductos,
     registros,
     total,
     pagina,
@@ -83,6 +85,7 @@ export function ProductosView() {
 
   // Alta de un tipo de producto nuevo desde el "+" del filtro de tipo.
   const [isTipoModalOpen, setIsTipoModalOpen] = useState(false);
+  const [isPermisosTipoOpen, setIsPermisosTipoOpen] = useState(false);
 
   const categoriaSelectOptions = [
     { value: "", label: "Todas las categorías" },
@@ -144,8 +147,9 @@ export function ProductosView() {
         </button>
       </div>
 
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-<div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:max-w-4xl">
+      {/* Si no caben junto a los filtros, las acciones bajan a su propia línea. */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="grid min-w-[min(100%,44rem)] flex-1 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:max-w-4xl">
           <div>
             <Input
               type="search"
@@ -156,8 +160,8 @@ export function ProductosView() {
           </div>
 
           {/* Tipo: el "+" crea un tipo de producto nuevo sin salir de la vista. */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
               <Select
                 options={tipoSelectOptions}
                 onOpen={() => void tipos.load()} isLoading={tipos.isLoading} loadError={tipos.error}
@@ -169,7 +173,6 @@ export function ProductosView() {
             <AddOptionButton
               label="Crear un tipo de producto"
               onClick={() => setIsTipoModalOpen(true)}
-              className="mb-0.5"
             />
           </div>
 
@@ -196,9 +199,22 @@ export function ProductosView() {
           </div>
         </div>
 
-        <Button size="sm" type="button" onClick={openCreateModal} startIcon={<Icon name="mdi:plus" size={18} />}>
-          Nuevo Registro
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+          {puedeEditarTipos && (
+            <Button
+              size="sm"
+              variant="outline"
+              type="button"
+              onClick={() => setIsPermisosTipoOpen(true)}
+              startIcon={<Icon name="mdi:shield-lock-outline" size={18} />}
+            >
+              Permisos de tipos
+            </Button>
+          )}
+          <Button size="sm" type="button" onClick={openCreateModal} startIcon={<Icon name="mdi:plus" size={18} />}>
+            Nuevo Registro
+          </Button>
+        </div>
       </div>
 
       <ProductosTable
@@ -244,6 +260,17 @@ export function ProductosView() {
             setIsTipoModalOpen(false);
             void tipos.load();
             handleFilterTipo(nuevo.id);
+          }}
+        />
+      )}
+
+      {/* Los productos muestran reglas de su tipo: se refrescan junto con el catálogo. */}
+      {isPermisosTipoOpen && (
+        <TiposPermisosModal
+          onClose={() => setIsPermisosTipoOpen(false)}
+          onUpdated={() => {
+            void tipos.load();
+            void recargarProductos();
           }}
         />
       )}
